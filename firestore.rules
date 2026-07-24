@@ -1,0 +1,185 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- Helpers ----------
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function userRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isProfessional() {
+      return isSignedIn() && userRole() == 'professional';
+    }
+
+    // Vínculo profissional <-> paciente identificado por um id determinístico
+    // "{professionalId}_{patientId}", o que permite checar a existência com um
+    // simples exists()/get(), sem depender de queries dentro das regras.
+    function linkId(patientId) {
+      return request.auth.uid + '_' + patientId;
+    }
+
+    function isLinkedProfessional(patientId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/professionalPatientLinks/$(linkId(patientId))) &&
+        get(/databases/$(database)/documents/professionalPatientLinks/$(linkId(patientId))).data.status == 'active';
+    }
+
+    // Um paciente só acessa os próprios dados; a profissional só acessa pacientes vinculados a ela.
+    function canAccessPatient(patientId) {
+      return isSelf(patientId) || isLinkedProfessional(patientId);
+    }
+
+    function onlyFieldsChanged(fields) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(fields);
+    }
+
+    // ---------- users ----------
+    match /users/{uid} {
+      allow read: if isSelf(uid) || isLinkedProfessional(uid);
+      allow create: if isSelf(uid);
+      // Paciente edita seu próprio perfil/preferências; a profissional nunca escreve no doc do paciente.
+      allow update: if isSelf(uid);
+      allow delete: if false;
+    }
+
+    // ---------- professionals ----------
+    match /professionals/{uid} {
+      allow read: if isSignedIn();
+      allow create, update: if isSelf(uid);
+      allow delete: if false;
+    }
+
+    // ---------- patients ----------
+    match /patients/{patientId} {
+      allow read: if canAccessPatient(patientId);
+      // Criado pela profissional ao vincular, ou pelo próprio paciente no primeiro acesso.
+      allow create: if isLinkedProfessional(patientId) || isSelf(patientId);
+      allow update: if canAccessPatient(patientId);
+      allow delete: if false;
+    }
+
+    // ---------- professionalPatientLinks ----------
+    match /professionalPatientLinks/{id} {
+      allow read: if isSignedIn() && (resource.data.professionalId == request.auth.uid || resource.data.patientId == request.auth.uid);
+      allow create: if isProfessional()
+        && id == linkId(request.resource.data.patientId)
+        && request.resource.data.professionalId == request.auth.uid;
+      allow update: if isProfessional() && resource.data.professionalId == request.auth.uid;
+      allow delete: if false;
+    }
+
+    // ---------- routines ----------
+    match /routines/{id} {
+      allow read: if canAccessPatient(resource.data.patientId);
+      allow create: if isLinkedProfessional(request.resource.data.patientId) && request.resource.data.professionalId == request.auth.uid;
+      allow update, delete: if isLinkedProfessional(resource.data.patientId) && resource.data.professionalId == request.auth.uid;
+    }
+
+    // ---------- routineItems ----------
+    match /routineItems/{id} {
+      allow read: if canAccessPatient(resource.data.patientId);
+      allow create: if isLinkedProfessional(request.resource.data.patientId) && request.resource.data.professionalId == request.auth.uid;
+      // A profissional edita tudo; o paciente só pode atualizar o campo "status" (ex.: atividades únicas concluídas).
+      allow update: if (isLinkedProfessional(resource.data.patientId) && resource.data.professionalId == request.auth.uid)
+        || (isSelf(resource.data.patientId) && onlyFieldsChanged(['status', 'updatedAt']));
+      allow delete: if false; // exclusão lógica via update de "active"
+    }
+
+    // ---------- completions ----------
+    match /completions/{id} {
+      allow read: if canAccessPatient(resource.data.patientId);
+      allow create: if isSelf(request.resource.data.patientId);
+      allow update, delete: if false; // registros do paciente são imutáveis (histórico confiável)
+    }
+
+    // ---------- emotionRecords ----------
+    match /emotionRecords/{id} {
+      allow read: if canAccessPatient(resource.data.patientId);
+      allow create: if isSelf(request.resource.data.patientId);
+      allow update, delete: if false;
+    }
+
+    // ---------- rewards ----------
+    match /rewards/{id} {
+      allow read: if canAccessPatient(resource.data.patientId);
+      allow create: if isLinkedProfessional(request.resource.data.patientId) && request.resource.data.professionalId == request.auth.uid;
+      allow update: if isLinkedProfessional(resource.data.patientId) && resource.data.professionalId == request.auth.uid;
+      allow delete: if false;
+    }
+
+    // ---------- rewardAchievements ----------
+    match /rewardAchievements/{id} {
+      allow read: if canAccessPatient(resource.data.patientId);
+      // Conquistas automáticas são criadas pelo backend (Admin SDK, ignora as regras).
+      // Pelo cliente, só a profissional entrega recompensas diretamente.
+      allow create: if isLinkedProfessional(request.resource.data.patientId)
+        && request.resource.data.awardedBy == 'professional'
+        && request.resource.data.approvedByProfessionalId == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    // ---------- notifications ----------
+    match /notifications/{id} {
+      allow read: if isSelf(resource.data.recipientId);
+      // Criadas pela profissional (nova atividade, mensagem, recompensa) para um paciente vinculado.
+      // Lembretes automáticos são criados pelo backend (Admin SDK).
+      allow create: if isLinkedProfessional(request.resource.data.recipientId);
+      allow update: if isSelf(resource.data.recipientId) && onlyFieldsChanged(['read']);
+      allow delete: if false;
+    }
+
+    // ---------- messages ----------
+    match /messages/{id} {
+      allow read: if canAccessPatient(resource.data.patientId);
+      allow create: if isLinkedProfessional(request.resource.data.patientId) && request.resource.data.professionalId == request.auth.uid;
+      allow update: if isSelf(resource.data.patientId) && onlyFieldsChanged(['read']);
+      allow delete: if false;
+    }
+
+    // ---------- reports ----------
+    match /reports/{id} {
+      allow read: if canAccessPatient(resource.data.patientId);
+      allow create: if isLinkedProfessional(request.resource.data.patientId) && request.resource.data.professionalId == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    // ---------- routineTemplates (modelos personalizados da profissional) ----------
+    match /routineTemplates/{id} {
+      allow read: if isSignedIn() && resource.data.professionalId == request.auth.uid;
+      allow create: if isProfessional() && request.resource.data.professionalId == request.auth.uid;
+      allow update, delete: if isProfessional() && resource.data.professionalId == request.auth.uid;
+    }
+
+    // ---------- auditLogs ----------
+    match /auditLogs/{id} {
+      allow read: if false; // consultado apenas via backend/console administrativo
+      allow create: if isSignedIn() && request.resource.data.actorId == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    // ---------- guardians / permissions (preparado para uso futuro) ----------
+    match /guardians/{uid} {
+      allow read: if isSelf(uid);
+      allow write: if false; // gestão via backend quando o recurso for habilitado
+    }
+
+    match /permissions/{id} {
+      allow read: if isSignedIn() && (resource.data.granteeId == request.auth.uid || resource.data.patientId == request.auth.uid);
+      allow write: if false;
+    }
+
+    // ---------- notificationDedup (uso interno das Cloud Functions) ----------
+    match /notificationDedup/{id} {
+      allow read, write: if false;
+    }
+  }
+}

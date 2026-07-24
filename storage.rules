@@ -1,0 +1,40 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isLinkedProfessional(patientId) {
+      return isSignedIn() &&
+        firestore.exists(/databases/(default)/documents/professionalPatientLinks/$(request.auth.uid + '_' + patientId)) &&
+        firestore.get(/databases/(default)/documents/professionalPatientLinks/$(request.auth.uid + '_' + patientId)).data.status == 'active';
+    }
+
+    function canAccessPatient(patientId) {
+      return isSelf(patientId) || isLinkedProfessional(patientId);
+    }
+
+    // Mídia de atividades (imagem/áudio) e relatórios em PDF de cada paciente.
+    match /patients/{patientId}/{allPaths=**} {
+      allow read: if canAccessPatient(patientId);
+      // Apenas a profissional vinculada envia arquivos (mídia de atividades e relatórios em PDF).
+      allow write: if isLinkedProfessional(patientId)
+        && request.resource.size < 15 * 1024 * 1024
+        && (request.resource.contentType.matches('image/.*')
+          || request.resource.contentType.matches('audio/.*')
+          || request.resource.contentType.matches('application/pdf'));
+      allow delete: if isLinkedProfessional(patientId);
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
