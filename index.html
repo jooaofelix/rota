@@ -18,6 +18,32 @@
   </head>
   <body>
     <div id="root"></div>
+    <!--
+      Rede de segurança de último recurso: roda antes do módulo React carregar. Se o
+      carregamento do app falhar silenciosamente (erro de import, script bloqueado, etc.)
+      e o #root continuar vazio, mostra uma mensagem visível em vez de deixar a tela em branco.
+    -->
+    <script>
+      (function () {
+        function showFallback() {
+          var root = document.getElementById("root");
+          if (!root || root.childElementCount > 0) return;
+          root.innerHTML =
+            '<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;text-align:center;font-family:system-ui,sans-serif;background:#fffdf9;color:#154238;">' +
+            '<span style="font-size:36px;">🌿</span>' +
+            '<p style="font-size:18px;font-weight:800;margin:0;">Não foi possível carregar o ROTA</p>' +
+            '<p style="font-size:14px;color:#5a8b7d;margin:0;max-width:320px;">Verifique sua conexão com a internet e tente novamente. Se o problema continuar, avise o suporte.</p>' +
+            '<button onclick="window.location.reload()" style="margin-top:8px;border:none;border-radius:16px;background:#2f9a7c;color:#fff;font-weight:700;font-size:14px;padding:12px 20px;">Recarregar</button>' +
+            "</div>";
+        }
+        window.addEventListener("error", showFallback);
+        window.addEventListener("unhandledrejection", showFallback);
+        // Verificação final: se depois de carregar tudo o #root continuar vazio, mostra o aviso.
+        window.addEventListener("load", function () {
+          setTimeout(showFallback, 3000);
+        });
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
