@@ -1,0 +1,11 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "rota",
+  "compatibility_date": "2025-01-01",
+  // Serve o build estático do Vite (SPA). Rotas desconhecidas (ex.: /hoje, /pacientes/xyz)
+  // caem no index.html em vez de 404, para o React Router assumir o roteamento no cliente.
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
+}
