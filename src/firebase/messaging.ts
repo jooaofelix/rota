@@ -41,6 +41,36 @@ export function currentNotificationPermission(): NotificationPermission | "unsup
   return Notification.permission;
 }
 
+/**
+ * Se a permissão do navegador já foi concedida antes, tenta obter/salvar o token FCM
+ * de novo, sem pedir permissão (silencioso). Isso existe porque a tela "Ativar
+ * notificações" só aparece quando a permissão ainda não foi concedida — se o token
+ * não tiver sido salvo com sucesso na primeira vez (ex.: erro de rede, bug já corrigido),
+ * o paciente ficaria com a permissão concedida mas sem token, sem nenhuma forma de
+ * tentar de novo pela interface. Chamado automaticamente a cada abertura do app.
+ */
+export async function ensureTokenRegistered(uid: string): Promise<void> {
+  if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
+
+  try {
+    const supported = await isSupported().catch(() => false);
+    if (!supported) return;
+
+    const registration = await navigator.serviceWorker.ready;
+    const messaging = getMessaging(firebaseApp);
+    const token = await getToken(messaging, {
+      vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,
+      serviceWorkerRegistration: registration,
+    });
+
+    if (token) {
+      await updateDoc(doc(db, "users", uid), { fcmTokens: arrayUnion(token) });
+    }
+  } catch (error) {
+    console.error("Falha ao registrar token FCM silenciosamente", error);
+  }
+}
+
 /** Notificações recebidas com o app em primeiro plano (aba aberta). */
 export async function listenForegroundMessages(callback: (title: string, body: string) => void) {
   const supported = await isSupported().catch(() => false);
