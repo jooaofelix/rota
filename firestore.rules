@@ -117,7 +117,14 @@ service cloud.firestore {
     match /completions/{id} {
       allow read: if canAccessPatient(resource.data.patientId);
       allow create: if isSelf(request.resource.data.patientId);
-      allow update, delete: if false; // registros do paciente são imutáveis (histórico confiável)
+      // O paciente pode corrigir o status de hoje (ex.: de "parcial" para "concluí
+      // totalmente") sobrescrevendo o próprio registro; mas não pode trocar de qual
+      // atividade, dia ou paciente esse registro pertence.
+      allow update: if isSelf(resource.data.patientId)
+        && request.resource.data.patientId == resource.data.patientId
+        && request.resource.data.routineItemId == resource.data.routineItemId
+        && request.resource.data.date == resource.data.date;
+      allow delete: if false;
     }
 
     // ---------- emotionRecords ----------
