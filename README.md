@@ -35,16 +35,11 @@ conquistas automáticas não podem depender só do cliente (o paciente poderia m
 progresso), e notificações agendadas/push em segundo plano exigem um processo rodando no
 servidor, não no navegador do usuário.
 
-> **Modo sem plano Blaze:** Cloud Functions exigem o plano pago (Blaze) do Firebase. Como isso é
-> opcional, o ROTA tem um modo alternativo em `src/services/rewardsEngine.ts`: o próprio app do
-> paciente calcula pontos, sequência de dias e conquistas automáticas (o paciente só altera os
-> próprios dados, permitido pelas regras do Firestore). O vínculo profissional↔paciente também
-> não depende de Cloud Function: o paciente compartilha um "código" (o próprio uid, visível em
-> Perfil > Seu código) em vez de a profissional buscar por e-mail. Nesse modo, ficam de fora:
-> notificações push (o lembrete só aparece na lista dentro do app, não como notificação do
-> celular com o app fechado) e os lembretes agendados por horário. Quando o projeto tiver Blaze,
-> basta publicar as Cloud Functions (`firebase deploy --only functions`) — elas assumem o cálculo
-> de pontos de forma mais robusta e habilitam push/lembretes, sem precisar mudar nada no app.
+> **Cloud Functions (plano Blaze):** pontos, sequência de dias, conquistas automáticas,
+> notificações push e lembretes agendados dependem das Cloud Functions, que exigem o plano pago
+> (Blaze) do Firebase — mesmo dentro da faixa gratuita de uso. O vínculo profissional↔paciente não
+> depende de Cloud Function: o paciente compartilha um "código" (o próprio uid, visível em Perfil
+> > Seu código) em vez de a profissional buscar por e-mail.
 
 ## 3. Tecnologias
 
@@ -127,21 +122,18 @@ código no app do paciente) em vez de buscar por e-mail — assim nenhuma profis
 
 - Antes de pedir permissão do navegador, sempre mostramos uma tela explicando o benefício
   (`NotificationPrimer`).
-- Token FCM salvo em `users.fcmTokens`. **Com Blaze**: envio de push feito por Cloud Functions
+- Token FCM salvo em `users.fcmTokens`. Envio de push feito por Cloud Functions
   (`onNotificationCreate` dispara ao criar qualquer doc em `notifications`) e lembretes automáticos
   (`routineReminders`, roda a cada 10 min: atividade próxima, no horário, atrasada; resumo diário
-  às 20h; resumos de período às 7h30/12h30/18h30). **Sem Blaze**: os avisos ainda aparecem na lista
-  de notificações dentro do app (sininho), só não chegam como push com o app fechado.
+  às 20h; resumos de período às 7h30/12h30/18h30).
 - Paciente escolhe quais tipos de notificação quer receber em `users.notificationPrefs`.
 
 ## 9. Recompensas
 
 - Pontos, nível, sequência de dias, medalhas (`rewardAchievements`).
 - Automáticas: primeira atividade concluída, marcos de sequência (3/7/14/30/60/100 dias), período
-  do dia completo. Ids determinísticos evitam conquistas duplicadas. **Com Blaze** isso roda na
-  Cloud Function `onCompletionCreate`; **sem Blaze**, no próprio cliente do paciente
-  (`src/services/rewardsEngine.ts`), permitido pelas regras porque o paciente só altera os
-  próprios dados.
+  do dia completo. Ids determinísticos evitam conquistas duplicadas. Calculado pela Cloud Function
+  `onCompletionCreate` (Admin SDK), disparada ao criar um documento em `completions`.
 - Manuais: a profissional cria e também pode **entregar diretamente**, mesmo sem pontuação.
 
 ## 10. Relatórios
@@ -162,7 +154,7 @@ de gerar relatório para responsáveis/paciente, a tela avisa para revisar o que
 7. Conclusão de atividades
 8. Registro obrigatório de sentimento a cada conclusão
 9. Notificações (permissão explicada, push em segundo plano, lembretes agendados)
-10. Pontos e recompensas (automáticas no cliente ou via Cloud Function + manuais)
+10. Pontos e recompensas (automáticas via Cloud Function + manuais)
 11. Dashboard geral da profissional
 12. Dashboard individual por paciente (gráficos simples)
 13. Relatórios em PDF

@@ -2,7 +2,6 @@ import { addDoc, collection, onSnapshot, orderBy, query, serverTimestamp, update
 import { db } from "@/firebase/config";
 import type { CompletionDoc, EmotionRecordDoc, FeelingKey, RoutineItemDoc, SkipReasonKey } from "@/types";
 import { todayKey } from "@/utils/date";
-import { applyCompletionRewards } from "./rewardsEngine";
 
 interface CompleteActivityInput {
   routineItem: RoutineItemDoc;
@@ -52,7 +51,8 @@ export async function completeActivity(input: CompleteActivityInput): Promise<vo
     });
   }
 
-  await applyCompletionRewards(routineItem, status, pointsAwarded, date);
+  // Pontos, sequência (streak) e conquistas automáticas são calculados pela Cloud
+  // Function `onCompletionCreate` (Admin SDK), disparada pela criação deste documento.
 }
 
 /** Registra que o paciente não conseguiu realizar a atividade, sem julgamento — apenas o motivo. */
