@@ -19,6 +19,9 @@ export function NotificationPrimer({ uid, onDone }: { uid: string; onDone?: (gra
         showToast("Seu navegador não tem suporte a notificações.", "info");
       }
       onDone?.(result === "granted");
+    } catch (error) {
+      console.error("Falha ao ativar notificações", error);
+      showToast("Não foi possível ativar as notificações agora. Tente novamente.", "error");
     } finally {
       setLoading(false);
     }
