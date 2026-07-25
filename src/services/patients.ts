@@ -1,6 +1,5 @@
 import { collection, doc, getDoc, onSnapshot, query, serverTimestamp, setDoc, updateDoc, where } from "firebase/firestore";
-import { httpsCallable } from "firebase/functions";
-import { db, functions } from "@/firebase/config";
+import { db } from "@/firebase/config";
 import type { PatientDoc, ProfessionalPatientLink, UserDoc } from "@/types";
 
 /** Lista os vínculos ativos de uma profissional (base para a lista de pacientes). */
@@ -35,40 +34,41 @@ export async function getPatient(patientId: string): Promise<PatientDoc | null> 
   return snapshot.exists() ? ({ uid: snapshot.id, ...snapshot.data() } as PatientDoc) : null;
 }
 
-interface FindPatientByEmailResult {
-  found: boolean;
-  patientId?: string;
-  name?: string;
-}
-
 /**
- * Convida/cadastra um paciente já existente (por e-mail, previamente criado no Auth)
- * e cria o vínculo com a profissional. A busca por e-mail passa por uma Cloud Function
- * (não por uma query direta do cliente) para que nenhuma profissional consiga listar
- * ou "descobrir" pacientes que ainda não estão vinculados a ela.
+ * Vincula um paciente já cadastrado à profissional, a partir do código do paciente
+ * (o próprio uid dele, mostrado no Perfil > "Seu código"). Usar um código em vez de
+ * busca por e-mail evita depender de uma Cloud Function (que exige o plano pago do
+ * Firebase) e evita expor uma forma de "descobrir" pacientes não vinculados: a
+ * profissional só consegue ler os dados do paciente depois que o vínculo já existe.
  */
-export async function linkPatientByEmail(professionalId: string, patientEmail: string): Promise<"linked" | "not_found"> {
-  const findPatientByEmail = httpsCallable<{ email: string }, FindPatientByEmailResult>(functions, "findPatientByEmail");
-  const { data } = await findPatientByEmail({ email: patientEmail.trim().toLowerCase() });
-  if (!data.found || !data.patientId) return "not_found";
-
-  const patientId = data.patientId;
+export async function linkPatientByCode(professionalId: string, patientCode: string): Promise<"linked" | "not_found"> {
+  const patientId = patientCode.trim();
+  if (!patientId) return "not_found";
 
   // Id determinístico (profissional_paciente): permite que as regras de segurança do
   // Firestore verifiquem o vínculo com um simples exists(), sem precisar de queries.
-  await setDoc(doc(db, "professionalPatientLinks", `${professionalId}_${patientId}`), {
+  const linkRef = doc(db, "professionalPatientLinks", `${professionalId}_${patientId}`);
+  await setDoc(linkRef, {
     professionalId,
     patientId,
     status: "active",
     createdAt: serverTimestamp(),
   });
 
+  // Só depois de criar o vínculo é que a profissional tem permissão para ler o
+  // usuário — por isso a validação do código acontece aqui, e não antes.
+  const userSnapshot = await getDoc(doc(db, "users", patientId));
+  if (!userSnapshot.exists() || userSnapshot.data().role !== "patient") {
+    await updateDoc(linkRef, { status: "ended" });
+    return "not_found";
+  }
+
   const patientRef = doc(db, "patients", patientId);
   const patientSnapshot = await getDoc(patientRef);
   if (!patientSnapshot.exists()) {
     await setDoc(patientRef, {
       uid: patientId,
-      name: data.name ?? "",
+      name: userSnapshot.data().name ?? "",
       points: 0,
       level: 1,
       currentStreak: 0,

@@ -2,13 +2,19 @@
 # Configura o backend Firebase do ROTA a partir da sua máquina local.
 #
 # Faz login na sua conta Google, liga este repositório ao seu projeto Firebase
-# e publica: regras do Firestore/Storage, índices e as Cloud Functions.
+# e publica: regras do Firestore/Storage, índices e (se você tiver o plano
+# Blaze) as Cloud Functions.
 #
 # Pré-requisitos antes de rodar este script:
 #   1. Ter criado o projeto no https://console.firebase.google.com
 #   2. Ter ativado Authentication (E-mail/senha + Google), Firestore, Storage
 #      e Cloud Messaging (ver README.md, seção "Configurar o Firebase")
-#   3. Ter o plano Blaze ativo (necessário para publicar Cloud Functions)
+#
+# O plano Blaze (pago) é OPCIONAL: sem ele, as regras/índices são publicados
+# normalmente e o app funciona (login, rotina, pontos, recompensas manuais).
+# Só ficam de fora: notificações push, lembretes agendados e o cálculo de
+# pontos/conquistas feito no servidor (nesse caso o próprio app do paciente
+# calcula isso, ver README.md).
 #
 # Uso:
 #   cd rota
@@ -44,15 +50,25 @@ $FIREBASE use --add
 
 echo
 echo "-> Publicando regras do Firestore, índices e regras do Storage..."
+echo "   (isso funciona no plano gratuito, sem precisar de Blaze)"
 $FIREBASE deploy --only firestore:rules,firestore:indexes,storage:rules
 
 echo
-echo "-> Instalando dependências das Cloud Functions..."
-(cd functions && npm install && npm run build)
+read -p "Você tem o plano Blaze ativo e quer publicar as Cloud Functions agora? [s/N] " resposta
+if [[ "$resposta" =~ ^[sS]$ ]]; then
+  echo
+  echo "-> Instalando dependências das Cloud Functions..."
+  (cd functions && npm install && npm run build)
 
-echo
-echo "-> Publicando as Cloud Functions..."
-$FIREBASE deploy --only functions
+  echo
+  echo "-> Publicando as Cloud Functions..."
+  $FIREBASE deploy --only functions
+else
+  echo
+  echo "   Ok, pulando as Cloud Functions. O app funciona normalmente sem elas"
+  echo "   (só ficam de fora notificações push e lembretes agendados)."
+  echo "   Quando quiser ativar, rode: firebase deploy --only functions"
+fi
 
 echo
 echo "== Concluído! =="

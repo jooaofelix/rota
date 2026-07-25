@@ -2,6 +2,7 @@ import { addDoc, collection, onSnapshot, orderBy, query, serverTimestamp, update
 import { db } from "@/firebase/config";
 import type { CompletionDoc, EmotionRecordDoc, FeelingKey, RoutineItemDoc, SkipReasonKey } from "@/types";
 import { todayKey } from "@/utils/date";
+import { applyCompletionRewards } from "./rewardsEngine";
 
 interface CompleteActivityInput {
   routineItem: RoutineItemDoc;
@@ -17,6 +18,8 @@ export async function completeActivity(input: CompleteActivityInput): Promise<vo
   const { routineItem, status, feeling, comment, neededHelp, approxMinutesUsed } = input;
   const date = todayKey();
 
+  const pointsAwarded = status === "completed" ? routineItem.points : Math.round(routineItem.points / 2);
+
   const completionRef = await addDoc(collection(db, "completions"), {
     routineItemId: routineItem.id,
     patientId: routineItem.patientId,
@@ -26,7 +29,7 @@ export async function completeActivity(input: CompleteActivityInput): Promise<vo
     comment: comment ?? "",
     neededHelp,
     approxMinutesUsed: approxMinutesUsed,
-    pointsAwarded: status === "completed" ? routineItem.points : Math.round(routineItem.points / 2),
+    pointsAwarded,
     completedAt: serverTimestamp(),
   } satisfies WithFieldValue<Omit<CompletionDoc, "id">>);
 
@@ -48,6 +51,8 @@ export async function completeActivity(input: CompleteActivityInput): Promise<vo
       status: status === "completed" ? "completed" : "partial",
     });
   }
+
+  await applyCompletionRewards(routineItem, status, pointsAwarded, date);
 }
 
 /** Registra que o paciente não conseguiu realizar a atividade, sem julgamento — apenas o motivo. */

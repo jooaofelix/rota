@@ -47,6 +47,12 @@ export function PatientProfilePage() {
   const permission = currentNotificationPermission();
   const prefs = userDoc?.notificationPrefs ?? DEFAULT_PREFS;
 
+  async function handleCopyCode() {
+    if (!firebaseUser) return;
+    await navigator.clipboard.writeText(firebaseUser.uid);
+    showToast("Código copiado!");
+  }
+
   async function togglePref(key: keyof NotificationPreferences) {
     if (!firebaseUser) return;
     const next = { ...prefs, [key]: !prefs[key] };
@@ -81,6 +87,19 @@ export function PatientProfilePage() {
           <div>
             <p className="font-bold text-brand-900">{userDoc?.name}</p>
             <p className="text-sm text-brand-400">{userDoc?.email}</p>
+          </div>
+        </div>
+
+        <div className="card">
+          <p className="font-bold text-brand-800">Seu código</p>
+          <p className="mt-1 text-sm text-brand-500">
+            Compartilhe esse código com sua profissional para ela te vincular à conta dela.
+          </p>
+          <div className="mt-2 flex items-center gap-2">
+            <code className="flex-1 truncate rounded-xl bg-brand-50 px-3 py-2 text-xs text-brand-700">{firebaseUser?.uid}</code>
+            <button onClick={handleCopyCode} className="shrink-0 rounded-xl bg-brand-500 px-3 py-2 text-xs font-bold text-white">
+              Copiar
+            </button>
           </div>
         </div>
 

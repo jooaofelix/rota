@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { subscribeToLinkedPatients, linkPatientByEmail } from "@/services/patients";
+import { subscribeToLinkedPatients, linkPatientByCode } from "@/services/patients";
 import { getPatientsOverview, type PatientOverview } from "@/services/professionalOverview";
 import { TopBar } from "@/components/common/TopBar";
 import { LoadingSpinner } from "@/components/common/LoadingSpinner";
@@ -24,7 +24,7 @@ export function PatientsListPage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [linkSheetOpen, setLinkSheetOpen] = useState(false);
-  const [linkEmail, setLinkEmail] = useState("");
+  const [linkCode, setLinkCode] = useState("");
   const [linking, setLinking] = useState(false);
 
   useEffect(() => {
@@ -57,13 +57,13 @@ export function PatientsListPage() {
     if (!firebaseUser) return;
     setLinking(true);
     try {
-      const result = await linkPatientByEmail(firebaseUser.uid, linkEmail.trim());
+      const result = await linkPatientByCode(firebaseUser.uid, linkCode.trim());
       if (result === "linked") {
         showToast("Paciente vinculado com sucesso!");
         setLinkSheetOpen(false);
-        setLinkEmail("");
+        setLinkCode("");
       } else {
-        showToast("Não encontramos um paciente com esse e-mail. Peça para ele criar a conta primeiro.", "error");
+        showToast("Código inválido. Peça para o paciente copiar o código dele em Perfil > Seu código.", "error");
       }
     } finally {
       setLinking(false);
@@ -151,14 +151,13 @@ export function PatientsListPage() {
       <BottomSheet open={linkSheetOpen} onClose={() => setLinkSheetOpen(false)} title="Vincular paciente">
         <form onSubmit={handleLink} className="flex flex-col gap-3">
           <p className="text-sm text-brand-500">
-            Digite o e-mail do paciente. Ele precisa já ter criado a conta dele no ROTA.
+            Peça para o paciente abrir <strong>Perfil &gt; Seu código</strong> no app dele, copiar o código e colar aqui.
           </p>
           <input
-            type="email"
             required
-            value={linkEmail}
-            onChange={(e) => setLinkEmail(e.target.value)}
-            placeholder="email@paciente.com"
+            value={linkCode}
+            onChange={(e) => setLinkCode(e.target.value)}
+            placeholder="Cole o código do paciente"
             className="input-field"
           />
           <button type="submit" className="btn-primary" disabled={linking}>

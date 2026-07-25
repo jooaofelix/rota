@@ -35,6 +35,17 @@ conquistas automáticas não podem depender só do cliente (o paciente poderia m
 progresso), e notificações agendadas/push em segundo plano exigem um processo rodando no
 servidor, não no navegador do usuário.
 
+> **Modo sem plano Blaze:** Cloud Functions exigem o plano pago (Blaze) do Firebase. Como isso é
+> opcional, o ROTA tem um modo alternativo em `src/services/rewardsEngine.ts`: o próprio app do
+> paciente calcula pontos, sequência de dias e conquistas automáticas (o paciente só altera os
+> próprios dados, permitido pelas regras do Firestore). O vínculo profissional↔paciente também
+> não depende de Cloud Function: o paciente compartilha um "código" (o próprio uid, visível em
+> Perfil > Seu código) em vez de a profissional buscar por e-mail. Nesse modo, ficam de fora:
+> notificações push (o lembrete só aparece na lista dentro do app, não como notificação do
+> celular com o app fechado) e os lembretes agendados por horário. Quando o projeto tiver Blaze,
+> basta publicar as Cloud Functions (`firebase deploy --only functions`) — elas assumem o cálculo
+> de pontos de forma mais robusta e habilitam push/lembretes, sem precisar mudar nada no app.
+
 ## 3. Tecnologias
 
 - React 18 + TypeScript + Vite
@@ -107,27 +118,30 @@ próprios modelos personalizados.
 
 Regras reais em `firestore.rules` e `storage.rules` (nunca abertas). O vínculo usa um **id
 determinístico** (`{professionalId}_{patientId}`) justamente para que as regras consigam validar
-o acesso com `exists()`/`get()`, sem precisar de queries dentro das regras. A busca de paciente
-por e-mail (para vincular) roda numa Cloud Function (`findPatientByEmail`) em vez de uma query
-direta do cliente — assim nenhuma profissional consegue "descobrir" pacientes não vinculados a
-ela.
+o acesso com `exists()`/`get()`, sem precisar de queries dentro das regras. Para vincular um
+paciente, a profissional usa o **código do paciente** (o próprio uid, visível em Perfil > Seu
+código no app do paciente) em vez de buscar por e-mail — assim nenhuma profissional consegue
+"descobrir" ou listar pacientes não vinculados a ela, sem precisar de Cloud Function nenhuma.
 
 ## 8. Notificações
 
 - Antes de pedir permissão do navegador, sempre mostramos uma tela explicando o benefício
   (`NotificationPrimer`).
-- Token FCM salvo em `users.fcmTokens`; envio de push feito por Cloud Functions
-  (`onNotificationCreate` dispara ao criar qualquer doc em `notifications`).
-- Lembretes automáticos (`routineReminders`, roda a cada 10 min): atividade próxima, no horário,
-  atrasada (com repetição opcional). Resumo diário às 20h. Resumos de período às 7h30/12h30/18h30.
+- Token FCM salvo em `users.fcmTokens`. **Com Blaze**: envio de push feito por Cloud Functions
+  (`onNotificationCreate` dispara ao criar qualquer doc em `notifications`) e lembretes automáticos
+  (`routineReminders`, roda a cada 10 min: atividade próxima, no horário, atrasada; resumo diário
+  às 20h; resumos de período às 7h30/12h30/18h30). **Sem Blaze**: os avisos ainda aparecem na lista
+  de notificações dentro do app (sininho), só não chegam como push com o app fechado.
 - Paciente escolhe quais tipos de notificação quer receber em `users.notificationPrefs`.
 
 ## 9. Recompensas
 
 - Pontos, nível, sequência de dias, medalhas (`rewardAchievements`).
-- Automáticas via Cloud Function `onCompletionCreate`: primeira atividade concluída, marcos de
-  sequência (3/7/14/30/60/100 dias), período do dia completo. Uso de ids determinísticos evita
-  conquistas duplicadas.
+- Automáticas: primeira atividade concluída, marcos de sequência (3/7/14/30/60/100 dias), período
+  do dia completo. Ids determinísticos evitam conquistas duplicadas. **Com Blaze** isso roda na
+  Cloud Function `onCompletionCreate`; **sem Blaze**, no próprio cliente do paciente
+  (`src/services/rewardsEngine.ts`), permitido pelas regras porque o paciente só altera os
+  próprios dados.
 - Manuais: a profissional cria e também pode **entregar diretamente**, mesmo sem pontuação.
 
 ## 10. Relatórios
@@ -142,13 +156,13 @@ de gerar relatório para responsáveis/paciente, a tela avisa para revisar o que
 1. Estrutura inicial do projeto (Vite + Tailwind + PWA)
 2. Login e autenticação (e-mail/senha, Google, recuperação de senha)
 3. Separação profissional/paciente com redirecionamento automático
-4. Cadastro e vínculo de pacientes (via Cloud Function, sem expor busca ao cliente)
+4. Cadastro e vínculo de pacientes (por código do paciente, sem expor busca ao cliente)
 5. Criação de rotina pela profissional + modelos prontos
 6. Tela de rotina do paciente (por período/hoje/próximos/pendentes/atrasadas/concluídas)
 7. Conclusão de atividades
 8. Registro obrigatório de sentimento a cada conclusão
 9. Notificações (permissão explicada, push em segundo plano, lembretes agendados)
-10. Pontos e recompensas (automáticas via Cloud Function + manuais)
+10. Pontos e recompensas (automáticas no cliente ou via Cloud Function + manuais)
 11. Dashboard geral da profissional
 12. Dashboard individual por paciente (gráficos simples)
 13. Relatórios em PDF

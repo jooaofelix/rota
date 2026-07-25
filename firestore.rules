@@ -119,20 +119,25 @@ service cloud.firestore {
     // ---------- rewardAchievements ----------
     match /rewardAchievements/{id} {
       allow read: if canAccessPatient(resource.data.patientId);
-      // Conquistas automáticas são criadas pelo backend (Admin SDK, ignora as regras).
-      // Pelo cliente, só a profissional entrega recompensas diretamente.
-      allow create: if isLinkedProfessional(request.resource.data.patientId)
-        && request.resource.data.awardedBy == 'professional'
-        && request.resource.data.approvedByProfessionalId == request.auth.uid;
+      // Com Cloud Functions (plano Blaze), conquistas automáticas são criadas pelo backend
+      // (Admin SDK, ignora as regras). Sem Blaze, o próprio cliente do paciente calcula e
+      // grava suas conquistas automáticas (awardedBy "system"), com id determinístico
+      // (ver rewardsEngine.ts) para evitar duplicidade. A profissional entrega recompensas
+      // manuais diretamente (awardedBy "professional").
+      allow create: if (isSelf(request.resource.data.patientId) && request.resource.data.awardedBy == 'system')
+        || (isLinkedProfessional(request.resource.data.patientId)
+            && request.resource.data.awardedBy == 'professional'
+            && request.resource.data.approvedByProfessionalId == request.auth.uid);
       allow update, delete: if false;
     }
 
     // ---------- notifications ----------
     match /notifications/{id} {
       allow read: if isSelf(resource.data.recipientId);
-      // Criadas pela profissional (nova atividade, mensagem, recompensa) para um paciente vinculado.
-      // Lembretes automáticos são criados pelo backend (Admin SDK).
-      allow create: if isLinkedProfessional(request.resource.data.recipientId);
+      // Criadas pela profissional (nova atividade, mensagem, recompensa) para um paciente vinculado,
+      // ou pelo próprio paciente para si mesmo (aviso de conquista calculada no cliente,
+      // sem Cloud Functions). Lembretes agendados por horário exigem Cloud Functions (Blaze).
+      allow create: if isLinkedProfessional(request.resource.data.recipientId) || isSelf(request.resource.data.recipientId);
       allow update: if isSelf(resource.data.recipientId) && onlyFieldsChanged(['read']);
       allow delete: if false;
     }
