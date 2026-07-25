@@ -51,7 +51,7 @@ $FIREBASE use --add
 echo
 echo "-> Publicando regras do Firestore, índices e regras do Storage..."
 echo "   (isso funciona no plano gratuito, sem precisar de Blaze)"
-$FIREBASE deploy --only firestore:rules,firestore:indexes,storage:rules
+$FIREBASE deploy --only firestore:rules,firestore:indexes,storage
 
 echo
 read -p "Você tem o plano Blaze ativo e quer publicar as Cloud Functions agora? [s/N] " resposta
