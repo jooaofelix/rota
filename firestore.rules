@@ -33,6 +33,14 @@ service cloud.firestore {
         get(/databases/$(database)/documents/professionalPatientLinks/$(linkId(patientId))).data.status == 'active';
     }
 
+    // Inverso de isLinkedProfessional: usado quando quem está lendo é o paciente,
+    // para checar se um determinado professionalId é a profissional vinculada a ele.
+    function isLinkedToProfessional(professionalId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/professionalPatientLinks/$(professionalId + '_' + request.auth.uid)) &&
+        get(/databases/$(database)/documents/professionalPatientLinks/$(professionalId + '_' + request.auth.uid)).data.status == 'active';
+    }
+
     // Um paciente só acessa os próprios dados; a profissional só acessa pacientes vinculados a ela.
     function canAccessPatient(patientId) {
       return isSelf(patientId) || isLinkedProfessional(patientId);
@@ -167,7 +175,9 @@ service cloud.firestore {
 
     // ---------- routineTemplates (modelos personalizados da profissional) ----------
     match /routineTemplates/{id} {
-      allow read: if isSignedIn() && resource.data.professionalId == request.auth.uid;
+      // A própria profissional sempre lê os modelos dela; o paciente lê os modelos da
+      // profissional vinculada a ele, para poder aplicar um modelo na própria rotina.
+      allow read: if isSignedIn() && (resource.data.professionalId == request.auth.uid || isLinkedToProfessional(resource.data.professionalId));
       allow create: if isProfessional() && request.resource.data.professionalId == request.auth.uid;
       allow update, delete: if isProfessional() && resource.data.professionalId == request.auth.uid;
     }

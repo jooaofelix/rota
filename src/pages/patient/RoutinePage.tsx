@@ -8,6 +8,7 @@ import { TopBar } from "@/components/common/TopBar";
 import { ActivityCard } from "@/components/patient/ActivityCard";
 import { ActivityActionSheet } from "@/components/patient/ActivityActionSheet";
 import { ActivityEditorSheet } from "@/components/patient/ActivityEditorSheet";
+import { TemplatePickerSheet } from "@/components/professional/TemplatePickerSheet";
 import { EmptyState } from "@/components/common/EmptyState";
 import { todayKey } from "@/utils/date";
 import { getTodayStatus, isScheduledOn, sortByPeriodAndTime } from "@/utils/schedule";
@@ -36,6 +37,7 @@ export function RoutinePage() {
   const [professionalId, setProfessionalId] = useState<string | null>(null);
   const [pendingRoutineId, setPendingRoutineId] = useState<string | null>(null);
   const [creatingRoutine, setCreatingRoutine] = useState(false);
+  const [pickingTemplate, setPickingTemplate] = useState(false);
 
   useEffect(() => {
     if (!patientId) return;
@@ -104,13 +106,21 @@ export function RoutinePage() {
         subtitle="Organizada por período do dia"
         action={
           professionalId && (
-            <button
-              onClick={handleNewActivity}
-              disabled={creatingRoutine}
-              className="rounded-full bg-brand-500 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-60"
-            >
-              + Nova atividade
-            </button>
+            <div className="flex gap-1.5">
+              <button
+                onClick={() => setPickingTemplate(true)}
+                className="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-brand-500"
+              >
+                📋 Modelo
+              </button>
+              <button
+                onClick={handleNewActivity}
+                disabled={creatingRoutine}
+                className="rounded-full bg-brand-500 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-60"
+              >
+                + Nova atividade
+              </button>
+            </div>
           )
         }
       />
@@ -186,6 +196,15 @@ export function RoutinePage() {
           routineId={activeRoutine?.id ?? pendingRoutineId ?? ""}
           existingItem={editingItem === "new" ? undefined : editingItem}
           onClose={() => setEditingItem(null)}
+        />
+      )}
+
+      {pickingTemplate && patientId && professionalId && (
+        <TemplatePickerSheet
+          professionalId={professionalId}
+          patientId={patientId}
+          createdBy="patient"
+          onClose={() => setPickingTemplate(false)}
         />
       )}
     </div>

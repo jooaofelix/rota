@@ -29,7 +29,8 @@ export async function saveTemplate(
 export async function applyTemplateToPatient(
   template: RoutineTemplateDoc,
   patientId: string,
-  professionalId: string
+  professionalId: string,
+  createdBy: "patient" | "professional" = "professional"
 ): Promise<string> {
   const routineId = await createRoutine(professionalId, patientId, {
     title: template.name,
@@ -56,7 +57,7 @@ export async function applyTemplateToPatient(
         icon: item.icon,
         points: item.points,
         order: index,
-        createdBy: "professional",
+        createdBy,
       },
       false
     );

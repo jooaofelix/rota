@@ -7,10 +7,11 @@ import { useToast } from "@/contexts/ToastContext";
 interface TemplatePickerSheetProps {
   professionalId: string;
   patientId: string;
+  createdBy?: "patient" | "professional";
   onClose: () => void;
 }
 
-export function TemplatePickerSheet({ professionalId, patientId, onClose }: TemplatePickerSheetProps) {
+export function TemplatePickerSheet({ professionalId, patientId, createdBy = "professional", onClose }: TemplatePickerSheetProps) {
   const { showToast } = useToast();
   const [templates, setTemplates] = useState<RoutineTemplateDoc[]>([]);
   const [applying, setApplying] = useState<string | null>(null);
@@ -20,7 +21,7 @@ export function TemplatePickerSheet({ professionalId, patientId, onClose }: Temp
   async function applyTemplate(template: RoutineTemplateDoc) {
     setApplying(template.id);
     try {
-      await applyTemplateToPatient(template, patientId, professionalId);
+      await applyTemplateToPatient(template, patientId, professionalId, createdBy);
       showToast(`Modelo "${template.name}" aplicado!`);
       onClose();
     } finally {
