@@ -1,4 +1,4 @@
-import { collection, doc, getDoc, onSnapshot, query, serverTimestamp, setDoc, updateDoc, where } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, onSnapshot, query, serverTimestamp, setDoc, updateDoc, where } from "firebase/firestore";
 import { db } from "@/firebase/config";
 import type { PatientDoc, ProfessionalPatientLink, UserDoc } from "@/types";
 
@@ -15,6 +15,18 @@ export function subscribeToLinkedPatients(
   return onSnapshot(q, (snapshot) => {
     callback(snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as ProfessionalPatientLink)));
   });
+}
+
+/** Busca a profissional vinculada a um paciente (usado quando o próprio paciente cria itens da rotina). */
+export async function getLinkedProfessionalId(patientId: string): Promise<string | null> {
+  const q = query(
+    collection(db, "professionalPatientLinks"),
+    where("patientId", "==", patientId),
+    where("status", "==", "active")
+  );
+  const snapshot = await getDocs(q);
+  const link = snapshot.docs[0]?.data() as ProfessionalPatientLink | undefined;
+  return link?.professionalId ?? null;
 }
 
 export function subscribeToPatient(patientId: string, callback: (patient: PatientDoc | null) => void) {

@@ -80,16 +80,27 @@ service cloud.firestore {
     // ---------- routines ----------
     match /routines/{id} {
       allow read: if canAccessPatient(resource.data.patientId);
-      allow create: if isLinkedProfessional(request.resource.data.patientId) && request.resource.data.professionalId == request.auth.uid;
+      // Criada pela profissional, ou pelo próprio paciente (para poder montar sua própria rotina).
+      allow create: if (isLinkedProfessional(request.resource.data.patientId) && request.resource.data.professionalId == request.auth.uid)
+        || isSelf(request.resource.data.patientId);
       allow update, delete: if isLinkedProfessional(resource.data.patientId) && resource.data.professionalId == request.auth.uid;
     }
 
     // ---------- routineItems ----------
     match /routineItems/{id} {
       allow read: if canAccessPatient(resource.data.patientId);
-      allow create: if isLinkedProfessional(request.resource.data.patientId) && request.resource.data.professionalId == request.auth.uid;
-      // A profissional edita tudo; o paciente só pode atualizar o campo "status" (ex.: atividades únicas concluídas).
+      // Criado pela profissional, ou pelo próprio paciente (que também pode montar sua própria rotina).
+      allow create: if (isLinkedProfessional(request.resource.data.patientId) && request.resource.data.professionalId == request.auth.uid)
+        || (isSelf(request.resource.data.patientId) && request.resource.data.createdBy == 'patient');
+      // A profissional sempre edita tudo. O paciente edita livremente as atividades que ele mesmo
+      // criou (createdBy "patient"); nas atividades criadas pela profissional, só pode atualizar o
+      // campo "status" (ex.: marcar como concluída).
       allow update: if (isLinkedProfessional(resource.data.patientId) && resource.data.professionalId == request.auth.uid)
+        || (isSelf(resource.data.patientId) && resource.data.createdBy == 'patient' && onlyFieldsChanged([
+              'title', 'description', 'instruction', 'period', 'time', 'date', 'durationMinutes',
+              'frequency', 'weekdays', 'category', 'priority', 'icon', 'points',
+              'notificationConfig', 'order', 'status', 'active', 'updatedAt'
+            ]))
         || (isSelf(resource.data.patientId) && onlyFieldsChanged(['status', 'updatedAt']));
       allow delete: if false; // exclusão lógica via update de "active"
     }

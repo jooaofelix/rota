@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { subscribeToRoutineItems } from "@/services/routines";
+import { createRoutine, subscribeToPatientRoutines, subscribeToRoutineItems } from "@/services/routines";
 import { subscribeToCompletionsForDate } from "@/services/completions";
-import type { CompletionDoc, RoutineItemDoc } from "@/types";
+import { getLinkedProfessionalId } from "@/services/patients";
+import type { CompletionDoc, RoutineDoc, RoutineItemDoc } from "@/types";
 import { TopBar } from "@/components/common/TopBar";
 import { ActivityCard } from "@/components/patient/ActivityCard";
 import { ActivityActionSheet } from "@/components/patient/ActivityActionSheet";
+import { ActivityEditorSheet } from "@/components/patient/ActivityEditorSheet";
 import { EmptyState } from "@/components/common/EmptyState";
 import { todayKey } from "@/utils/date";
 import { getTodayStatus, isScheduledOn, sortByPeriodAndTime } from "@/utils/schedule";
@@ -26,18 +28,45 @@ export function RoutinePage() {
   const { firebaseUser } = useAuth();
   const patientId = firebaseUser?.uid;
   const [items, setItems] = useState<RoutineItemDoc[]>([]);
+  const [routines, setRoutines] = useState<RoutineDoc[]>([]);
   const [completions, setCompletions] = useState<CompletionDoc[]>([]);
   const [tab, setTab] = useState<Tab>("today");
   const [activeItem, setActiveItem] = useState<RoutineItemDoc | null>(null);
+  const [editingItem, setEditingItem] = useState<RoutineItemDoc | "new" | null>(null);
+  const [professionalId, setProfessionalId] = useState<string | null>(null);
+  const [pendingRoutineId, setPendingRoutineId] = useState<string | null>(null);
+  const [creatingRoutine, setCreatingRoutine] = useState(false);
 
   useEffect(() => {
     if (!patientId) return;
     const unsub = [
       subscribeToRoutineItems(patientId, setItems),
+      subscribeToPatientRoutines(patientId, setRoutines),
       subscribeToCompletionsForDate(patientId, todayKey(), setCompletions),
     ];
     return () => unsub.forEach((u) => u());
   }, [patientId]);
+
+  useEffect(() => {
+    if (!patientId) return;
+    getLinkedProfessionalId(patientId).then(setProfessionalId);
+  }, [patientId]);
+
+  const activeRoutine = routines.find((r) => r.status === "active") ?? routines[0];
+
+  async function handleNewActivity() {
+    if (!patientId || !professionalId) return;
+    if (!activeRoutine) {
+      setCreatingRoutine(true);
+      try {
+        const newRoutineId = await createRoutine(professionalId, patientId, { title: "Minha rotina", description: "", templateKind: "custom" });
+        setPendingRoutineId(newRoutineId);
+      } finally {
+        setCreatingRoutine(false);
+      }
+    }
+    setEditingItem("new");
+  }
 
   const completionByItemId = useMemo(() => {
     const map = new Map<string, CompletionDoc>();
@@ -70,7 +99,21 @@ export function RoutinePage() {
 
   return (
     <div>
-      <TopBar title="Sua rotina" subtitle="Organizada por período do dia" />
+      <TopBar
+        title="Sua rotina"
+        subtitle="Organizada por período do dia"
+        action={
+          professionalId && (
+            <button
+              onClick={handleNewActivity}
+              disabled={creatingRoutine}
+              className="rounded-full bg-brand-500 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-60"
+            >
+              + Nova atividade
+            </button>
+          )
+        }
+      />
 
       <div className="flex gap-2 overflow-x-auto px-4 pb-3">
         {TABS.map((t) => (
@@ -125,7 +168,26 @@ export function RoutinePage() {
         )}
       </div>
 
-      {activeItem && <ActivityActionSheet item={activeItem} onClose={() => setActiveItem(null)} />}
+      {activeItem && (
+        <ActivityActionSheet
+          item={activeItem}
+          onClose={() => setActiveItem(null)}
+          onEdit={() => {
+            setEditingItem(activeItem);
+            setActiveItem(null);
+          }}
+        />
+      )}
+
+      {editingItem && patientId && professionalId && (
+        <ActivityEditorSheet
+          patientId={patientId}
+          professionalId={professionalId}
+          routineId={activeRoutine?.id ?? pendingRoutineId ?? ""}
+          existingItem={editingItem === "new" ? undefined : editingItem}
+          onClose={() => setEditingItem(null)}
+        />
+      )}
     </div>
   );
 }

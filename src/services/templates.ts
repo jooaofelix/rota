@@ -56,6 +56,7 @@ export async function applyTemplateToPatient(
         icon: item.icon,
         points: item.points,
         order: index,
+        createdBy: "professional",
       },
       false
     );

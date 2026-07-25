@@ -11,7 +11,13 @@ type Step = "choose" | "feeling" | "skip";
 
 const DIFFICULT_FEELINGS: FeelingKey[] = ["difficulty", "needed_help", "not_finished", "sad", "anxious", "angry"];
 
-export function ActivityActionSheet({ item, onClose }: { item: RoutineItemDoc; onClose: () => void }) {
+interface ActivityActionSheetProps {
+  item: RoutineItemDoc;
+  onClose: () => void;
+  onEdit?: () => void;
+}
+
+export function ActivityActionSheet({ item, onClose, onEdit }: ActivityActionSheetProps) {
   const { showToast } = useToast();
   const [step, setStep] = useState<Step>("choose");
   const [pendingStatus, setPendingStatus] = useState<"completed" | "partial">("completed");
@@ -75,6 +81,11 @@ export function ActivityActionSheet({ item, onClose }: { item: RoutineItemDoc; o
           <button className="btn-secondary" onClick={() => setStep("skip")}>
             ⏸️ Não consegui fazer
           </button>
+          {item.createdBy === "patient" && onEdit && (
+            <button className="text-center text-sm font-bold text-brand-500" onClick={onEdit}>
+              ✏️ Editar esta atividade
+            </button>
+          )}
         </div>
       )}
 

@@ -193,6 +193,8 @@ export interface RoutineItemDoc {
   status: ActivityStatus;
   order: number;
   active: boolean;
+  /** Quem criou o item: paciente cria e edita livremente as próprias atividades; a profissional sempre pode editar tudo. */
+  createdBy: "patient" | "professional";
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
