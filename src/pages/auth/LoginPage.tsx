@@ -27,7 +27,12 @@ function GoogleIcon() {
   );
 }
 
-const ROTATING_WORDS = ["direção", "acompanhamento", "crescimento", "progresso"];
+const ROTATING_WORDS = [
+  { word: "direção", feminine: true },
+  { word: "acompanhamento", feminine: false },
+  { word: "crescimento", feminine: false },
+  { word: "progresso", feminine: false },
+];
 
 function ParticleCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -168,13 +173,13 @@ export function LoginPage() {
               </span>
             </h1>
             <p className="text-sm sm:text-base text-brand-600 font-medium">
-              Seu{" "}
+              {ROTATING_WORDS[wordIndex].feminine ? "Sua" : "Seu"}{" "}
               <span className="inline-block min-w-32 text-center font-bold text-brand-700">
                 <span
                   key={wordIndex}
                   className="inline-block animate-word-rotate"
                 >
-                  {ROTATING_WORDS[wordIndex]}
+                  {ROTATING_WORDS[wordIndex].word}
                 </span>
               </span>
               , um passo de cada vez.
