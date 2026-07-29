@@ -168,7 +168,7 @@ export function LoginPage() {
               </span>
             </h1>
             <p className="text-sm sm:text-base text-brand-600 font-medium">
-              Sua{" "}
+              Seu{" "}
               <span className="inline-block min-w-32 text-center font-bold text-brand-700">
                 <span
                   key={wordIndex}
