@@ -25,6 +25,7 @@ export function ForgotPasswordPage() {
   return (
     <div className="app-container justify-center px-6 py-10">
       <div className="mb-6 text-center">
+        <img src="/logo-wordmark.png" alt="ROTA" className="mx-auto mb-4 h-16 w-auto" />
         <h1 className="text-2xl font-extrabold text-brand-900">Recuperar senha</h1>
         <p className="mt-1 text-sm text-brand-400">Enviaremos um link para redefinir sua senha.</p>
       </div>

@@ -47,9 +47,7 @@ export function LoginPage() {
   return (
     <div className="app-container justify-center px-6 py-10">
       <div className="mb-8 text-center">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-500 text-3xl text-white shadow-card">
-          🌿
-        </div>
+        <img src="/logo-icon.png" alt="ROTA" className="mx-auto mb-4 h-20 w-20 rounded-2xl shadow-card" />
         <h1 className="text-2xl font-extrabold text-brand-900">ROTA</h1>
         <p className="mt-1 text-sm text-brand-400">Sua rotina, um passo de cada vez.</p>
       </div>
