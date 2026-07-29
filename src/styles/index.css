@@ -76,3 +76,17 @@ button {
 .animate-pop-in {
   animation: pop-in 0.25s ease-out;
 }
+
+/* Modo desktop: opcional, ativado pelo usuário para telas maiores (PC) */
+html.desktop-mode body {
+  background: radial-gradient(circle at 50% 0%, #eefaf6 0%, #f6fbf9 45%, #eef6f2 100%);
+}
+html.desktop-mode .app-container {
+  max-width: 46rem;
+  box-shadow:
+    0 0 0 1px rgba(47, 154, 124, 0.08),
+    0 20px 60px rgba(20, 60, 50, 0.1);
+}
+html.desktop-mode .nav-inner {
+  max-width: 46rem;
+}
