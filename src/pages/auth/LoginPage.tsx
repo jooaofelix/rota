@@ -13,8 +13,8 @@ export function LoginPage() {
   // O login com Google volta pra cá depois de redirecionar pelo Google — completa o
   // cadastro/login aqui. (PublicOnly cuida de navegar assim que o usuário for reconhecido.)
   useEffect(() => {
-    completeGoogleRedirectSignIn().catch(() => {
-      setError("Não foi possível entrar com o Google. Tente novamente.");
+    completeGoogleRedirectSignIn().catch((err) => {
+      setError(`Não foi possível entrar com o Google. (${err?.code ?? err?.message ?? "erro desconhecido"})`);
     });
   }, []);
 
@@ -38,8 +38,8 @@ export function LoginPage() {
     try {
       // Redireciona para o Google; a página sai daqui e volta depois do login.
       await loginWithGoogle();
-    } catch {
-      setError("Não foi possível entrar com o Google. Tente novamente.");
+    } catch (err: any) {
+      setError(`Não foi possível entrar com o Google. (${err?.code ?? err?.message ?? "erro desconhecido"})`);
       setLoading(false);
     }
   }
