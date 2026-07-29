@@ -94,8 +94,9 @@ button {
 
 .animate-word-rotate {
   animation: word-rotate 4.8s ease-in-out;
-  border-bottom: 2px solid currentColor;
-  padding-bottom: 2px;
+  border-bottom: 2px solid rgb(28, 99, 82);
+  padding-bottom: 3px;
+  display: inline-block;
 }
 
 /* Elementos decorativos animados (telas de boas-vindas/login) */
