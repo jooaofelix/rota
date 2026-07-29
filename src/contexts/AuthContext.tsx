@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { doc, onSnapshot } from "firebase/firestore";
+import { doc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
 import type { User } from "firebase/auth";
 import { db, isFirebaseConfigured } from "@/firebase/config";
 import { subscribeToAuthChanges } from "@/firebase/auth";
@@ -50,8 +50,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribeDoc = onSnapshot(
       doc(db, "users", firebaseUser.uid),
       (snapshot) => {
-        setUserDoc(snapshot.exists() ? ({ uid: snapshot.id, ...snapshot.data() } as UserDoc) : null);
-        setLoading(false);
+        if (snapshot.exists()) {
+          setUserDoc({ uid: snapshot.id, ...snapshot.data() } as UserDoc);
+          setLoading(false);
+          return;
+        }
+
+        // Conta autenticada sem perfil ainda (ex.: primeiro login com Google via
+        // redirecionamento, cujo retorno o Safari às vezes "perde"): cria um perfil
+        // padrão de paciente agora, em vez de deixar a pessoa presa sem conseguir
+        // entrar. O próprio onSnapshot dispara de novo assim que o documento existir.
+        setDoc(doc(db, "users", firebaseUser.uid), {
+          uid: firebaseUser.uid,
+          role: "patient",
+          name: firebaseUser.displayName ?? "",
+          email: firebaseUser.email ?? "",
+          photoURL: firebaseUser.photoURL ?? "",
+          createdAt: serverTimestamp(),
+          lastLoginAt: serverTimestamp(),
+          active: true,
+        }).catch(() => setLoading(false));
       },
       () => setLoading(false)
     );
