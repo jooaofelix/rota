@@ -31,8 +31,8 @@ function GoogleIcon() {
 const ROTATING_WORDS = ["sua rotina", "sua direção", "seu acompanhamento", "seu crescimento", "seu progresso"];
 
 // Tempos casados com as animações do CSS (.rot-word / .rot-line)
-const EXIT_MS = 540; // risco recolhe + palavra sai
-const HOLD_MS = 4000; // de uma troca até o começo da próxima saída
+const EXIT_MS = 700; // risco recolhe + palavra sai
+const HOLD_MS = 4600; // de uma troca até o começo da próxima saída
 
 function RotatingWord() {
   const [index, setIndex] = useState(0);

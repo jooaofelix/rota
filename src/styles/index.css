@@ -85,27 +85,37 @@ button {
   position: relative;
   display: inline-block;
   white-space: nowrap;
-  transition: width 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: width 0.55s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* A opacidade fecha antes do deslize (55%) pra palavra não ficar "chegando"
+   ainda meio apagada — o resto do caminho é só o assentamento. */
 @keyframes rot-word-in {
-  from {
+  0% {
     opacity: 0;
-    transform: translateX(16px);
+    transform: translateX(14px);
+    filter: blur(3px);
   }
-  to {
+  55% {
+    opacity: 1;
+    filter: blur(0);
+  }
+  100% {
     opacity: 1;
     transform: translateX(0);
+    filter: blur(0);
   }
 }
 @keyframes rot-word-out {
-  from {
+  0% {
     opacity: 1;
     transform: translateX(0);
+    filter: blur(0);
   }
-  to {
+  100% {
     opacity: 0;
-    transform: translateX(-16px);
+    transform: translateX(-12px);
+    filter: blur(3px);
   }
 }
 @keyframes rot-line-in {
@@ -128,10 +138,10 @@ button {
 .rot-word {
   display: inline-block;
   /* palavra nova só entra depois que o risco antigo já recolheu */
-  animation: rot-word-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+  animation: rot-word-in 0.75s cubic-bezier(0.2, 0.7, 0.3, 1) 0.1s both;
 }
 .rot-word.is-exiting {
-  animation: rot-word-out 0.3s ease-in 0.22s both;
+  animation: rot-word-out 0.4s cubic-bezier(0.4, 0, 0.7, 0.3) 0.28s both;
 }
 
 .rot-line {
@@ -144,11 +154,11 @@ button {
   background: currentColor;
   transform-origin: left center;
   /* e o risco novo só cresce depois que a palavra já assentou */
-  animation: rot-line-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.5s both;
+  animation: rot-line-in 0.5s cubic-bezier(0.2, 0.7, 0.3, 1) 0.88s both;
 }
 .rot-line.is-exiting {
   transform-origin: right center;
-  animation: rot-line-out 0.28s ease-in both;
+  animation: rot-line-out 0.32s cubic-bezier(0.4, 0, 0.7, 0.3) both;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -162,6 +172,7 @@ button {
     animation: none;
     opacity: 1;
     transform: none;
+    filter: none;
   }
 }
 
