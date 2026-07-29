@@ -27,7 +27,7 @@ function GoogleIcon() {
   );
 }
 
-const ROTATING_WORDS = ["rotina", "direção", "acompanhamento", "crescimento", "progresso"];
+const ROTATING_WORDS = ["direção", "acompanhamento", "crescimento", "progresso"];
 
 function ParticleCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -116,7 +116,7 @@ export function LoginPage() {
   useEffect(() => {
     const interval = setInterval(() => {
       setWordIndex((prev) => (prev + 1) % ROTATING_WORDS.length);
-    }, 3000);
+    }, 5000);
     return () => clearInterval(interval);
   }, []);
 
