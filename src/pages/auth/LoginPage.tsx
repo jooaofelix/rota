@@ -1,5 +1,6 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import clsx from "clsx";
 import { completeGoogleRedirectSignIn, loginWithEmail, loginWithGoogle } from "@/firebase/auth";
 import { isFirebaseConfigured } from "@/firebase/config";
 import { useDesktopMode } from "@/hooks/useDesktopMode";
@@ -27,7 +28,54 @@ function GoogleIcon() {
   );
 }
 
-const ROTATING_WORDS = ["sua direção", "seu acompanhamento", "seu crescimento", "seu progresso"];
+const ROTATING_WORDS = ["sua rotina", "sua direção", "seu acompanhamento", "seu crescimento", "seu progresso"];
+
+// Tempos casados com as animações do CSS (.rot-word / .rot-line)
+const EXIT_MS = 540; // risco recolhe + palavra sai
+const HOLD_MS = 4000; // de uma troca até o começo da próxima saída
+
+function RotatingWord() {
+  const [index, setIndex] = useState(0);
+  const [exiting, setExiting] = useState(false);
+  const [width, setWidth] = useState<number>();
+  const wordRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    let swapTimer: ReturnType<typeof setTimeout>;
+    const cycle = setInterval(() => {
+      setExiting(true);
+      swapTimer = setTimeout(() => {
+        setIndex((prev) => (prev + 1) % ROTATING_WORDS.length);
+        setExiting(false);
+      }, EXIT_MS);
+    }, HOLD_MS);
+
+    return () => {
+      clearInterval(cycle);
+      clearTimeout(swapTimer);
+    };
+  }, []);
+
+  // A caixa acompanha a largura da palavra atual pra vírgula não pular de lugar.
+  // Medimos o span interno (largura natural do texto) e animamos a caixa até ela.
+  useLayoutEffect(() => {
+    function measure() {
+      if (wordRef.current) setWidth(wordRef.current.offsetWidth);
+    }
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [index]);
+
+  return (
+    <span className="rot-slot font-bold text-brand-700" style={{ width }}>
+      <span key={index} ref={wordRef} className={clsx("rot-word", exiting && "is-exiting")}>
+        {ROTATING_WORDS[index]}
+      </span>
+      <span aria-hidden className={clsx("rot-line", exiting && "is-exiting")} />
+    </span>
+  );
+}
 
 function ParticleCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -104,20 +152,12 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [wordIndex, setWordIndex] = useState(0);
   const { desktopMode, toggleDesktopMode } = useDesktopMode();
 
   useEffect(() => {
     completeGoogleRedirectSignIn().catch((err) => {
       setError(`Não foi possível entrar com o Google. (${err?.code ?? err?.message ?? "erro desconhecido"})`);
     });
-  }, []);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setWordIndex((prev) => (prev + 1) % ROTATING_WORDS.length);
-    }, 5000);
-    return () => clearInterval(interval);
   }, []);
 
   async function handleEmailLogin(e: React.FormEvent) {
@@ -168,13 +208,7 @@ export function LoginPage() {
               </span>
             </h1>
             <p className="text-sm sm:text-base text-brand-600 font-medium">
-              <span key={wordIndex} className="inline-block font-bold text-brand-700">
-                <span className="animate-word-text">
-                  {ROTATING_WORDS[wordIndex]}
-                </span>
-                <span className="animate-word-underline"></span>
-              </span>
-              , um passo de cada vez.
+              <RotatingWord />, um passo de cada vez.
             </p>
           </div>
 

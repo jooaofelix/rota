@@ -77,53 +77,92 @@ button {
   animation: pop-in 0.25s ease-out;
 }
 
-@keyframes word-text-enter {
-  0% {
-    opacity: 0;
-    transform: translateX(20px);
-  }
-  30% {
-    opacity: 1;
-    transform: translateX(0);
-  }
-  70% {
-    opacity: 1;
-    transform: translateX(0);
-  }
-  100% {
-    opacity: 0;
-    transform: translateX(-20px);
-  }
-}
-
-@keyframes word-underline-enter {
-  0% {
-    opacity: 0;
-  }
-  5% {
-    opacity: 1;
-  }
-  75% {
-    opacity: 1;
-  }
-  95% {
-    opacity: 0;
-  }
-  100% {
-    opacity: 0;
-  }
-}
-
-.animate-word-text {
+/* Palavra que troca sozinha no login.
+   A ordem é sempre: risco recolhe -> palavra sai -> palavra nova entra -> risco cresce.
+   Por isso cada etapa tem seu próprio delay, e o fill "both" segura o estado
+   durante o delay pra não piscar entre uma animação e outra. */
+.rot-slot {
+  position: relative;
   display: inline-block;
-  animation: word-text-enter 4.8s ease-in-out;
+  white-space: nowrap;
+  transition: width 0.4s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.animate-word-underline {
-  display: block;
+@keyframes rot-word-in {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes rot-word-out {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+}
+@keyframes rot-line-in {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+@keyframes rot-line-out {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+.rot-word {
+  display: inline-block;
+  /* palavra nova só entra depois que o risco antigo já recolheu */
+  animation: rot-word-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+}
+.rot-word.is-exiting {
+  animation: rot-word-out 0.3s ease-in 0.22s both;
+}
+
+.rot-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -4px;
   height: 2px;
-  background-color: rgb(28, 99, 82);
-  animation: word-underline-enter 4.8s ease-in-out;
+  border-radius: 999px;
+  background: currentColor;
+  transform-origin: left center;
+  /* e o risco novo só cresce depois que a palavra já assentou */
+  animation: rot-line-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.5s both;
+}
+.rot-line.is-exiting {
+  transform-origin: right center;
+  animation: rot-line-out 0.28s ease-in both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rot-slot {
+    transition: none;
+  }
+  .rot-word,
+  .rot-word.is-exiting,
+  .rot-line,
+  .rot-line.is-exiting {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* Elementos decorativos animados (telas de boas-vindas/login) */
