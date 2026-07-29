@@ -77,6 +77,29 @@ button {
   animation: pop-in 0.25s ease-out;
 }
 
+@keyframes word-rotate {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  5% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  90% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
+.animate-word-rotate {
+  animation: word-rotate 2.8s ease-in-out;
+}
+
 /* Elementos decorativos animados (telas de boas-vindas/login) */
 @keyframes blob-drift {
   0%,
