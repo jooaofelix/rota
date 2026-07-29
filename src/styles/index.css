@@ -80,24 +80,22 @@ button {
 @keyframes word-rotate {
   0% {
     opacity: 0;
-    transform: translateY(10px);
   }
-  15% {
+  10% {
     opacity: 1;
-    transform: translateY(0);
   }
-  80% {
+  90% {
     opacity: 1;
-    transform: translateY(0);
   }
   100% {
     opacity: 0;
-    transform: translateY(-10px);
   }
 }
 
 .animate-word-rotate {
   animation: word-rotate 4.8s ease-in-out;
+  border-bottom: 2px solid currentColor;
+  padding-bottom: 2px;
 }
 
 /* Elementos decorativos animados (telas de boas-vindas/login) */
