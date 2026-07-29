@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { loginWithEmail, loginWithGoogle } from "@/firebase/auth";
+import { completeGoogleRedirectSignIn, loginWithEmail, loginWithGoogle } from "@/firebase/auth";
 import { isFirebaseConfigured } from "@/firebase/config";
 
 export function LoginPage() {
@@ -9,6 +9,14 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // O login com Google volta pra cá depois de redirecionar pelo Google — completa o
+  // cadastro/login aqui. (PublicOnly cuida de navegar assim que o usuário for reconhecido.)
+  useEffect(() => {
+    completeGoogleRedirectSignIn().catch(() => {
+      setError("Não foi possível entrar com o Google. Tente novamente.");
+    });
+  }, []);
 
   async function handleEmailLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -28,11 +36,10 @@ export function LoginPage() {
     setError(null);
     setLoading(true);
     try {
+      // Redireciona para o Google; a página sai daqui e volta depois do login.
       await loginWithGoogle();
-      navigate("/", { replace: true });
     } catch {
       setError("Não foi possível entrar com o Google. Tente novamente.");
-    } finally {
       setLoading(false);
     }
   }

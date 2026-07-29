@@ -1,10 +1,11 @@
 import {
   GoogleAuthProvider,
   createUserWithEmailAndPassword,
+  getRedirectResult,
   onAuthStateChanged,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
-  signInWithPopup,
+  signInWithRedirect,
   signOut,
   updateProfile,
   type User,
@@ -25,29 +26,42 @@ export async function loginWithEmail(email: string, password: string) {
   return credential.user;
 }
 
+/**
+ * Login com Google via redirecionamento (não pop-up). Pop-ups de OAuth não funcionam de
+ * forma confiável no Safari — falham silenciosamente no modo privado e no app instalado
+ * na Tela de Início do iPhone ("The requested action is invalid"). O redirecionamento
+ * funciona em todos os casos: a página navega para o Google e volta.
+ */
 export async function loginWithGoogle() {
-  const credential = await signInWithPopup(auth, googleProvider);
-  const userRef = doc(db, "users", credential.user.uid);
+  await signInWithRedirect(auth, googleProvider);
+}
+
+/** Completa o login com Google após o redirecionamento de volta. Chamar ao carregar o app. */
+export async function completeGoogleRedirectSignIn(): Promise<User | null> {
+  const result = await getRedirectResult(auth);
+  if (!result) return null;
+
+  const userRef = doc(db, "users", result.user.uid);
   const snapshot = await getDoc(userRef);
 
   if (!snapshot.exists()) {
     // Novo usuário via Google: cria um cadastro pendente de definição de papel (paciente por padrão,
     // a profissional é sempre convidada/criada manualmente por um administrador do sistema).
     await setDoc(userRef, {
-      uid: credential.user.uid,
+      uid: result.user.uid,
       role: "patient" as UserRole,
-      name: credential.user.displayName ?? "",
-      email: credential.user.email ?? "",
-      photoURL: credential.user.photoURL ?? "",
+      name: result.user.displayName ?? "",
+      email: result.user.email ?? "",
+      photoURL: result.user.photoURL ?? "",
       createdAt: serverTimestamp(),
       lastLoginAt: serverTimestamp(),
       active: true,
     });
   } else {
-    await touchLastLogin(credential.user.uid);
+    await touchLastLogin(result.user.uid);
   }
 
-  return credential.user;
+  return result.user;
 }
 
 export async function registerWithEmail(name: string, email: string, password: string, role: UserRole = "patient") {
