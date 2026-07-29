@@ -82,11 +82,11 @@ button {
     opacity: 0;
     transform: translateX(20px);
   }
-  8% {
+  30% {
     opacity: 1;
     transform: translateX(0);
   }
-  82% {
+  70% {
     opacity: 1;
     transform: translateX(0);
   }
@@ -100,13 +100,13 @@ button {
   0% {
     opacity: 0;
   }
-  12% {
+  5% {
     opacity: 1;
   }
-  80% {
+  75% {
     opacity: 1;
   }
-  90% {
+  95% {
     opacity: 0;
   }
   100% {
