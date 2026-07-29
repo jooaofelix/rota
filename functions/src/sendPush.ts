@@ -27,16 +27,30 @@ export async function sendPushToUser(params: {
   notificationId?: string;
 }) {
   const userSnap = await db.collection("users").doc(params.recipientId).get();
-  if (!userSnap.exists) return;
+  if (!userSnap.exists) {
+    console.log("sendPushToUser: usuário não encontrado", params.recipientId);
+    return;
+  }
   const user = userSnap.data() as { fcmTokens?: string[]; notificationPrefs?: NotificationPreferences; active?: boolean };
 
-  if (user.active === false) return;
+  if (user.active === false) {
+    console.log("sendPushToUser: usuário inativo, não envia", params.recipientId);
+    return;
+  }
 
   const prefKey = PREF_KEY_BY_TYPE[params.type];
-  if (prefKey && user.notificationPrefs && user.notificationPrefs[prefKey] === false) return;
+  if (prefKey && user.notificationPrefs && user.notificationPrefs[prefKey] === false) {
+    console.log("sendPushToUser: preferência desativada para o tipo", params.type, params.recipientId);
+    return;
+  }
 
   const tokens = user.fcmTokens ?? [];
-  if (tokens.length === 0) return;
+  if (tokens.length === 0) {
+    console.log("sendPushToUser: nenhum token FCM salvo para o usuário", params.recipientId);
+    return;
+  }
+
+  console.log("sendPushToUser: enviando para", tokens.length, "token(s)", params.recipientId);
 
   const response = await messaging.sendEachForMulticast({
     tokens,
@@ -47,6 +61,15 @@ export async function sendPushToUser(params: {
       notification: { icon: "/icons/icon-192.png" },
     },
   });
+
+  console.log(
+    "sendPushToUser: resultado",
+    JSON.stringify({
+      successCount: response.successCount,
+      failureCount: response.failureCount,
+      errors: response.responses.filter((r) => !r.success).map((r) => r.error?.code),
+    })
+  );
 
   const invalidTokens: string[] = [];
   response.responses.forEach((r, i) => {
