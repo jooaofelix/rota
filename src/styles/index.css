@@ -77,26 +77,53 @@ button {
   animation: pop-in 0.25s ease-out;
 }
 
-@keyframes word-rotate {
+@keyframes word-text-enter {
+  0% {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  8% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  82% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+}
+
+@keyframes word-underline-enter {
   0% {
     opacity: 0;
   }
-  10% {
+  12% {
+    opacity: 1;
+  }
+  80% {
     opacity: 1;
   }
   90% {
-    opacity: 1;
+    opacity: 0;
   }
   100% {
     opacity: 0;
   }
 }
 
-.animate-word-rotate {
-  animation: word-rotate 4.8s ease-in-out;
-  border-bottom: 2px solid rgb(28, 99, 82);
-  padding-bottom: 3px;
+.animate-word-text {
   display: inline-block;
+  animation: word-text-enter 4.8s ease-in-out;
+}
+
+.animate-word-underline {
+  display: block;
+  height: 2px;
+  background-color: rgb(28, 99, 82);
+  animation: word-underline-enter 4.8s ease-in-out;
 }
 
 /* Elementos decorativos animados (telas de boas-vindas/login) */

@@ -168,11 +168,11 @@ export function LoginPage() {
               </span>
             </h1>
             <p className="text-sm sm:text-base text-brand-600 font-medium">
-              <span
-                key={wordIndex}
-                className="inline-block font-bold text-brand-700 animate-word-rotate"
-              >
-                {ROTATING_WORDS[wordIndex]}
+              <span key={wordIndex} className="inline-block font-bold text-brand-700">
+                <span className="animate-word-text">
+                  {ROTATING_WORDS[wordIndex]}
+                </span>
+                <span className="animate-word-underline"></span>
               </span>
               , um passo de cada vez.
             </p>
