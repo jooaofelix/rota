@@ -70,70 +70,88 @@ export function LoginPage() {
   }
 
   return (
-    <div className="app-container justify-center px-6 py-10">
-      <div className="mb-8 text-center animate-fade-in-up">
-        <img src="/logo-icon.png" alt="ROTA" className="mx-auto mb-4 h-20 w-20 rounded-2xl shadow-card" />
-        <h1 className="text-2xl font-extrabold text-brand-900">ROTA</h1>
+    <div className="app-container relative isolate justify-center overflow-hidden px-6 py-10">
+      {/* Fundo decorativo: manchas suaves flutuando devagar, só um clima de vida na tela */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 z-0">
+        <div
+          className="absolute -left-16 -top-16 h-56 w-56 rounded-full bg-brand-200/60 blur-3xl animate-blob"
+          style={{ animationDuration: "17s" }}
+        />
+        <div
+          className="absolute -right-20 top-28 h-64 w-64 rounded-full bg-feeling-good/50 blur-3xl animate-blob"
+          style={{ animationDuration: "21s", animationDelay: "-6s" }}
+        />
+        <div
+          className="absolute -bottom-24 left-6 h-72 w-72 rounded-full bg-brand-300/40 blur-3xl animate-blob"
+          style={{ animationDuration: "25s", animationDelay: "-11s" }}
+        />
+      </div>
+
+      <div className="relative z-10 mb-8 text-center animate-fade-in-up">
+        <div className="relative mx-auto mb-4 h-20 w-20">
+          <div className="absolute inset-0 rounded-full bg-brand-300/50 blur-xl animate-glow-pulse" />
+          <img
+            src="/logo-icon.png"
+            alt="ROTA"
+            className="relative h-20 w-20 rounded-2xl shadow-card animate-soft-float"
+          />
+        </div>
+        <h1 className="bg-gradient-to-r from-brand-700 to-brand-400 bg-clip-text text-3xl font-extrabold tracking-tight text-transparent">
+          ROTA
+        </h1>
         <p className="mt-1 text-sm text-brand-400">Sua rotina, um passo de cada vez.</p>
       </div>
 
       {!isFirebaseConfigured && (
-        <div className="mb-4 rounded-2xl bg-amber-100 p-3 text-xs font-semibold text-amber-800">
+        <div className="relative z-10 mb-4 rounded-2xl bg-amber-100 p-3 text-xs font-semibold text-amber-800">
           O Firebase ainda não foi configurado neste ambiente. Preencha o arquivo .env com as chaves do seu projeto.
         </div>
       )}
 
-      <form
-        onSubmit={handleEmailLogin}
-        className="flex flex-col gap-3 animate-fade-in-up"
-        style={{ animationDelay: "80ms" }}
-      >
-        <input
-          type="email"
-          required
-          placeholder="Seu e-mail"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="input-field"
-          autoComplete="email"
-        />
-        <input
-          type="password"
-          required
-          placeholder="Sua senha"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="input-field"
-          autoComplete="current-password"
-        />
-        {error && <p className="text-sm font-semibold text-rose-500">{error}</p>}
-        <Link to="/esqueci-senha" className="self-end text-sm font-bold text-brand-500">
-          Esqueci minha senha
-        </Link>
-        <button type="submit" className="btn-primary" disabled={loading}>
-          {loading ? "Entrando..." : "Entrar"}
-        </button>
-      </form>
+      <div className="card relative z-10 p-5 animate-fade-in-up" style={{ animationDelay: "80ms" }}>
+        <form onSubmit={handleEmailLogin} className="flex flex-col gap-3">
+          <input
+            type="email"
+            required
+            placeholder="Seu e-mail"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="input-field"
+            autoComplete="email"
+          />
+          <input
+            type="password"
+            required
+            placeholder="Sua senha"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="input-field"
+            autoComplete="current-password"
+          />
+          {error && <p className="text-sm font-semibold text-rose-500">{error}</p>}
+          <Link to="/esqueci-senha" className="self-end text-sm font-bold text-brand-500">
+            Esqueci minha senha
+          </Link>
+          <button type="submit" className="btn-primary" disabled={loading}>
+            {loading ? "Entrando..." : "Entrar"}
+          </button>
+        </form>
 
-      <div
-        className="my-5 flex items-center gap-3 text-xs font-semibold text-brand-300 animate-fade-in-up"
-        style={{ animationDelay: "160ms" }}
-      >
-        <div className="h-px flex-1 bg-brand-100" />
-        ou
-        <div className="h-px flex-1 bg-brand-100" />
+        <div className="my-5 flex items-center gap-3 text-xs font-semibold text-brand-300">
+          <div className="h-px flex-1 bg-brand-100" />
+          ou
+          <div className="h-px flex-1 bg-brand-100" />
+        </div>
+
+        <button onClick={handleGoogleLogin} className="btn-secondary" disabled={loading}>
+          <GoogleIcon /> Entrar com Google
+        </button>
       </div>
 
-      <button
-        onClick={handleGoogleLogin}
-        className="btn-secondary animate-fade-in-up"
-        style={{ animationDelay: "160ms" }}
-        disabled={loading}
+      <p
+        className="relative z-10 mt-6 text-center text-sm text-brand-400 animate-fade-in-up"
+        style={{ animationDelay: "240ms" }}
       >
-        <GoogleIcon /> Entrar com Google
-      </button>
-
-      <p className="mt-6 text-center text-sm text-brand-400 animate-fade-in-up" style={{ animationDelay: "240ms" }}>
         Ainda não tem conta?{" "}
         <Link to="/cadastro" className="font-bold text-brand-600">
           Criar conta de paciente
@@ -143,7 +161,7 @@ export function LoginPage() {
       <button
         type="button"
         onClick={toggleDesktopMode}
-        className="mt-8 text-center text-xs font-semibold text-brand-300 underline-offset-2 hover:text-brand-500 hover:underline animate-fade-in-up"
+        className="relative z-10 mt-8 text-center text-xs font-semibold text-brand-300 underline-offset-2 hover:text-brand-500 hover:underline animate-fade-in-up"
         style={{ animationDelay: "300ms" }}
       >
         {desktopMode ? "Usar versão para celular" : "💻 Usar versão para computador"}
