@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { createRoutine, subscribeToPatientRoutines, subscribeToRoutineItems } from "@/services/routines";
+import { createRoutine, subscribeToPatientRoutines, subscribeToRoutineItems, updateRoutineItem } from "@/services/routines";
 import { subscribeToCompletionsForDate } from "@/services/completions";
 import { getLinkedProfessionalId } from "@/services/patients";
 import type { CompletionDoc, RoutineDoc, RoutineItemDoc } from "@/types";
@@ -10,23 +10,30 @@ import { ActivityActionSheet } from "@/components/patient/ActivityActionSheet";
 import { ActivityEditorSheet } from "@/components/patient/ActivityEditorSheet";
 import { TemplatePickerSheet } from "@/components/professional/TemplatePickerSheet";
 import { EmptyState } from "@/components/common/EmptyState";
+import { PriorityBoard, type BoardItem } from "@/components/common/PriorityBoard";
+import { useToast } from "@/contexts/ToastContext";
 import { todayKey } from "@/utils/date";
 import { getTodayStatus, isScheduledOn, sortByPeriodAndTime } from "@/utils/schedule";
 import { PERIOD_LABELS } from "@/utils/constants";
 import clsx from "clsx";
 
-type Tab = "today" | "upcoming" | "pending" | "late" | "completed";
+type Tab = "today" | "priorities" | "upcoming" | "pending" | "late" | "completed";
 
 const TABS: Array<{ key: Tab; label: string }> = [
   { key: "today", label: "Hoje" },
+  { key: "priorities", label: "🎯 Prioridades" },
   { key: "upcoming", label: "Próximos dias" },
   { key: "pending", label: "Pendentes" },
   { key: "late", label: "Atrasadas" },
   { key: "completed", label: "Concluídas" },
 ];
 
+const LOCKED_HINT =
+  "Esta atividade foi criada pela sua profissional, então a prioridade dela é definida por ela. Fale com ela se quiser mudar.";
+
 export function RoutinePage() {
   const { firebaseUser } = useAuth();
+  const { showToast } = useToast();
   const patientId = firebaseUser?.uid;
   const [items, setItems] = useState<RoutineItemDoc[]>([]);
   const [routines, setRoutines] = useState<RoutineDoc[]>([]);
@@ -92,6 +99,30 @@ export function RoutinePage() {
       .filter((day) => day.items.length > 0);
   }, [items]);
 
+  // O quadro de prioridade usa a rotina inteira, não só o que cai hoje.
+  const priorityBoardItems: BoardItem[] = useMemo(
+    () =>
+      sortByPeriodAndTime(items).map((item) => ({
+        id: item.id,
+        title: item.title,
+        icon: item.icon,
+        priority: item.priority,
+        hint: [PERIOD_LABELS[item.period], item.time].filter(Boolean).join(" · "),
+        // As regras do Firestore só deixam o paciente mudar as atividades que ele mesmo criou.
+        locked: item.createdBy === "professional",
+      })),
+    [items]
+  );
+
+  async function handlePriorityChange(next: BoardItem[]) {
+    const changed = next.filter((b) => items.find((i) => i.id === b.id)?.priority !== b.priority);
+    try {
+      await Promise.all(changed.map((b) => updateRoutineItem(b.id, { priority: b.priority }, false)));
+    } catch {
+      showToast("Não foi possível mudar a prioridade agora.");
+    }
+  }
+
   const filteredToday = todayItems.filter(({ status }) => {
     if (tab === "pending") return status === "pending";
     if (tab === "late") return status === "late";
@@ -141,7 +172,18 @@ export function RoutinePage() {
       </div>
 
       <div className="px-4">
-        {tab === "upcoming" ? (
+        {tab === "priorities" ? (
+          priorityBoardItems.length === 0 ? (
+            <EmptyState icon="🎯" title="Nada para organizar" description="Sua rotina ainda não tem atividades." />
+          ) : (
+            <div className="pb-4">
+              <p className="mb-3 text-xs leading-snug text-brand-500">
+                Segure uma atividade por um instante e arraste até outro quadro, ou toque nela para escolher da lista.
+              </p>
+              <PriorityBoard items={priorityBoardItems} onChange={handlePriorityChange} lockedHint={LOCKED_HINT} />
+            </div>
+          )
+        ) : tab === "upcoming" ? (
           upcomingItems.length === 0 ? (
             <EmptyState icon="🗓️" title="Nada programado" description="Não há atividades nos próximos dias." />
           ) : (

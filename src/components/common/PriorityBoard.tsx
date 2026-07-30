@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import clsx from "clsx";
 import type { Priority } from "@/types";
@@ -11,53 +11,136 @@ export interface BoardItem {
   priority: Priority;
   /** Texto pequeno abaixo do título (período, horário...). */
   hint?: string;
+  /** Atividade que o usuário atual não pode reorganizar (ex.: criada pela profissional). */
+  locked?: boolean;
 }
 
 interface PriorityBoardProps {
   items: BoardItem[];
   onChange: (items: BoardItem[]) => void;
+  /** Explicação mostrada ao tocar numa atividade travada. */
+  lockedHint?: string;
 }
 
-/** A partir de quantos pixels o toque deixa de ser um tap e passa a ser um arraste. */
-const DRAG_THRESHOLD = 8;
+/** Distância que cancela o toque longo por ser rolagem, e a que inicia o arraste pelo pegador. */
+const SCROLL_CANCEL = 10;
+const GRIP_THRESHOLD = 8;
+const LONG_PRESS_MS = 300;
+
+function GripIcon() {
+  return (
+    <svg viewBox="0 0 10 16" className="h-4 w-2.5" fill="currentColor" aria-hidden="true">
+      <circle cx="2" cy="3" r="1.4" />
+      <circle cx="8" cy="3" r="1.4" />
+      <circle cx="2" cy="8" r="1.4" />
+      <circle cx="8" cy="8" r="1.4" />
+      <circle cx="2" cy="13" r="1.4" />
+      <circle cx="8" cy="13" r="1.4" />
+    </svg>
+  );
+}
 
 /**
  * Quatro quadros de prioridade com arrastar-e-soltar entre eles.
  *
- * O arraste usa Pointer Events (mouse e toque no mesmo caminho) e só começa pelo
- * pegador — que é o único elemento com `touch-action: none`, senão o dedo deixaria
- * de rolar a página. Quem não quiser arrastar toca no cartão e escolhe o quadro
- * numa lista, então nada aqui depende exclusivamente do gesto.
+ * Há três formas de mover uma atividade, de propósito: arrastar pelo pegador,
+ * segurar o cartão por um instante e arrastar, ou tocar e escolher o quadro numa
+ * lista. O gesto nunca é o único caminho — parte do público do app tem
+ * dificuldade motora, e num toque longo mal calibrado a alternativa salva a tela.
+ *
+ * Detalhe de toque: enquanto o arraste está ativo um listener não-passivo bloqueia
+ * o `touchmove`, senão o navegador rola a página em vez de deixar o cartão seguir
+ * o dedo. O pegador leva `touch-action: none` para dispensar o toque longo.
  */
-export function PriorityBoard({ items, onChange }: PriorityBoardProps) {
+export function PriorityBoard({ items, onChange, lockedHint }: PriorityBoardProps) {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [pointer, setPointer] = useState<{ x: number; y: number } | null>(null);
   const [overBucket, setOverBucket] = useState<Priority | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  const startRef = useRef<{ x: number; y: number; id: string } | null>(null);
+  const startRef = useRef<{
+    x: number;
+    y: number;
+    id: string;
+    viaGrip: boolean;
+    el: HTMLElement;
+    pointerId: number;
+  } | null>(null);
+  const lastPointRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const draggingItem = items.find((i) => i.id === draggingId) ?? null;
 
+  // Sem isto o navegador rola a página durante o arraste e o cartão "escapa" do dedo.
+  useEffect(() => {
+    if (!draggingId) return;
+    const block = (e: TouchEvent) => e.preventDefault();
+    document.addEventListener("touchmove", block, { passive: false });
+    return () => document.removeEventListener("touchmove", block);
+  }, [draggingId]);
+
+  useEffect(() => () => clearTimer(), []);
+
+  function clearTimer() {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = null;
+  }
+
   function move(id: string, priority: Priority) {
     const current = items.find((i) => i.id === id);
-    if (!current || current.priority === priority) return;
+    if (!current || current.locked || current.priority === priority) return;
     onChange(items.map((i) => (i.id === id ? { ...i, priority } : i)));
   }
 
-  function handlePointerDown(e: React.PointerEvent<HTMLElement>, id: string) {
-    startRef.current = { x: e.clientX, y: e.clientY, id };
-    e.currentTarget.setPointerCapture(e.pointerId);
+  function beginDrag(id: string) {
+    const start = startRef.current;
+    // Só capturamos o ponteiro aqui, e não no pointerdown: capturar no corpo do cartão
+    // redireciona o "click" para a div e o botão de abrir o menu nunca dispara.
+    if (start && !start.viaGrip) {
+      try {
+        start.el.setPointerCapture(start.pointerId);
+      } catch {
+        // ponteiro já solto; o arraste simplesmente não começa
+      }
+    }
+    setDraggingId(id);
+    setPointer(lastPointRef.current);
+    setOpenMenuId(null);
+    navigator.vibrate?.(15);
+  }
+
+  function handlePointerDown(e: React.PointerEvent<HTMLElement>, item: BoardItem, viaGrip: boolean) {
+    if (item.locked) return;
+    startRef.current = { x: e.clientX, y: e.clientY, id: item.id, viaGrip, el: e.currentTarget, pointerId: e.pointerId };
+    lastPointRef.current = { x: e.clientX, y: e.clientY };
+
+    if (viaGrip) {
+      // No pegador não há nada clicável dentro, então capturar já é seguro — e necessário
+      // para o arraste continuar valendo quando o dedo sai de cima dele.
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } else {
+      clearTimer();
+      timerRef.current = setTimeout(() => beginDrag(item.id), LONG_PRESS_MS);
+    }
   }
 
   function handlePointerMove(e: React.PointerEvent<HTMLElement>) {
     const start = startRef.current;
     if (!start) return;
+    lastPointRef.current = { x: e.clientX, y: e.clientY };
+    const travelled = Math.hypot(e.clientX - start.x, e.clientY - start.y);
 
     if (!draggingId) {
-      const travelled = Math.hypot(e.clientX - start.x, e.clientY - start.y);
-      if (travelled < DRAG_THRESHOLD) return;
-      setDraggingId(start.id);
-      setOpenMenuId(null);
+      if (start.viaGrip) {
+        if (travelled < GRIP_THRESHOLD) return;
+        beginDrag(start.id);
+      } else {
+        // Moveu antes do toque longo completar: é rolagem, não arraste.
+        if (travelled > SCROLL_CANCEL) {
+          clearTimer();
+          startRef.current = null;
+        }
+        return;
+      }
     }
 
     setPointer({ x: e.clientX, y: e.clientY });
@@ -68,6 +151,7 @@ export function PriorityBoard({ items, onChange }: PriorityBoardProps) {
   }
 
   function endDrag(apply: boolean) {
+    clearTimer();
     if (apply && draggingId && overBucket) move(draggingId, overBucket);
     startRef.current = null;
     setDraggingId(null);
@@ -91,7 +175,7 @@ export function PriorityBoard({ items, onChange }: PriorityBoardProps) {
               isTarget ? "border-brand-500 bg-brand-50" : `${style.border} ${style.bg}`
             )}
           >
-            <div className="mb-2 flex items-baseline justify-between gap-2">
+            <div className="mb-1 flex items-baseline justify-between gap-2">
               <p className={clsx("text-sm font-extrabold", style.text)}>
                 {PRIORITY_EMOJI[priority]} {PRIORITY_LABELS[priority]}
               </p>
@@ -111,53 +195,72 @@ export function PriorityBoard({ items, onChange }: PriorityBoardProps) {
                   <div
                     key={item.id}
                     className={clsx(
-                      "rounded-xl border border-brand-100 bg-white p-2 shadow-sm transition-opacity",
+                      "rounded-xl border border-brand-100 bg-white shadow-sm transition-opacity",
                       draggingId === item.id && "opacity-40"
                     )}
                   >
-                    <div className="flex items-center gap-2">
-                      <span
-                        role="button"
-                        tabIndex={-1}
-                        aria-label={`Arrastar ${item.title}`}
-                        onPointerDown={(e) => handlePointerDown(e, item.id)}
+                    <div className="flex items-stretch">
+                      {!item.locked && (
+                        <span
+                          role="button"
+                          tabIndex={-1}
+                          aria-label={`Arrastar ${item.title}`}
+                          onPointerDown={(e) => handlePointerDown(e, item, true)}
+                          onPointerMove={handlePointerMove}
+                          onPointerUp={() => endDrag(true)}
+                          onPointerCancel={() => endDrag(false)}
+                          className="flex w-8 shrink-0 cursor-grab select-none items-center justify-center rounded-l-xl text-brand-300 active:cursor-grabbing active:bg-brand-50"
+                          style={{ touchAction: "none" }}
+                        >
+                          <GripIcon />
+                        </span>
+                      )}
+                      <div
+                        onPointerDown={(e) => handlePointerDown(e, item, false)}
                         onPointerMove={handlePointerMove}
                         onPointerUp={() => endDrag(true)}
                         onPointerCancel={() => endDrag(false)}
-                        className="flex h-9 w-6 shrink-0 cursor-grab select-none items-center justify-center text-base text-brand-300 active:cursor-grabbing"
-                        style={{ touchAction: "none" }}
+                        className="flex min-w-0 flex-1 items-center gap-2 p-2 pl-1"
                       >
-                        ⠿
-                      </span>
-                      <span className="shrink-0 text-xl">{item.icon}</span>
-                      <button
-                        type="button"
-                        onClick={() => setOpenMenuId(openMenuId === item.id ? null : item.id)}
-                        className="min-w-0 flex-1 text-left"
-                      >
-                        <p className="truncate text-sm font-bold text-brand-800">{item.title}</p>
-                        {item.hint && <p className="truncate text-xs text-brand-400">{item.hint}</p>}
-                      </button>
+                        <span className="shrink-0 text-xl">{item.icon}</span>
+                        <button
+                          type="button"
+                          onClick={() => setOpenMenuId(openMenuId === item.id ? null : item.id)}
+                          className="min-w-0 flex-1 text-left"
+                        >
+                          <p className="truncate text-sm font-bold text-brand-800">{item.title}</p>
+                          {item.hint && <p className="truncate text-xs text-brand-400">{item.hint}</p>}
+                        </button>
+                        {item.locked && <span className="shrink-0 text-sm">🔒</span>}
+                      </div>
                     </div>
 
                     {openMenuId === item.id && (
-                      <div className="mt-2 border-t border-brand-50 pt-2">
-                        <p className="mb-1.5 text-xs font-bold text-brand-500">Mover para:</p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {PRIORITY_ORDER.filter((p) => p !== priority).map((p) => (
-                            <button
-                              key={p}
-                              type="button"
-                              onClick={() => {
-                                move(item.id, p);
-                                setOpenMenuId(null);
-                              }}
-                              className={clsx("rounded-full px-2.5 py-1 text-xs font-bold", PRIORITY_STYLES[p].chip)}
-                            >
-                              {PRIORITY_EMOJI[p]} {PRIORITY_LABELS[p]}
-                            </button>
-                          ))}
-                        </div>
+                      <div className="border-t border-brand-50 px-2 pb-2 pt-2">
+                        {item.locked ? (
+                          <p className="text-xs leading-snug text-brand-500">
+                            {lockedHint ?? "Esta atividade não pode ser reorganizada por aqui."}
+                          </p>
+                        ) : (
+                          <>
+                            <p className="mb-1.5 text-xs font-bold text-brand-500">Mover para:</p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {PRIORITY_ORDER.filter((p) => p !== priority).map((p) => (
+                                <button
+                                  key={p}
+                                  type="button"
+                                  onClick={() => {
+                                    move(item.id, p);
+                                    setOpenMenuId(null);
+                                  }}
+                                  className={clsx("rounded-full px-2.5 py-1 text-xs font-bold", PRIORITY_STYLES[p].chip)}
+                                >
+                                  {PRIORITY_EMOJI[p]} {PRIORITY_LABELS[p]}
+                                </button>
+                              ))}
+                            </div>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
