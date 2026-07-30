@@ -5,6 +5,7 @@ import { subscribeToTemplates, applyTemplateToPatient, saveTemplate } from "@/se
 import type { ProfessionalPatientLink, RoutineTemplateDoc } from "@/types";
 import { TopBar } from "@/components/common/TopBar";
 import { BottomSheet } from "@/components/common/BottomSheet";
+import { TemplatePreview } from "@/components/common/TemplatePreview";
 import { useToast } from "@/contexts/ToastContext";
 import { getPatientsOverview, type PatientOverview } from "@/services/professionalOverview";
 import { ICON_OPTIONS } from "@/utils/constants";
@@ -16,6 +17,9 @@ export function RoutinesPage() {
   const [links, setLinks] = useState<ProfessionalPatientLink[]>([]);
   const [patients, setPatients] = useState<PatientOverview[]>([]);
   const [templates, setTemplates] = useState<RoutineTemplateDoc[]>([]);
+  /** Modelo aberto na prévia, ainda sem paciente escolhido. */
+  const [previewTemplate, setPreviewTemplate] = useState<RoutineTemplateDoc | null>(null);
+  /** Modelo já revisado (com as prioridades organizadas), esperando o paciente. */
   const [selectedTemplate, setSelectedTemplate] = useState<RoutineTemplateDoc | null>(null);
   const [applying, setApplying] = useState(false);
   const [creatingTemplate, setCreatingTemplate] = useState(false);
@@ -63,7 +67,7 @@ export function RoutinesPage() {
 
       <div className="flex flex-col gap-2 px-4 pb-4">
         {templates.map((template) => (
-          <button key={template.id} onClick={() => setSelectedTemplate(template)} className="card flex items-center gap-3 text-left">
+          <button key={template.id} onClick={() => setPreviewTemplate(template)} className="card flex items-center gap-3 text-left">
             <span className="text-2xl">{template.icon}</span>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-bold text-brand-800">{template.name}</p>
@@ -73,6 +77,21 @@ export function RoutinesPage() {
           </button>
         ))}
       </div>
+
+      <BottomSheet open={!!previewTemplate} onClose={() => setPreviewTemplate(null)} title="Antes de aplicar">
+        {previewTemplate && (
+          <TemplatePreview
+            key={previewTemplate.id}
+            template={previewTemplate}
+            onBack={() => setPreviewTemplate(null)}
+            confirmLabel="Escolher paciente"
+            onConfirm={(reviewed) => {
+              setPreviewTemplate(null);
+              setSelectedTemplate(reviewed);
+            }}
+          />
+        )}
+      </BottomSheet>
 
       <BottomSheet open={!!selectedTemplate} onClose={() => setSelectedTemplate(null)} title={`Aplicar "${selectedTemplate?.name}"`}>
         <p className="mb-3 text-sm text-brand-500">Escolha o paciente que vai receber esta rotina:</p>

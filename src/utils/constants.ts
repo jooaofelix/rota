@@ -1,4 +1,37 @@
-import type { ActivityCategory, FeelingKey, Period, SkipReasonKey } from "@/types";
+import type { ActivityCategory, FeelingKey, Period, Priority, SkipReasonKey } from "@/types";
+
+/** Da mais para a menos urgente — é essa a ordem em que os quadros aparecem na tela. */
+export const PRIORITY_ORDER: Priority[] = ["essential", "high", "medium", "low"];
+
+export const PRIORITY_LABELS: Record<Priority, string> = {
+  essential: "Indispensável",
+  high: "Alta",
+  medium: "Normal",
+  low: "Baixa",
+};
+
+/** Texto curto que explica o que cada quadro significa, pra escolha não virar adivinhação. */
+export const PRIORITY_HINTS: Record<Priority, string> = {
+  essential: "Não pode faltar hoje, mesmo num dia difícil.",
+  high: "Importante, mas o dia não desanda se sobrar para amanhã.",
+  medium: "Faz parte da rotina, sem urgência.",
+  low: "Só se sobrar energia. É opcional.",
+};
+
+export const PRIORITY_EMOJI: Record<Priority, string> = {
+  essential: "🔴",
+  high: "🟠",
+  medium: "🟢",
+  low: "🔵",
+};
+
+/** Cores dos quadros/etiquetas de prioridade (borda, fundo e texto). */
+export const PRIORITY_STYLES: Record<Priority, { border: string; bg: string; text: string; chip: string }> = {
+  essential: { border: "border-rose-300", bg: "bg-rose-50/70", text: "text-rose-700", chip: "bg-rose-100 text-rose-700" },
+  high: { border: "border-amber-300", bg: "bg-amber-50/70", text: "text-amber-700", chip: "bg-amber-100 text-amber-700" },
+  medium: { border: "border-brand-200", bg: "bg-brand-50/70", text: "text-brand-700", chip: "bg-brand-100 text-brand-700" },
+  low: { border: "border-sky-200", bg: "bg-sky-50/70", text: "text-sky-700", chip: "bg-sky-100 text-sky-700" },
+};
 
 export const PERIOD_LABELS: Record<Period, string> = {
   morning: "Manhã",

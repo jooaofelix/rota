@@ -39,7 +39,8 @@ export function ActivityCard({ item, status, onOpen }: ActivityCardProps) {
           {item.time && <span>{item.time}</span>}
           <span>·</span>
           <span>{CATEGORY_LABELS[item.category]}</span>
-          {item.priority === "high" && <span className="font-bold text-rose-400">· prioridade alta</span>}
+          {item.priority === "essential" && <span className="font-bold text-rose-500">· indispensável</span>}
+          {item.priority === "high" && <span className="font-bold text-amber-500">· prioridade alta</span>}
         </div>
       </div>
       <StatusPill status={status} />

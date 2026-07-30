@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import clsx from "clsx";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/firebase/config";
 import { useAuth } from "@/contexts/AuthContext";
@@ -40,10 +41,53 @@ const PREF_LABELS: Record<keyof NotificationPreferences, string> = {
   dailySummary: "Resumo do dia",
 };
 
+/**
+ * Onze interruptores separados era escolha demais para uma decisão simples. A tela
+ * mostra quatro grupos; quem quiser mesmo mexer item por item abre "Ajustar em detalhe".
+ * O formato salvo em `notificationPrefs` não mudou — só o jeito de apresentar.
+ */
+const PREF_GROUPS: Array<{
+  id: string;
+  label: string;
+  description: string;
+  icon: string;
+  keys: Array<keyof NotificationPreferences>;
+}> = [
+  {
+    id: "reminders",
+    label: "Lembretes das atividades",
+    description: "Quando uma atividade está chegando, é a hora dela ou passou do horário.",
+    icon: "⏰",
+    keys: ["activityUpcoming", "activityDue", "activityLate", "medicationReminder"],
+  },
+  {
+    id: "professional",
+    label: "Recados da profissional",
+    description: "Mensagens dela e mudanças na sua rotina.",
+    icon: "💬",
+    keys: ["newMessage", "newActivity", "activityChanged"],
+  },
+  {
+    id: "rewards",
+    label: "Recompensas",
+    description: "Quando você conquista algo ou aparece uma recompensa nova.",
+    icon: "🏆",
+    keys: ["newReward", "rewardAchieved"],
+  },
+  {
+    id: "summaries",
+    label: "Resumos",
+    description: "Um resumo por período do dia e outro no fim do dia.",
+    icon: "📋",
+    keys: ["periodSummary", "dailySummary"],
+  },
+];
+
 export function PatientProfilePage() {
   const { firebaseUser, userDoc } = useAuth();
   const { showToast } = useToast();
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [showPrefDetail, setShowPrefDetail] = useState(false);
   const permission = currentNotificationPermission();
   const prefs = userDoc?.notificationPrefs ?? DEFAULT_PREFS;
 
@@ -53,10 +97,23 @@ export function PatientProfilePage() {
     showToast("Código copiado!");
   }
 
-  async function togglePref(key: keyof NotificationPreferences) {
+  async function savePrefs(next: NotificationPreferences) {
     if (!firebaseUser) return;
-    const next = { ...prefs, [key]: !prefs[key] };
     await updateDoc(doc(db, "users", firebaseUser.uid), { notificationPrefs: next });
+  }
+
+  function togglePref(key: keyof NotificationPreferences) {
+    return savePrefs({ ...prefs, [key]: !prefs[key] });
+  }
+
+  /** Um grupo conta como ligado se qualquer item dele estiver ligado; desligar apaga todos. */
+  function toggleGroup(keys: Array<keyof NotificationPreferences>) {
+    const turningOff = keys.some((k) => prefs[k]);
+    const next = { ...prefs };
+    keys.forEach((k) => {
+      next[k] = !turningOff;
+    });
+    return savePrefs(next);
   }
 
   async function handleExport() {
@@ -106,15 +163,45 @@ export function PatientProfilePage() {
         {permission !== "granted" && firebaseUser && <NotificationPrimer uid={firebaseUser.uid} />}
 
         <div className="card">
-          <p className="mb-2 font-bold text-brand-800">Quais notificações você quer receber?</p>
-          <div className="flex flex-col gap-2">
-            {(Object.keys(PREF_LABELS) as Array<keyof NotificationPreferences>).map((key) => (
-              <label key={key} className="flex items-center justify-between gap-2 text-sm text-brand-600">
-                {PREF_LABELS[key]}
-                <input type="checkbox" checked={prefs[key]} onChange={() => togglePref(key)} className="h-5 w-5 rounded border-brand-300" />
-              </label>
+          <p className="font-bold text-brand-800">Notificações</p>
+          <p className="mb-3 mt-0.5 text-sm text-brand-500">Escolha o que vale te avisar.</p>
+
+          <div className="flex flex-col gap-1">
+            {PREF_GROUPS.map((group) => (
+              <SwitchRow
+                key={group.id}
+                icon={group.icon}
+                label={group.label}
+                description={group.description}
+                checked={group.keys.some((k) => prefs[k])}
+                onToggle={() => toggleGroup(group.keys)}
+              />
             ))}
           </div>
+
+          <button
+            type="button"
+            onClick={() => setShowPrefDetail((v) => !v)}
+            className="mt-3 text-xs font-bold text-brand-500 underline-offset-2 hover:underline"
+          >
+            {showPrefDetail ? "Esconder detalhes" : "Ajustar em detalhe"}
+          </button>
+
+          {showPrefDetail && (
+            <div className="mt-2 flex flex-col gap-2 border-t border-brand-50 pt-3">
+              {(Object.keys(PREF_LABELS) as Array<keyof NotificationPreferences>).map((key) => (
+                <label key={key} className="flex items-center justify-between gap-2 text-sm text-brand-600">
+                  {PREF_LABELS[key]}
+                  <input
+                    type="checkbox"
+                    checked={prefs[key]}
+                    onChange={() => togglePref(key)}
+                    className="h-5 w-5 shrink-0 rounded border-brand-300"
+                  />
+                </label>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="card flex flex-col gap-2">
@@ -148,5 +235,48 @@ export function PatientProfilePage() {
         onCancel={() => setConfirmingDelete(false)}
       />
     </div>
+  );
+}
+
+function SwitchRow({
+  icon,
+  label,
+  description,
+  checked,
+  onToggle,
+}: {
+  icon: string;
+  label: string;
+  description: string;
+  checked: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={onToggle}
+      className="flex items-center gap-3 rounded-xl px-1 py-2 text-left transition active:bg-brand-50"
+    >
+      <span className="shrink-0 text-xl">{icon}</span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-bold text-brand-800">{label}</span>
+        <span className="block text-xs leading-snug text-brand-400">{description}</span>
+      </span>
+      <span
+        className={clsx(
+          "relative h-6 w-11 shrink-0 rounded-full transition-colors",
+          checked ? "bg-brand-500" : "bg-brand-100"
+        )}
+      >
+        <span
+          className={clsx(
+            "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform",
+            checked ? "translate-x-[1.375rem]" : "translate-x-0.5"
+          )}
+        />
+      </span>
+    </button>
   );
 }

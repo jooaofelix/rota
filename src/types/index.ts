@@ -20,7 +20,12 @@ export type ActivityCategory =
   | "therapeutic"
   | "custom";
 
-export type Priority = "low" | "medium" | "high";
+/**
+ * Níveis de prioridade, do mais para o menos urgente: "essential" (indispensável),
+ * "high" (alta), "medium" (normal) e "low" (baixa). Rotinas antigas só usam
+ * low/medium/high — "essential" foi acrescentado depois e é opcional na prática.
+ */
+export type Priority = "essential" | "high" | "medium" | "low";
 
 export type ActivityStatus = "pending" | "completed" | "partial" | "skipped" | "late";
 
@@ -354,6 +359,10 @@ export interface RoutineTemplateDoc {
   name: string;
   description: string;
   icon: string;
+  /** Explicação em texto de como o modelo funciona no dia a dia. Só os modelos do sistema têm. */
+  howItWorks?: string;
+  /** Passos curtos mostrados na prévia, antes de aplicar o modelo. */
+  steps?: string[];
   items: RoutineTemplateItem[];
   createdAt: Timestamp;
 }

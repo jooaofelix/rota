@@ -2,7 +2,7 @@ import { useState } from "react";
 import { BottomSheet } from "@/components/common/BottomSheet";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import type { ActivityCategory, Period, Priority, RoutineItemDoc } from "@/types";
-import { CATEGORY_LABELS, ICON_OPTIONS, PERIOD_LABELS, WEEKDAY_LABELS } from "@/utils/constants";
+import { CATEGORY_LABELS, ICON_OPTIONS, PERIOD_LABELS, PRIORITY_LABELS, PRIORITY_ORDER, WEEKDAY_LABELS } from "@/utils/constants";
 import { createRoutineItem, deleteRoutineItem, duplicateRoutineItem, updateRoutineItem } from "@/services/routines";
 import { useToast } from "@/contexts/ToastContext";
 import clsx from "clsx";
@@ -178,11 +178,7 @@ export function ActivityEditorSheet({ patientId, professionalId, routineId, exis
             label="Prioridade"
             value={form.priority}
             onChange={(v) => update("priority", v as Priority)}
-            options={[
-              ["low", "Baixa"],
-              ["medium", "Média"],
-              ["high", "Alta"],
-            ]}
+            options={PRIORITY_ORDER.map((p): [string, string] => [p, PRIORITY_LABELS[p]])}
           />
         </div>
 
