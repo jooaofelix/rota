@@ -23,6 +23,7 @@ import { HistoryPage } from "@/pages/patient/HistoryPage";
 import { PatientProfilePage } from "@/pages/patient/PatientProfilePage";
 
 import { ProfessionalLayout } from "@/layouts/ProfessionalLayout";
+import { AgendaPage } from "@/pages/professional/AgendaPage";
 import { DashboardPage } from "@/pages/professional/DashboardPage";
 import { PatientsListPage } from "@/pages/professional/PatientsListPage";
 import { PatientDetailPage } from "@/pages/professional/PatientDetailPage";
@@ -32,6 +33,7 @@ import { ProfessionalAccountPage } from "@/pages/professional/ProfessionalAccoun
 // Carregadas sob demanda: dependem de recharts/@react-pdf-renderer, bibliotecas pesadas
 // que não devem entrar no bundle inicial de um app mobile-first.
 const ReportsPage = lazy(() => import("@/pages/professional/ReportsPage").then((m) => ({ default: m.ReportsPage })));
+const FinancePage = lazy(() => import("@/pages/professional/FinancePage").then((m) => ({ default: m.FinancePage })));
 
 export default function App() {
   return (
@@ -63,6 +65,7 @@ export default function App() {
 
             <Route element={<RequireAuth role="professional" />}>
               <Route element={<ProfessionalLayout />}>
+                <Route path="/agenda" element={<AgendaPage />} />
                 <Route path="/painel" element={<DashboardPage />} />
                 <Route path="/pacientes" element={<PatientsListPage />} />
                 <Route path="/pacientes/:patientId" element={<PatientDetailPage />} />
@@ -72,6 +75,14 @@ export default function App() {
                   element={
                     <Suspense fallback={<LoadingSpinner label="Carregando relatórios..." />}>
                       <ReportsPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/financas"
+                  element={
+                    <Suspense fallback={<LoadingSpinner label="Carregando finanças..." />}>
+                      <FinancePage />
                     </Suspense>
                   }
                 />

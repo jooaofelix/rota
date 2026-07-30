@@ -7,7 +7,7 @@
  * `vite.shots.config.ts`, usada apenas na geração do documento.
  */
 import { Timestamp } from "firebase/firestore";
-import type { CompletionDoc, PatientDoc, RoutineDoc, RoutineItemDoc, UserDoc } from "@/types";
+import type { CompletionDoc, PatientDoc, RoutineDoc, RoutineItemDoc, SessionDoc, UserDoc } from "@/types";
 import type { PatientOverview } from "@/services/professionalOverview";
 
 export const PATIENT_ID = "demo-ana";
@@ -168,4 +168,49 @@ export const DEMO_COMPLETIONS: CompletionDoc[] = [
     pointsAwarded: 5,
     completedAt: now,
   },
+];
+
+/** Sessões fictícias para as telas de agenda, próximas sessões e finanças. */
+function sessionSeed(
+  id: string,
+  patientId: string,
+  patientName: string,
+  dayOffset: number,
+  startTime: string,
+  endTime: string,
+  extra: Partial<SessionDoc> = {}
+): SessionDoc {
+  const d = new Date();
+  d.setDate(d.getDate() + dayOffset);
+  return {
+    id,
+    professionalId: PROFESSIONAL_ID,
+    patientId,
+    patientName,
+    date: d.toISOString().slice(0, 10),
+    startTime,
+    endTime,
+    modality: "online",
+    status: dayOffset < 0 ? "done" : "scheduled",
+    price: 150,
+    paymentStatus: dayOffset < 0 ? "paid" : "pending",
+    paymentMethod: dayOffset < 0 ? "pix" : undefined,
+    createdAt: now,
+    updatedAt: now,
+  } as SessionDoc & typeof extra;
+}
+
+export const DEMO_SESSIONS: SessionDoc[] = [
+  sessionSeed("s1", PATIENT_ID, "Ana Beatriz", 0, "13:00", "13:50"),
+  sessionSeed("s2", "demo-pedro", "Pedro Henrique", 0, "14:00", "14:50"),
+  sessionSeed("s3", "demo-larissa", "Larissa Souza", 0, "15:00", "16:00"),
+  sessionSeed("s4", PATIENT_ID, "Ana Beatriz", 1, "09:00", "09:50"),
+  sessionSeed("s5", "demo-pedro", "Pedro Henrique", 1, "11:00", "11:50"),
+  sessionSeed("s6", "demo-larissa", "Larissa Souza", 2, "16:00", "16:50"),
+  sessionSeed("s7", PATIENT_ID, "Ana Beatriz", 3, "13:00", "13:50"),
+  sessionSeed("s8", "demo-pedro", "Pedro Henrique", -7, "14:00", "14:50"),
+  sessionSeed("s9", PATIENT_ID, "Ana Beatriz", -7, "13:00", "13:50"),
+  sessionSeed("s10", "demo-larissa", "Larissa Souza", -14, "16:00", "16:50"),
+  sessionSeed("s11", PATIENT_ID, "Ana Beatriz", -14, "13:00", "13:50"),
+  sessionSeed("s12", "demo-pedro", "Pedro Henrique", -3, "10:00", "10:50"),
 ];

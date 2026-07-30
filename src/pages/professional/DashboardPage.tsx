@@ -8,6 +8,7 @@ import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { EmptyState } from "@/components/common/EmptyState";
 import { Badge } from "@/components/common/Badge";
 import { NotificationsBell } from "@/components/common/NotificationsBell";
+import { UpcomingSessions } from "@/components/professional/UpcomingSessions";
 import { FEELING_OPTIONS } from "@/utils/constants";
 
 export function DashboardPage() {
@@ -66,6 +67,8 @@ export function DashboardPage() {
       />
 
       <div className="flex flex-col gap-4 px-4 pb-4">
+        {firebaseUser && <UpcomingSessions professionalId={firebaseUser.uid} />}
+
         <div className="grid grid-cols-2 gap-2.5">
           <StatCard label="Pacientes ativos" value={stats.active} icon="🧑‍🤝‍🧑" />
           <StatCard label="Taxa de conclusão hoje" value={`${stats.completionRate}%`} icon="📈" />
@@ -99,6 +102,23 @@ export function DashboardPage() {
             </div>
           </div>
         )}
+
+        <div className="flex gap-2">
+          <button
+            onClick={() => navigate("/relatorios")}
+            className="card flex-1 text-left text-sm font-bold text-brand-700"
+          >
+            📄 Relatórios
+            <span className="mt-0.5 block text-xs font-normal text-brand-400">Gerar PDF por período</span>
+          </button>
+          <button
+            onClick={() => navigate("/financas")}
+            className="card flex-1 text-left text-sm font-bold text-brand-700"
+          >
+            💰 Finanças
+            <span className="mt-0.5 block text-xs font-normal text-brand-400">Recebido, previsto e em aberto</span>
+          </button>
+        </div>
 
         {stats.topFeelings.length > 0 && (
           <div className="card">

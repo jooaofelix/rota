@@ -16,10 +16,11 @@ const PATIENT_ITEMS: NavItem[] = [
 ];
 
 const PROFESSIONAL_ITEMS: NavItem[] = [
-  { to: "/painel", label: "Dashboard", icon: "📊" },
+  { to: "/agenda", label: "Agenda", icon: "🗓️" },
+  { to: "/painel", label: "Painel", icon: "📊" },
   { to: "/pacientes", label: "Pacientes", icon: "🧑‍🤝‍🧑" },
   { to: "/rotinas", label: "Rotinas", icon: "📋" },
-  { to: "/relatorios", label: "Relatórios", icon: "📄" },
+  { to: "/financas", label: "Finanças", icon: "💰" },
   { to: "/conta", label: "Perfil", icon: "👤" },
 ];
 
@@ -35,7 +36,7 @@ export function BottomNav({ variant }: { variant: "patient" | "professional" }) 
               to={item.to}
               className={({ isActive }) =>
                 clsx(
-                  "flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-bold transition",
+                  "flex flex-col items-center gap-0.5 px-0.5 py-2.5 text-center text-[10px] font-bold leading-tight transition",
                   isActive ? "text-brand-600" : "text-brand-300"
                 )
               }
