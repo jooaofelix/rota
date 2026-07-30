@@ -324,6 +324,84 @@ export interface MessageDoc {
   createdAt: Timestamp;
 }
 
+// ---------------------------------------------------------------- sessões clínicas
+
+export type SessionStatus = "scheduled" | "done" | "no_show" | "cancelled";
+export type SessionModality = "in_person" | "online";
+
+/** "exempt" cobre atendimento social/gratuito; "package" é o pacote mensal já quitado. */
+export type PaymentStatus = "pending" | "paid" | "exempt" | "overdue";
+export type PaymentMethod = "pix" | "cash" | "card" | "transfer" | "insurance" | "package";
+
+/**
+ * documento em /sessions/{id} — um atendimento agendado.
+ *
+ * O nome do paciente fica desnormalizado porque a agenda desenha uma semana inteira
+ * de uma vez: buscar o cadastro de cada paciente por célula seria uma leitura por
+ * bloco na tela.
+ */
+export interface SessionDoc {
+  id: string;
+  professionalId: string;
+  patientId: string;
+  patientName: string;
+  date: string; // yyyy-MM-dd
+  startTime: string; // HH:mm
+  endTime: string; // HH:mm
+  modality: SessionModality;
+  status: SessionStatus;
+  /** Cor do bloco na agenda, escolhida pela profissional. */
+  color?: string;
+  meetingUrl?: string;
+  price?: number;
+  paymentStatus: PaymentStatus;
+  paymentMethod?: PaymentMethod;
+  paidAt?: Timestamp;
+  receiptIssued?: boolean;
+  /** Observação rápida da agenda — não é prontuário. */
+  note?: string;
+  cancelReason?: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+/**
+ * documento em /sessionRecords/{id} — o registro clínico da sessão (prontuário).
+ *
+ * Fica separado de `sessions` de propósito: o prontuário é sigiloso e só a
+ * profissional que atendeu pode ler, enquanto a sessão em si aparece em telas mais
+ * corriqueiras. Depois de assinado (`signedAt`), o conteúdo não muda mais — correções
+ * entram como adendo, que é o que a Resolução CFP 001/2009 espera de um registro.
+ */
+export interface SessionRecordDoc {
+  id: string;
+  sessionId: string;
+  patientId: string;
+  professionalId: string;
+  date: string; // yyyy-MM-dd, repetido para listar o prontuário sem ler as sessões
+  /** Demanda trazida no dia. */
+  complaint?: string;
+  /** Evolução: o que aconteceu na sessão. É o campo obrigatório do registro. */
+  evolution: string;
+  /** Procedimentos, técnicas e recursos utilizados. */
+  interventions?: string;
+  /** Apresentação e estado do paciente durante o atendimento. */
+  patientState?: string;
+  /** Plano para o próximo encontro. */
+  plan?: string;
+  /** Combinado/tarefa levada pelo paciente. */
+  homework?: string;
+  /** Encaminhamentos feitos (psiquiatria, exames, rede de apoio). */
+  referral?: string;
+  /** Marcação de atenção a risco, com a descrição no campo seguinte. */
+  riskFlag: boolean;
+  riskNote?: string;
+  signedAt?: Timestamp;
+  addenda?: Array<{ text: string; createdAt: Timestamp }>;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
 export type ReportKind = "summary" | "full" | "patient" | "guardian" | "medical_record" | "custom";
 
 /** documento em /reports/{id} */

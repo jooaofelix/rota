@@ -180,6 +180,34 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // ---------- sessions (agenda de atendimentos) ----------
+    match /sessions/{id} {
+      // O paciente enxerga os próprios atendimentos (horário, modalidade, situação de
+      // pagamento); a profissional enxerga os dela.
+      allow read: if isSignedIn() && (resource.data.professionalId == request.auth.uid || isSelf(resource.data.patientId));
+      allow create: if isLinkedProfessional(request.resource.data.patientId)
+        && request.resource.data.professionalId == request.auth.uid;
+      // Só quem marcou mexe na agenda: horário, valor e situação de pagamento não são
+      // do paciente. Ele nem precisa escrever aqui — confirmação de presença é feita
+      // pela profissional no atendimento.
+      allow update, delete: if isSignedIn() && resource.data.professionalId == request.auth.uid;
+    }
+
+    // ---------- sessionRecords (prontuário) ----------
+    match /sessionRecords/{id} {
+      // Sigiloso: só a profissional que registrou. O paciente não lê o próprio
+      // prontuário pelo app — o acesso a ele é feito pela profissional, como manda a
+      // Resolução CFP 001/2009, para que venha acompanhado de leitura clínica.
+      allow read: if isSignedIn() && resource.data.professionalId == request.auth.uid;
+      allow create: if isLinkedProfessional(request.resource.data.patientId)
+        && request.resource.data.professionalId == request.auth.uid;
+      // Depois de assinado o registro não muda mais; a única escrita permitida é
+      // acrescentar adendo, que preserva o que já estava escrito.
+      allow update: if isSignedIn() && resource.data.professionalId == request.auth.uid
+        && (resource.data.signedAt == null || onlyFieldsChanged(['addenda', 'updatedAt']));
+      allow delete: if false;
+    }
+
     // ---------- routineTemplates (modelos personalizados da profissional) ----------
     match /routineTemplates/{id} {
       // A própria profissional sempre lê os modelos dela; o paciente lê os modelos da
