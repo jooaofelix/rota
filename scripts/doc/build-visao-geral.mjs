@@ -36,6 +36,22 @@ const passo = (n, img, legenda) => `
     <p class="step-cap">${legenda}</p>
   </section>`;
 
+/**
+ * Abertura de seção: anuncia de quem são as telas seguintes. Sem rodapé numerado,
+ * como a capa e o fecho, para a numeração das páginas de conteúdo não mudar.
+ */
+const divisor = ({ etiqueta, titulo, frase, telas, glifo }) => `
+<div class="page divisor">
+  <span class="div-glifo">${glifo}</span>
+  <div class="div-txt">
+    <span class="div-kicker">${etiqueta}</span>
+    <h2 class="div-titulo">${titulo}</h2>
+    <div class="div-rule"></div>
+    <p class="div-frase">${frase}</p>
+    <p class="div-telas">${telas}</p>
+  </div>
+</div>`;
+
 const pagina = ({ etiqueta, titulo, sub, corpo, rodape, classe = "" }) => `
 <div class="page ${classe}">
   <header class="page-head">
@@ -125,6 +141,17 @@ paginas.push(pagina({
 }));
 
 // ---------------------------------------------------------------- paciente
+paginas.push(divisor({
+  glifo: "🌱",
+  etiqueta: "A PARTIR DAQUI",
+  titulo: "A área do paciente",
+  frase: `Do lado de quem vive a rotina, o dia inteiro precisa caber numa tela só. As páginas a
+    seguir mostram o que a pessoa em acompanhamento abre pela manhã — telas curtas, feitas para
+    servir também aos dias difíceis, e não apenas aos dias bons. Aqui nada cobra: o app pergunta,
+    registra e segue junto.`,
+  telas: "Login · Hoje · Rotina · Prioridades · Recompensas · Histórico · Perfil",
+}));
+
 paginas.push(pagina({
   etiqueta: "ÁREA DO PACIENTE",
   titulo: "O que o paciente vê",
@@ -216,6 +243,17 @@ paginas.push(pagina({
 }));
 
 // ---------------------------------------------------------------- profissional
+paginas.push(divisor({
+  glifo: "🧭",
+  etiqueta: "A PARTIR DAQUI",
+  titulo: "A área da profissional",
+  frase: `Do outro lado da rotina existe alguém acompanhando. As páginas a seguir mostram o que a
+    profissional enxerga: padrões, e não diagnósticos; sinais para olhar mais de perto, nunca
+    conclusões prontas. O sistema reúne o que foi registrado e devolve organizado — a leitura
+    clínica continua sendo dela.`,
+  telas: "Dashboard · Pacientes · Detalhe do paciente · Modelos de rotina · Relatórios",
+}));
+
 paginas.push(pagina({
   etiqueta: "ÁREA DA PROFISSIONAL",
   titulo: "O que a profissional vê",
@@ -431,6 +469,17 @@ body { margin: 0; font-family: Helvetica, Arial, sans-serif; color: #16302a; -we
 .nota h4 { margin: 0 0 2.5mm; font-size: 11pt; color: #14493c; }
 .nota p { margin: 0; font-size: 8.8pt; line-height: 1.65; color: #5b6b65; }
 .tec-r { display: flex; flex-direction: column; gap: 5mm; }
+
+/* abertura de seção */
+.divisor { display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; background: radial-gradient(circle at 50% 38%, #f1f9f5 0%, #fbfaf5 60%, #faf8f1 100%); }
+.div-glifo { font-size: 40pt; line-height: 1; opacity: .9; }
+.div-txt { width: 124mm; }
+.div-kicker { display: block; margin-top: 11mm; font-size: 8.5pt; letter-spacing: .30em; font-weight: bold; color: #2f9a7c; }
+.div-titulo { margin: 5mm 0 0; font-size: 31pt; color: #14493c; }
+.div-rule { width: 26mm; height: 2.6px; margin: 7mm auto 0; background: #2f9a7c; border-radius: 2px; }
+.div-frase { margin: 8mm 0 0; font-size: 11pt; line-height: 1.85; font-style: italic; color: #5f6f68; }
+.div-telas { margin: 11mm 0 0; font-size: 8.5pt; letter-spacing: .16em; font-weight: bold; color: #a2b4ad; }
 
 /* painel por dentro */
 .detalhe main { display: grid; grid-template-columns: 62mm 1fr; gap: 9mm; align-items: start; }
