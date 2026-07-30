@@ -4,22 +4,24 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Definidas como variáveis para a área da profissional poder trocar a paleta
+        // inteira num só lugar (.pro-theme em index.css), sem duplicar classe por classe.
         brand: {
-          50: "#eefaf6",
-          100: "#d4f1e7",
-          200: "#a9e3cf",
-          300: "#78cfb3",
-          400: "#4bb595",
-          500: "#2f9a7c",
-          600: "#217c64",
-          700: "#1c6352",
-          800: "#194f43",
-          900: "#154238",
+          50: "rgb(var(--brand-50) / <alpha-value>)",
+          100: "rgb(var(--brand-100) / <alpha-value>)",
+          200: "rgb(var(--brand-200) / <alpha-value>)",
+          300: "rgb(var(--brand-300) / <alpha-value>)",
+          400: "rgb(var(--brand-400) / <alpha-value>)",
+          500: "rgb(var(--brand-500) / <alpha-value>)",
+          600: "rgb(var(--brand-600) / <alpha-value>)",
+          700: "rgb(var(--brand-700) / <alpha-value>)",
+          800: "rgb(var(--brand-800) / <alpha-value>)",
+          900: "rgb(var(--brand-900) / <alpha-value>)",
         },
         cream: {
-          50: "#fffdf9",
-          100: "#fff7eb",
-          200: "#ffedd0",
+          50: "rgb(var(--cream-50) / <alpha-value>)",
+          100: "rgb(var(--cream-100) / <alpha-value>)",
+          200: "rgb(var(--cream-200) / <alpha-value>)",
         },
         feeling: {
           great: "#4bb595",
