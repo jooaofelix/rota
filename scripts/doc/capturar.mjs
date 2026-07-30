@@ -54,6 +54,8 @@ await shot("perfil", "screen=perfil", async (page) => {
   await page.waitForTimeout(300);
 });
 
+await shot("prof-dashboard", "screen=dashboard&role=professional");
+
 await shot("prof-modelos", "screen=modelos&role=professional");
 
 await shot("prof-previa", "screen=modelos&role=professional", async (page) => {

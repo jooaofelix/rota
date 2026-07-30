@@ -232,8 +232,49 @@ paginas.push(pagina({
 
 paginas.push(pagina({
   etiqueta: "ÁREA DA PROFISSIONAL",
-  titulo: "O que a profissional vê (continuação)",
+  titulo: "O painel por dentro",
+  sub: "O que a profissional enxerga logo ao abrir o aplicativo, bloco por bloco.",
   rodape: "Área da profissional · 10",
+  classe: "detalhe",
+  corpo: `
+    <div class="det-l">
+      <div class="phone lg"><span class="notch"></span><img src="${tela("prof-dashboard")}" alt="" /></div>
+    </div>
+    <div class="det-r">
+      <div class="det-item"><span class="det-n">1</span><div>
+        <h4>Quatro indicadores do dia</h4>
+        <p>Pacientes ativos, taxa de conclusão de hoje, quantos estão com pendências e quantos já
+        têm atraso. Ficam no topo porque respondem, em um relance, a única pergunta que importa ao
+        abrir o app: preciso olhar para alguém hoje?</p></div></div>
+
+      <div class="det-item"><span class="det-n">2</span><div>
+        <h4>Aviso de ausência</h4>
+        <p>Uma faixa âmbar aparece quando algum paciente está há três dias ou mais sem abrir o
+        aplicativo — o sinal que costuma vir antes de uma piora, e o mais fácil de passar batido.</p></div></div>
+
+      <div class="det-item"><span class="det-n">3</span><div>
+        <h4>Alertas importantes</h4>
+        <p>Cada paciente que merece atenção aparece com o motivo em uma linha e leva ao perfil
+        completo com um toque. Os alertas são <b>descritivos</b>: queda de adesão, ausência
+        prolongada, atrasos repetidos. O sistema nunca sugere hipótese clínica.</p></div></div>
+
+      <div class="det-item"><span class="det-n">4</span><div>
+        <h4>Sentimentos mais registrados</h4>
+        <p>Os sentimentos que mais apareceram entre os pacientes no período, para a profissional
+        perceber o clima do grupo sem precisar abrir um por um.</p></div></div>
+
+      <div class="nota compacta">
+        <h4>O painel não decide nada</h4>
+        <p>Ele é apenas leitura: reúne o que já foi registrado e destaca o que mudou. Toda
+        interpretação — e toda mudança de rotina — continua sendo da profissional.</p>
+      </div>
+    </div>`,
+}));
+
+paginas.push(pagina({
+  etiqueta: "ÁREA DA PROFISSIONAL",
+  titulo: "O que a profissional vê (continuação)",
+  rodape: "Área da profissional · 11",
   corpo: card({
     img: "prof-detalhe", titulo: "Detalhe do paciente",
     texto: "Abas para Visão geral (gráficos de adesão e sentimentos), Rotina (criação e edição de atividades), Histórico completo, Recompensas e Observações privadas — visíveis só para a profissional.",
@@ -246,7 +287,7 @@ paginas.push(pagina({
 paginas.push(pagina({
   etiqueta: "ÁREA DA PROFISSIONAL",
   titulo: "O que a profissional vê (final)",
-  rodape: "Área da profissional · 11",
+  rodape: "Área da profissional · 12",
   corpo: card({
     img: "prof-previa", titulo: "Prévia antes de aplicar", novo: true,
     texto: "Nenhum modelo é aplicado com um toque só. Ao escolher um, uma prévia explica <b>como aquele modelo funciona</b> — não o que ele contém, mas por que é assim — lista os passos sugeridos e mostra todas as atividades que vão entrar na rotina, agrupadas por período ou pelos quatro níveis de prioridade. Nada é gravado antes de confirmar.",
@@ -258,7 +299,7 @@ paginas.push(pagina({
   etiqueta: "POR TRÁS DO SISTEMA",
   titulo: "Como funciona tecnicamente",
   sub: "Resumo rápido da arquitetura, para quem for acompanhar a manutenção do projeto.",
-  rodape: "Como funciona · 12",
+  rodape: "Como funciona · 13",
   classe: "tecnico",
   corpo: `
     <div class="tec-l">
@@ -289,6 +330,21 @@ paginas.push(pagina({
         <p>Poucos elementos por tela, linguagem gentil, feedback visual em cada ação.</p></div></div>
     </div>`,
 }));
+
+// ---------------------------------------------------------------- fecho
+paginas.push(`
+<div class="page fim">
+  <img class="fim-logo" src="assets/logo-compass.png" alt="" />
+  <h2 class="fim-titulo">Esse é o começo da sua rota</h2>
+  <p class="fim-frase">
+    Não existe rotina perfeita, e não é disso que se trata. Existe o passo de hoje — e, depois dele,
+    o de amanhã. O ROTA fica com você para lembrar o caminho quando ele parecer confuso, guardar o
+    que já foi conquistado e tornar visível um progresso que, de tão perto, quase nunca parece
+    progresso.
+  </p>
+  <p class="fim-chamada">Sua jornada começa agora.</p>
+  <p class="fim-assinatura">ROTINA &nbsp;·&nbsp; DIREÇÃO &nbsp;·&nbsp; CRESCIMENTO</p>
+</div>`);
 
 // ---------------------------------------------------------------- css + build
 
@@ -375,6 +431,28 @@ body { margin: 0; font-family: Helvetica, Arial, sans-serif; color: #16302a; -we
 .nota h4 { margin: 0 0 2.5mm; font-size: 11pt; color: #14493c; }
 .nota p { margin: 0; font-size: 8.8pt; line-height: 1.65; color: #5b6b65; }
 .tec-r { display: flex; flex-direction: column; gap: 5mm; }
+
+/* painel por dentro */
+.detalhe main { display: grid; grid-template-columns: 62mm 1fr; gap: 9mm; align-items: start; }
+.phone.lg { width: 62mm; }
+.det-r { display: flex; flex-direction: column; gap: 4.5mm; }
+.det-item { display: flex; gap: 4mm; }
+.det-n { flex: 0 0 auto; width: 6.2mm; height: 6.2mm; border-radius: 50%; background: #2f9a7c; color: #fff;
+  font-size: 8.5pt; font-weight: bold; text-align: center; line-height: 6.2mm; }
+.det-item h4 { margin: 0 0 1.5mm; font-size: 11pt; color: #14493c; }
+.det-item p { margin: 0; font-size: 9pt; line-height: 1.6; color: #52625c; }
+.det-item b { color: #217c64; }
+.nota.compacta { margin-top: 1mm; padding: 5mm; }
+.nota.compacta p { font-size: 8.6pt; }
+
+/* fecho */
+.fim { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+  background: radial-gradient(circle at 50% 42%, #f2faf6 0%, #fbfaf5 55%, #faf8f1 100%); }
+.fim-logo { width: 46mm; opacity: .95; }
+.fim-titulo { margin: 10mm 0 0; font-size: 26pt; color: #14493c; }
+.fim-frase { width: 116mm; margin: 8mm 0 0; font-size: 11pt; line-height: 1.8; font-style: italic; color: #5f6f68; }
+.fim-chamada { margin: 9mm 0 0; font-size: 14pt; font-weight: bold; color: #2f9a7c; }
+.fim-assinatura { margin: 14mm 0 0; font-size: 8.5pt; letter-spacing: .28em; font-weight: bold; color: #9db8ae; }
 
 /* rodapé */
 .page-foot { position: absolute; left: 15mm; right: 15mm; bottom: 9mm; display: flex; align-items: center;

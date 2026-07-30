@@ -10,7 +10,8 @@ export interface ReportData {
   totalPartial: number;
   totalSkipped: number;
   completionRate: number;
-  feelingCounts: Array<{ label: string; emoji: string; count: number }>;
+  /** Sem emoji de propósito: as fontes embutidas do PDF não têm esses glifos. */
+  feelingCounts: Array<{ label: string; count: number }>;
   categoryAdherence: Array<{ label: string; rate: number }>;
   notRealized: Array<{ title: string; date: string; reason?: string }>;
   comments: Array<{ title: string; date: string; comment: string; feeling?: string }>;
@@ -43,7 +44,7 @@ export async function getReportData(patientId: string, periodStart: string, peri
 
   const feelingMap = new Map<string, number>();
   completions.forEach((c) => c.feeling && feelingMap.set(c.feeling, (feelingMap.get(c.feeling) ?? 0) + 1));
-  const feelingCounts = FEELING_OPTIONS.map((f) => ({ label: f.label, emoji: f.emoji, count: feelingMap.get(f.key) ?? 0 }))
+  const feelingCounts = FEELING_OPTIONS.map((f) => ({ label: f.label, count: feelingMap.get(f.key) ?? 0 }))
     .filter((f) => f.count > 0)
     .sort((a, b) => b.count - a.count);
 

@@ -18,6 +18,22 @@ const styles = StyleSheet.create({
   footer: { position: "absolute", bottom: 24, left: 32, right: 32, fontSize: 8, color: "#9db8ae", textAlign: "center" },
 });
 
+/**
+ * As fontes embutidas do PDF (Helvetica) só cobrem WinAnsi. Um emoji — no título de
+ * uma atividade, num comentário — vira um glifo quebrado que se sobrepõe à letra
+ * seguinte, então texto vindo do usuário passa por aqui antes de ser desenhado.
+ */
+const WINANSI_EXTRAS = "–—‘’“”†‡•…‰‹›€™";
+
+function safeText(value: string | undefined): string {
+  if (!value) return "";
+  return Array.from(value)
+    .filter((ch) => ch.codePointAt(0)! <= 0xff || WINANSI_EXTRAS.includes(ch))
+    .join("")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 const KIND_LABELS: Record<ReportKind, string> = {
   summary: "Relatório resumido",
   full: "Relatório completo",
@@ -59,9 +75,9 @@ export function PatientReportDocument({
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
           <Text style={styles.title}>{KIND_LABELS[kind]}</Text>
-          <Text style={styles.subtitle}>Paciente: {patientName}</Text>
+          <Text style={styles.subtitle}>Paciente: {safeText(patientName)}</Text>
           <Text style={styles.subtitle}>Período: {periodStart} a {periodEnd}</Text>
-          <Text style={styles.subtitle}>Emitido em {new Date().toLocaleDateString("pt-BR")} por {professionalName}</Text>
+          <Text style={styles.subtitle}>Emitido em {new Date().toLocaleDateString("pt-BR")} por {safeText(professionalName)}</Text>
         </View>
 
         <View style={styles.statBox}>
@@ -96,7 +112,7 @@ export function PatientReportDocument({
             <Text style={styles.sectionTitle}>Atividades não realizadas</Text>
             {data.notRealized.slice(0, 15).map((n, i) => (
               <View key={i} style={styles.item}>
-                <Text>{n.date} — {n.title}</Text>
+                <Text>{n.date} — {safeText(n.title)}</Text>
               </View>
             ))}
           </View>
@@ -107,7 +123,7 @@ export function PatientReportDocument({
             <Text style={styles.sectionTitle}>Sentimentos registrados</Text>
             {data.feelingCounts.map((f) => (
               <View key={f.label} style={styles.row}>
-                <Text>{f.emoji} {f.label}</Text>
+                <Text>{f.label}</Text>
                 <Text>{f.count}x</Text>
               </View>
             ))}
@@ -119,8 +135,8 @@ export function PatientReportDocument({
             <Text style={styles.sectionTitle}>Comentários do paciente</Text>
             {data.comments.slice(0, 20).map((c, i) => (
               <View key={i} style={styles.item}>
-                <Text>{c.date} — {c.title}</Text>
-                <Text style={{ fontStyle: "italic", color: "#5a8b7d" }}>"{c.comment}"</Text>
+                <Text>{c.date} — {safeText(c.title)}</Text>
+                <Text style={{ fontStyle: "italic", color: "#5a8b7d" }}>"{safeText(c.comment)}"</Text>
               </View>
             ))}
           </View>
@@ -129,7 +145,7 @@ export function PatientReportDocument({
         {sections.professionalNotes && observation && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Observação da profissional</Text>
-            <Text>{observation}</Text>
+            <Text>{safeText(observation)}</Text>
           </View>
         )}
 

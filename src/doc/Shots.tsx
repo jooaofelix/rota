@@ -4,7 +4,7 @@
  * navegação inferior), com os serviços trocados por dados fictícios pela
  * configuração `vite.shots.config.ts`.
  *
- * Uso: /doc-shots.html?screen=login | rotina | perfil | modelos
+ * Uso: /doc-shots.html?screen=login | rotina | perfil | modelos | dashboard
  */
 import { createRoot } from "react-dom/client";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -14,6 +14,7 @@ import { ProfessionalLayout } from "@/layouts/ProfessionalLayout";
 import { LoginPage } from "@/pages/auth/LoginPage";
 import { PatientProfilePage } from "@/pages/patient/PatientProfilePage";
 import { RoutinePage } from "@/pages/patient/RoutinePage";
+import { DashboardPage } from "@/pages/professional/DashboardPage";
 import { RoutinesPage } from "@/pages/professional/RoutinesPage";
 import "@/styles/index.css";
 
@@ -35,12 +36,17 @@ function App() {
     );
   }
 
-  if (screen === "modelos") {
+  const PRO: Record<string, { path: string; element: JSX.Element }> = {
+    modelos: { path: "/rotinas", element: <RoutinesPage /> },
+    dashboard: { path: "/painel", element: <DashboardPage /> },
+  };
+  const pro = PRO[screen];
+  if (pro) {
     return (
-      <MemoryRouter initialEntries={["/rotinas"]}>
+      <MemoryRouter initialEntries={[pro.path]}>
         <Routes>
           <Route element={<ProfessionalLayout />}>
-            <Route path="/rotinas" element={<RoutinesPage />} />
+            <Route path={pro.path} element={pro.element} />
           </Route>
         </Routes>
       </MemoryRouter>

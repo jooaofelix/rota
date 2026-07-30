@@ -22,6 +22,7 @@ export default defineConfig({
       { find: "@/services/patients", replacement: r("./src/doc/mock-patients.ts") },
       { find: "@/services/templates", replacement: r("./src/doc/mock-templates.ts") },
       { find: "@/services/professionalOverview", replacement: r("./src/doc/mock-overview.ts") },
+      { find: "@/services/notifications", replacement: r("./src/doc/mock-notifications.ts") },
       { find: "@/firebase/auth", replacement: r("./src/doc/mock-fbauth.ts") },
       { find: "@/firebase/messaging", replacement: r("./src/doc/mock-messaging.ts") },
       { find: "virtual:pwa-register", replacement: r("./src/doc/mock-pwa-register.ts") },
