@@ -93,6 +93,8 @@ export function SessionRecordSheet({
       });
       setRecord((prev) => ({ ...(prev ?? ({} as SessionRecordDoc)), id, ...form } as SessionRecordDoc));
       showToast("Registro salvo.");
+    } catch {
+      showToast("Não deu para salvar o registro agora.");
     } finally {
       setSaving(false);
     }
@@ -100,21 +102,34 @@ export function SessionRecordSheet({
 
   async function handleSign() {
     if (!record) return;
-    await signRecord(record.id);
-    setRecord({ ...record, signedAt: { toDate: () => new Date() } as never });
-    setConfirmingSign(false);
-    showToast("Registro encerrado.");
+    try {
+      await signRecord(record.id);
+      setRecord({ ...record, signedAt: { toDate: () => new Date() } as never });
+      setConfirmingSign(false);
+      showToast("Registro encerrado.");
+    } catch {
+      // Sem isto a promessa quebrava calada e o botão parecia não fazer nada.
+      setConfirmingSign(false);
+      showToast("Não deu para encerrar o registro agora.");
+    }
   }
 
   async function handleAddendum() {
     if (!record || !addendum.trim()) return;
-    await addAddendum(record, addendum.trim());
-    setRecord({
-      ...record,
-      addenda: [...(record.addenda ?? []), { text: addendum.trim(), createdAt: { toDate: () => new Date() } as never }],
-    });
-    setAddendum("");
-    showToast("Adendo acrescentado.");
+    try {
+      await addAddendum(record, addendum.trim());
+      setRecord({
+        ...record,
+        addenda: [
+          ...(record.addenda ?? []),
+          { text: addendum.trim(), createdAt: { toDate: () => new Date() } as never },
+        ],
+      });
+      setAddendum("");
+      showToast("Adendo acrescentado.");
+    } catch {
+      showToast("Não deu para acrescentar o adendo agora.");
+    }
   }
 
   return (

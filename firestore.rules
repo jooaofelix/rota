@@ -206,8 +206,11 @@ service cloud.firestore {
         && request.resource.data.professionalId == request.auth.uid;
       // Depois de assinado o registro não muda mais; a única escrita permitida é
       // acrescentar adendo, que preserva o que já estava escrito.
+      // `get` com padrão, e não `resource.data.signedAt`: um registro aberto não tem
+      // esse campo, e ler campo ausente derruba a regra inteira — era o que fazia o
+      // botão "Encerrar registro" não surtir efeito nenhum.
       allow update: if isSignedIn() && resource.data.professionalId == request.auth.uid
-        && (resource.data.signedAt == null || onlyFieldsChanged(['addenda', 'updatedAt']));
+        && (resource.data.get('signedAt', null) == null || onlyFieldsChanged(['addenda', 'updatedAt']));
       allow delete: if false;
     }
 
