@@ -208,6 +208,20 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // ---------- roomPartners / roomSlots (sala compartilhada) ----------
+    // Escala da sala: só interessa a quem administra a agenda dela. Os parceiros não
+    // são usuários do ROTA — recebem a escala por e-mail ou em PDF —, então não há
+    // leitura de fora.
+    match /roomPartners/{id} {
+      allow read, update, delete: if isSignedIn() && resource.data.professionalId == request.auth.uid;
+      allow create: if isProfessional() && request.resource.data.professionalId == request.auth.uid;
+    }
+
+    match /roomSlots/{id} {
+      allow read, update, delete: if isSignedIn() && resource.data.professionalId == request.auth.uid;
+      allow create: if isProfessional() && request.resource.data.professionalId == request.auth.uid;
+    }
+
     // ---------- routineTemplates (modelos personalizados da profissional) ----------
     match /routineTemplates/{id} {
       // A própria profissional sempre lê os modelos dela; o paciente lê os modelos da

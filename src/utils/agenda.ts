@@ -43,7 +43,7 @@ export function weekLabel(days: Date[]): string {
  * houver atendimento fora disso — assim a agenda de quem atende das 8h às 18h não
  * fica com metade da tela vazia.
  */
-export function hourRange(sessions: SessionDoc[]): number[] {
+export function hourRange(sessions: Array<{ startTime: string; endTime: string }>): number[] {
   let start = DEFAULT_DAY_START;
   let end = DEFAULT_DAY_END;
   sessions.forEach((s) => {
@@ -54,7 +54,7 @@ export function hourRange(sessions: SessionDoc[]): number[] {
 }
 
 /** Posição e altura do bloco dentro da coluna do dia. */
-export function blockGeometry(session: SessionDoc, firstHour: number) {
+export function blockGeometry(session: { startTime: string; endTime: string }, firstHour: number) {
   const top = ((minutesOf(session.startTime) - firstHour * 60) / 60) * HOUR_PX;
   const rawHeight = ((minutesOf(session.endTime) - minutesOf(session.startTime)) / 60) * HOUR_PX;
   return { top, height: Math.max(rawHeight, 26) };
@@ -65,9 +65,11 @@ export function blockGeometry(session: SessionDoc, firstHour: number) {
  * cobriria a outra. Devolve, para cada sessão, em qual faixa ela entra e quantas
  * faixas existem naquele grupo.
  */
-export function layoutDay(sessions: SessionDoc[]): Array<{ session: SessionDoc; lane: number; lanes: number }> {
-  const ordered = [...sessions].sort((a, b) => minutesOf(a.startTime) - minutesOf(b.startTime));
-  const result: Array<{ session: SessionDoc; lane: number; lanes: number }> = [];
+export function layoutDay<T extends { startTime: string; endTime: string }>(
+  items: T[]
+): Array<{ item: T; lane: number; lanes: number }> {
+  const ordered = [...items].sort((a, b) => minutesOf(a.startTime) - minutesOf(b.startTime));
+  const result: Array<{ item: T; lane: number; lanes: number }> = [];
   let group: typeof result = [];
   let groupEnd = -1;
 
@@ -77,16 +79,16 @@ export function layoutDay(sessions: SessionDoc[]): Array<{ session: SessionDoc; 
     group = [];
   };
 
-  ordered.forEach((session) => {
-    const start = minutesOf(session.startTime);
+  ordered.forEach((item) => {
+    const start = minutesOf(item.startTime);
     if (start >= groupEnd && group.length) closeGroup();
 
-    const taken = new Set(group.filter((g) => minutesOf(g.session.endTime) > start).map((g) => g.lane));
+    const taken = new Set(group.filter((g) => minutesOf(g.item.endTime) > start).map((g) => g.lane));
     let lane = 0;
     while (taken.has(lane)) lane++;
 
-    group.push({ session, lane, lanes: 1 });
-    groupEnd = Math.max(groupEnd, minutesOf(session.endTime));
+    group.push({ item, lane, lanes: 1 });
+    groupEnd = Math.max(groupEnd, minutesOf(item.endTime));
   });
   closeGroup();
 
@@ -102,12 +104,20 @@ const BLOCK_COLORS = [
   "#b91c1c", "#0f766e", "#a16207", "#be185d", "#3f6212",
 ];
 
-export function sessionColor(session: SessionDoc): string {
-  if (session.color) return session.color;
+export function colorForId(id: string): string {
   let hash = 0;
-  for (const ch of session.patientId) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+  for (const ch of id) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
   return BLOCK_COLORS[hash % BLOCK_COLORS.length];
 }
+
+export function sessionColor(session: SessionDoc): string {
+  return session.color ?? colorForId(session.patientId);
+}
+
+/** Dias da semana na ordem em que a planilha da sala mostra: segunda a domingo. */
+export const WEEKDAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
+export const WEEKDAY_NAMES = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+export const WEEKDAY_SHORT = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
 export const STATUS_LABELS: Record<SessionStatus, string> = {
   scheduled: "Agendada",

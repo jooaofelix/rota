@@ -7,7 +7,7 @@
  * `vite.shots.config.ts`, usada apenas na geração do documento.
  */
 import { Timestamp } from "firebase/firestore";
-import type { CompletionDoc, PatientDoc, RoutineDoc, RoutineItemDoc, SessionDoc, UserDoc } from "@/types";
+import type { CompletionDoc, PatientDoc, RoutineDoc, RoutineItemDoc, RoomPartnerDoc, RoomSlotDoc, SessionDoc, UserDoc } from "@/types";
 import type { PatientOverview } from "@/services/professionalOverview";
 
 export const PATIENT_ID = "demo-ana";
@@ -213,4 +213,28 @@ export const DEMO_SESSIONS: SessionDoc[] = [
   sessionSeed("s10", "demo-larissa", "Larissa Souza", -14, "16:00", "16:50"),
   sessionSeed("s11", PATIENT_ID, "Ana Beatriz", -14, "13:00", "13:50"),
   sessionSeed("s12", "demo-pedro", "Pedro Henrique", -3, "10:00", "10:50"),
+];
+
+/** Escala da sala reproduzindo a planilha que a profissional usava. */
+export const DEMO_PARTNERS: RoomPartnerDoc[] = [
+  { id: "p1", professionalId: PROFESSIONAL_ID, name: "Isabela Dias", profession: "Psicóloga", email: "isabela@exemplo.com", color: "#2f9a7c", active: true, createdAt: now },
+  { id: "p2", professionalId: PROFESSIONAL_ID, name: "Alexandra Reis", profession: "Nutricionista", email: "alexandra@exemplo.com", color: "#c2410c", active: true, createdAt: now },
+  { id: "p3", professionalId: PROFESSIONAL_ID, name: "Sinara Florêncio", profession: "Psicóloga", email: "sinara@exemplo.com", color: "#4f46e5", active: true, createdAt: now },
+  { id: "p4", professionalId: PROFESSIONAL_ID, name: "Amanda Vieira", profession: "Fonoaudióloga", email: "amanda@exemplo.com", color: "#be185d", active: true, createdAt: now },
+  { id: "p5", professionalId: PROFESSIONAL_ID, name: "Hudson Mesquita", profession: "Psicólogo", email: "hudson@exemplo.com", color: "#a16207", active: true, createdAt: now },
+];
+
+function slot(id: string, partnerId: string, partnerName: string, weekday: number, startTime: string, endTime: string): RoomSlotDoc {
+  return { id, professionalId: PROFESSIONAL_ID, partnerId, partnerName, weekday, startTime, endTime, active: true, createdAt: now, updatedAt: now };
+}
+
+export const DEMO_SLOTS: RoomSlotDoc[] = [
+  slot("t1", "p1", "Isabela Dias", 1, "07:00", "12:00"),
+  slot("t2", "p3", "Sinara Florêncio", 1, "13:00", "19:00"),
+  slot("t3", "p5", "Hudson Mesquita", 1, "19:00", "20:00"),
+  slot("t4", "p2", "Alexandra Reis", 2, "07:00", "12:00"),
+  slot("t5", "p3", "Sinara Florêncio", 2, "12:00", "19:00"),
+  slot("t6", "p3", "Sinara Florêncio", 3, "09:00", "20:00"),
+  slot("t7", "p1", "Isabela Dias", 4, "07:00", "20:00"),
+  slot("t8", "p4", "Amanda Vieira", 5, "08:00", "20:00"),
 ];

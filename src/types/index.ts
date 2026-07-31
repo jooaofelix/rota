@@ -402,6 +402,50 @@ export interface SessionRecordDoc {
   updatedAt: Timestamp;
 }
 
+// ---------------------------------------------------------------- sala compartilhada
+
+/**
+ * documento em /roomPartners/{id} — profissional que divide a sala.
+ *
+ * Não é usuário do ROTA: é um contato da dona da agenda, que recebe a escala por
+ * e-mail ou em PDF. Por isso guarda e-mail e telefone, e não um uid.
+ */
+export interface RoomPartnerDoc {
+  id: string;
+  /** Dona da agenda da sala. */
+  professionalId: string;
+  name: string;
+  profession?: string;
+  email?: string;
+  phone?: string;
+  color?: string;
+  active: boolean;
+  createdAt: Timestamp;
+}
+
+/**
+ * documento em /roomSlots/{id} — um horário fixo da sala na semana.
+ *
+ * A escala da sala se repete toda semana (segunda das 7h às 12h é sempre da mesma
+ * pessoa), então o horário é preso ao dia da semana e não a uma data. Trocas
+ * pontuais entram como observação, não como um documento por semana.
+ */
+export interface RoomSlotDoc {
+  id: string;
+  professionalId: string;
+  partnerId: string;
+  partnerName: string;
+  /** 0 = domingo ... 6 = sábado */
+  weekday: number;
+  startTime: string; // HH:mm
+  endTime: string; // HH:mm
+  room?: string;
+  note?: string;
+  active: boolean;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
 export type ReportKind = "summary" | "full" | "patient" | "guardian" | "medical_record" | "custom";
 
 /** documento em /reports/{id} */

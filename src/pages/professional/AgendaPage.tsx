@@ -9,6 +9,7 @@ import type { SessionDoc } from "@/types";
 import { TopBar } from "@/components/common/TopBar";
 import { SessionEditorSheet } from "@/components/professional/SessionEditorSheet";
 import { SessionActionSheet } from "@/components/professional/SessionActionSheet";
+import { RoomSchedule } from "@/components/professional/RoomSchedule";
 import {
   HOUR_PX,
   blockGeometry,
@@ -23,9 +24,12 @@ import {
 } from "@/utils/agenda";
 import { todayKey } from "@/utils/date";
 
+type Aba = "pacientes" | "sala";
+
 export function AgendaPage() {
-  const { firebaseUser } = useAuth();
+  const { firebaseUser, userDoc } = useAuth();
   const { showToast } = useToast();
+  const [aba, setAba] = useState<Aba>("pacientes");
   const [reference, setReference] = useState(() => new Date());
   const [sessions, setSessions] = useState<SessionDoc[]>([]);
   const [editing, setEditing] = useState<SessionDoc | "new" | null>(null);
@@ -60,17 +64,38 @@ export function AgendaPage() {
     <div>
       <TopBar
         title="Agenda"
-        subtitle={weekLabel(days)}
+        subtitle={aba === "pacientes" ? weekLabel(days) : "Escala fixa da semana"}
         action={
-          <button
-            onClick={() => setEditing("new")}
-            className="rounded-full bg-brand-500 px-3 py-1.5 text-xs font-bold text-white"
-          >
-            + Sessão
-          </button>
+          aba === "pacientes" ? (
+            <button
+              onClick={() => setEditing("new")}
+              className="rounded-full bg-brand-500 px-3 py-1.5 text-xs font-bold text-white"
+            >
+              + Sessão
+            </button>
+          ) : undefined
         }
       />
 
+      <div className="mb-3 flex gap-2 px-4">
+        {([["pacientes", "👥 Pacientes"], ["sala", "🚪 Uso da sala"]] as Array<[Aba, string]>).map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => setAba(key)}
+            className={clsx(
+              "flex-1 rounded-xl px-3 py-2 text-sm font-bold transition",
+              aba === key ? "bg-brand-500 text-white" : "bg-white text-brand-500"
+            )}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {aba === "sala" ? (
+        firebaseUser && <RoomSchedule professionalId={firebaseUser.uid} ownerName={userDoc?.name ?? "Responsável"} />
+      ) : (
+      <>
       <div className="mb-2 flex items-center justify-center gap-2 px-4">
         <NavButton label="‹" onClick={() => setReference(addDays(reference, -7))} />
         <button
@@ -134,7 +159,7 @@ export function AgendaPage() {
                     <div key={hour} style={{ height: HOUR_PX }} className="border-b border-dashed border-brand-100" />
                   ))}
 
-                  {laid.map(({ session, lane, lanes }) => {
+                  {laid.map(({ item: session, lane, lanes }) => {
                     const { top, height } = blockGeometry(session, firstHour);
                     const color = sessionColor(session);
                     const off = session.status === "cancelled" || session.status === "no_show";
@@ -216,6 +241,9 @@ export function AgendaPage() {
         <p className="px-4 pb-6 text-center text-xs text-brand-400">
           Segure um atendimento por um instante e arraste para mudar de dia ou horário.
         </p>
+      )}
+
+      </>
       )}
 
       {editing && firebaseUser && (
