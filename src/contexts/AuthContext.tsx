@@ -56,6 +56,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
 
+        // Um retrato vindo do cache não prova que o perfil não existe: no primeiro
+        // instante depois de abrir o app o cache local ainda está vazio, e é esse
+        // retrato que chega antes da resposta do servidor. Criar o perfil aqui
+        // sobrescreveria como paciente a conta de quem já é profissional — foi o
+        // que aconteceu uma vez, num arranque frio logo depois de uma atualização.
+        // Só o "não existe" confirmado pelo servidor vale.
+        if (snapshot.metadata.fromCache) return;
+
         // Conta autenticada sem perfil ainda (ex.: primeiro login com Google via
         // redirecionamento, cujo retorno o Safari às vezes "perde"): cria um perfil
         // padrão de paciente agora, em vez de deixar a pessoa presa sem conseguir
