@@ -160,7 +160,7 @@ export function FinancePage() {
           <Stat label="Atrasado" value={formatMoney(resumo.atrasado)} tone={resumo.atrasado > 0 ? "bad" : undefined} />
         </div>
 
-        {evolucao.length > 1 && (
+        {evolucao.length > 0 && (
           <div className="card">
             <div className="mb-1 flex items-baseline justify-between gap-2">
               <p className="text-sm font-bold text-brand-700">Evolução do faturamento</p>
@@ -178,6 +178,7 @@ export function FinancePage() {
             <p className="mb-3 text-xs text-brand-400">
               A linha cheia é o que entrou; a pontilhada, o que estava agendado. A distância entre
               as duas é a inadimplência do mês.
+              {evolucao.length < 3 && " A curva ganha forma conforme os meses passam."}
             </p>
             <div className="h-56">
               <ResponsiveContainer width="100%" height="100%">

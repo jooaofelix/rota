@@ -22,7 +22,20 @@ export function RoomRequestsFeed({ professionalId }: { professionalId: string })
 
   useEffect(() => subscribeToRoomRequests(professionalId, setRequests), [professionalId]);
 
-  if (requests.length === 0) return null;
+  // Mesmo vazio o cartão aparece: é como ela descobre que dá para avisar o
+  // parceiro pelo próprio app em vez de mandar mensagem por fora.
+  if (requests.length === 0) {
+    return (
+      <div className="card">
+        <p className="text-sm font-bold text-brand-700">Avisos de uso da sala</p>
+        <p className="mt-1 text-xs leading-relaxed text-brand-400">
+          Quando você marcar um atendimento num horário que na escala é de outro profissional, o
+          app oferece avisar a pessoa por e-mail. A resposta dela — liberou ou não pode — aparece
+          aqui.
+        </p>
+      </div>
+    );
+  }
 
   const aguardando = requests.filter((r) => r.status === "pending").length;
 
