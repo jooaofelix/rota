@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { useDragScrollLock } from "@/hooks/useDragScrollLock";
+import { useDragAutoScroll } from "@/hooks/useDragAutoScroll";
 import { createPortal } from "react-dom";
 import clsx from "clsx";
 import type { Priority } from "@/types";
@@ -27,9 +29,20 @@ const SCROLL_CANCEL = 10;
 const GRIP_THRESHOLD = 8;
 const LONG_PRESS_MS = 300;
 
+/**
+ * O ícone ignora o ponteiro de propósito. `touch-action` não é herdado, e o alvo
+ * do toque é o elemento sob o dedo: se o svg fosse alvo, ele valeria `auto` e o
+ * navegador trataria o gesto como rolagem — engolindo os `pointermove` sem os
+ * quais o arraste nunca começa.
+ */
 function GripIcon() {
   return (
-    <svg viewBox="0 0 10 16" className="h-4 w-2.5" fill="currentColor" aria-hidden="true">
+    <svg
+      viewBox="0 0 10 16"
+      className="pointer-events-none h-4 w-2.5"
+      fill="currentColor"
+      aria-hidden="true"
+    >
       <circle cx="2" cy="3" r="1.4" />
       <circle cx="8" cy="3" r="1.4" />
       <circle cx="2" cy="8" r="1.4" />
@@ -65,17 +78,28 @@ export function PriorityBoard({ items, onChange, lockedHint }: PriorityBoardProp
     el: HTMLElement;
     pointerId: number;
   } | null>(null);
+  /** Espelha o estado de arraste para o bloqueio de rolagem, que lê por ref. */
+  const draggingRef = useRef(false);
   const lastPointRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const draggingItem = items.find((i) => i.id === draggingId) ?? null;
 
-  // Sem isto o navegador rola a página durante o arraste e o cartão "escapa" do dedo.
+  useDragScrollLock(draggingRef);
+
+  /** Recalcula o quadro sob o dedo — a tela pode ter andado sem o dedo se mover. */
+  function refreshHover() {
+    const { x, y } = lastPointRef.current;
+    setPointer({ x, y });
+    const under = document.elementFromPoint(x, y);
+    const bucket = under?.closest<HTMLElement>("[data-bucket]")?.dataset.bucket;
+    setOverBucket((bucket as Priority | undefined) ?? null);
+  }
+
+  useDragAutoScroll(draggingRef, lastPointRef, refreshHover);
+
   useEffect(() => {
-    if (!draggingId) return;
-    const block = (e: TouchEvent) => e.preventDefault();
-    document.addEventListener("touchmove", block, { passive: false });
-    return () => document.removeEventListener("touchmove", block);
+    draggingRef.current = draggingId !== null;
   }, [draggingId]);
 
   useEffect(() => () => clearTimer(), []);
@@ -220,7 +244,8 @@ export function PriorityBoard({ items, onChange, lockedHint }: PriorityBoardProp
                         onPointerMove={handlePointerMove}
                         onPointerUp={() => endDrag(true)}
                         onPointerCancel={() => endDrag(false)}
-                        className="flex min-w-0 flex-1 items-center gap-2 p-2 pl-1"
+                        className="flex min-w-0 flex-1 select-none items-center gap-2 p-2 pl-1"
+                        style={{ WebkitTouchCallout: "none" }}
                       >
                         <span className="shrink-0 text-xl">{item.icon}</span>
                         <button

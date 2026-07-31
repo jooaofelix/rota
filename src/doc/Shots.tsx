@@ -6,9 +6,11 @@
  *
  * Uso: /doc-shots.html?screen=login | rotina | perfil | modelos | dashboard
  */
+import { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { ToastProvider } from "@/contexts/ToastContext";
+import { PriorityBoard, type BoardItem } from "@/components/common/PriorityBoard";
 import { PatientLayout } from "@/layouts/PatientLayout";
 import { ProfessionalLayout } from "@/layouts/ProfessionalLayout";
 import { LoginPage } from "@/pages/auth/LoginPage";
@@ -28,7 +30,25 @@ const PATIENT_SCREENS: Record<string, { path: string; element: JSX.Element }> = 
   perfil: { path: "/perfil", element: <PatientProfilePage /> },
 };
 
+/** Quadro isolado, com estado local: serve para testar o gesto sem depender de gravação. */
+function QuadroSolto() {
+  const [items, setItems] = useState<BoardItem[]>([
+    { id: "a", title: "Tomar a medicação", icon: "💊", priority: "essential", hint: "Manhã · 08:00" },
+    { id: "b", title: "Comer alguma coisa", icon: "🍎", priority: "essential", hint: "Tarde" },
+    { id: "c", title: "Higiene básica", icon: "🦷", priority: "high", hint: "Manhã" },
+    { id: "d", title: "Organizar um cantinho", icon: "🗂️", priority: "medium", hint: "Tarde" },
+    { id: "e", title: "Momento de respirar", icon: "🌿", priority: "low", hint: "Noite" },
+  ]);
+  return (
+    <div className="mx-auto max-w-md p-4">
+      <PriorityBoard items={items} onChange={setItems} />
+      <pre id="estado" className="mt-3 text-xs">{items.map((i) => `${i.id}:${i.priority}`).join(" ")}</pre>
+    </div>
+  );
+}
+
 function App() {
+  if (screen === "quadro") return <QuadroSolto />;
   if (screen === "login") {
     return (
       <MemoryRouter initialEntries={["/entrar"]}>

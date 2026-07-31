@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useDragScrollLock } from "./useDragScrollLock";
+import { useDragAutoScroll } from "./useDragAutoScroll";
 import type { SessionDoc } from "@/types";
 import { HOUR_PX, minutesOf } from "@/utils/agenda";
 
@@ -32,13 +34,30 @@ export function useSessionDrag(firstHour: number, onDrop: (preview: DragPreview)
   const startRef = useRef<{ x: number; y: number; session: SessionDoc; el: HTMLElement; pointerId: number } | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const draggedRef = useRef(false);
+  const lastPointRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
-  useEffect(() => {
-    if (!preview) return;
-    const block = (e: TouchEvent) => e.preventDefault();
-    document.addEventListener("touchmove", block, { passive: false });
-    return () => document.removeEventListener("touchmove", block);
-  }, [preview]);
+  useDragScrollLock(draggedRef);
+
+  /** Recalcula o destino: a grade pode ter rolado sozinha sob um dedo parado. */
+  const refreshTarget = useCallback(() => {
+    const start = startRef.current;
+    if (!start) return;
+    const { x, y } = lastPointRef.current;
+    const column = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-day]");
+    if (!column) return;
+    const rect = column.getBoundingClientRect();
+    const rawMinutes = firstHour * 60 + ((y - rect.top) / HOUR_PX) * 60;
+    const duration = minutesOf(start.session.endTime) - minutesOf(start.session.startTime);
+    const snapped = Math.round(rawMinutes / SNAP_MIN) * SNAP_MIN;
+    setPreview({
+      sessionId: start.session.id,
+      date: column.dataset.day!,
+      startTime: toTime(snapped),
+      endTime: toTime(snapped + duration),
+    });
+  }, [firstHour]);
+
+  useDragAutoScroll(draggedRef, lastPointRef, refreshTarget);
 
   const clearTimer = () => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -51,6 +70,7 @@ export function useSessionDrag(firstHour: number, onDrop: (preview: DragPreview)
     (e: React.PointerEvent<HTMLElement>, session: SessionDoc) => {
       const el = e.currentTarget;
       startRef.current = { x: e.clientX, y: e.clientY, session, el, pointerId: e.pointerId };
+      lastPointRef.current = { x: e.clientX, y: e.clientY };
       draggedRef.current = false;
       clearTimer();
       timerRef.current = setTimeout(() => {
@@ -78,6 +98,7 @@ export function useSessionDrag(firstHour: number, onDrop: (preview: DragPreview)
     (e: React.PointerEvent<HTMLElement>) => {
       const start = startRef.current;
       if (!start) return;
+      lastPointRef.current = { x: e.clientX, y: e.clientY };
 
       if (!draggedRef.current) {
         if (Math.hypot(e.clientX - start.x, e.clientY - start.y) > SCROLL_CANCEL) {
@@ -109,6 +130,9 @@ export function useSessionDrag(firstHour: number, onDrop: (preview: DragPreview)
 
   const finish = useCallback(
     (apply: boolean) => {
+      // Um pointercancel depois do arraste armado ainda vale como soltar: no toque
+      // ele pode chegar por interferência do navegador, e descartar aqui faria o
+      // bloco voltar sozinho para o lugar de origem.
       clearTimer();
       const start = startRef.current;
       if (apply && draggedRef.current && preview && start) {

@@ -139,7 +139,7 @@ export function AgendaPage() {
       </div>
 
       {/* A grade rola na horizontal no celular: sete colunas legíveis não cabem em 390px. */}
-      <div className="overflow-x-auto pb-4">
+      <div data-hscroll className="overflow-x-auto pb-4">
         <div className="min-w-[680px] px-4">
           <div className="flex">
             <div className="w-11 shrink-0" />
@@ -230,9 +230,12 @@ export function AgendaPage() {
                           width: `${100 / lanes}%`,
                           backgroundColor: off ? "transparent" : color,
                           borderColor: color,
-                          // Só trava a rolagem depois que o arraste arma; antes disso a
-                          // grade precisa continuar rolando na horizontal normalmente.
-                          touchAction: arrastando ? "none" : "manipulation",
+                          // A rolagem é barrada pelo listener de touchmove, não por
+                          // touch-action: o navegador congela esse valor no início do
+                          // gesto, então trocá-lo depois não teria efeito nenhum.
+                          touchAction: "manipulation",
+                          WebkitTouchCallout: "none",
+                          userSelect: "none",
                         }}
                         className={clsx(
                           "absolute overflow-hidden rounded-md border-l-4 px-1.5 py-1 text-left",
@@ -240,16 +243,24 @@ export function AgendaPage() {
                           arrastando && "opacity-30"
                         )}
                       >
+                        {/* pointer-events-none nos filhos: o alvo do toque precisa ser o
+                            próprio bloco, senão o touch-action dele não vale e o
+                            navegador trata o gesto como rolagem. */}
                         <p
                           className={clsx(
-                            "truncate text-[11px] font-bold leading-tight",
+                            "pointer-events-none truncate text-[11px] font-bold leading-tight",
                             off && "text-brand-500 line-through"
                           )}
                         >
                           {session.patientName}
                         </p>
                         {height > 34 && (
-                          <p className={clsx("truncate text-[10px] leading-tight", off ? "text-brand-400" : "opacity-90")}>
+                          <p
+                            className={clsx(
+                              "pointer-events-none truncate text-[10px] leading-tight",
+                              off ? "text-brand-400" : "opacity-90"
+                            )}
+                          >
                             {session.startTime} - {session.endTime}
                           </p>
                         )}
