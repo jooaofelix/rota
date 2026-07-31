@@ -8,10 +8,11 @@ import { saveReportRecord, subscribeToPatientReports } from "@/services/reports"
 import { uploadFile, reportFilePath } from "@/firebase/storage";
 import { pdf } from "@react-pdf/renderer";
 import { PatientReportDocument } from "@/pdf/PatientReportDocument";
-import type { ProfessionalPatientLink, ReportDoc, ReportKind } from "@/types";
+import type { ProfessionalPatientLink, ReportDoc, ReportKind, SessionRecordDoc } from "@/types";
 import { TopBar } from "@/components/common/TopBar";
 import { EmptyState } from "@/components/common/EmptyState";
 import { useToast } from "@/contexts/ToastContext";
+import { fetchPatientRecords } from "@/services/sessions";
 import { todayKey } from "@/utils/date";
 import clsx from "clsx";
 
@@ -39,12 +40,28 @@ export function ReportsPage() {
   const [periodStart, setPeriodStart] = useState(daysAgoKey(7));
   const [periodEnd, setPeriodEnd] = useState(todayKey());
   const [kind, setKind] = useState<ReportKind>("summary");
-  const [sections, setSections] = useState({ activities: true, feelings: true, comments: true, rewards: true, charts: true, professionalNotes: true });
+  const [sections, setSections] = useState({
+    activities: true, feelings: true, comments: true, rewards: true,
+    charts: true, professionalNotes: true, records: false,
+  });
+  const [records, setRecords] = useState<SessionRecordDoc[]>([]);
   const [observation, setObservation] = useState("");
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [saving, setSaving] = useState(false);
   const [existingReports, setExistingReports] = useState<ReportDoc[]>([]);
+
+  // Os registros só são buscados quando a opção está marcada: é dado sigiloso,
+  // não faz sentido carregar em toda abertura da tela.
+  useEffect(() => {
+    if (!patientId || !sections.records) {
+      setRecords([]);
+      return;
+    }
+    fetchPatientRecords(patientId).then((all) =>
+      setRecords(all.filter((r) => r.date >= periodStart && r.date <= periodEnd))
+    );
+  }, [patientId, sections.records, periodStart, periodEnd]);
 
   useEffect(() => {
     if (!firebaseUser) return;
@@ -84,6 +101,7 @@ export function ReportsPage() {
           kind={kind}
           data={reportData}
           observation={observation}
+          records={records}
           sections={sections}
         />
       ).toBlob();
@@ -166,6 +184,7 @@ export function ReportsPage() {
                   ["rewards", "Recompensas conquistadas"],
                   ["charts", "Gráficos e indicadores"],
                   ["professionalNotes", "Sua observação"],
+                  ["records", "Registros das sessões (prontuário)"],
                 ] as Array<[keyof typeof sections, string]>
               ).map(([key, label]) => (
                 <label key={key} className="flex items-center justify-between py-1 text-sm text-brand-600">
@@ -212,6 +231,7 @@ export function ReportsPage() {
                       kind={kind}
                       data={reportData}
                       observation={observation}
+                      records={records}
                       sections={sections}
                     />
                   </PDFViewer>
@@ -227,6 +247,7 @@ export function ReportsPage() {
                       kind={kind}
                       data={reportData}
                       observation={observation}
+                      records={records}
                       sections={sections}
                     />
                   }

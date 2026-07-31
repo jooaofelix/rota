@@ -1,6 +1,6 @@
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import type { ReportData } from "@/services/reportData";
-import type { ReportKind } from "@/types";
+import type { ReportKind, SessionRecordDoc } from "@/types";
 
 const styles = StyleSheet.create({
   page: { padding: 32, fontSize: 11, color: "#154238", fontFamily: "Helvetica" },
@@ -51,12 +51,15 @@ interface PatientReportDocumentProps {
   kind: ReportKind;
   data: ReportData;
   observation?: string;
+  /** Registros clínicos do período, incluídos só quando a profissional pedir. */
+  records?: SessionRecordDoc[];
   sections: {
     activities: boolean;
     feelings: boolean;
     comments: boolean;
     rewards: boolean;
     professionalNotes: boolean;
+    records?: boolean;
   };
 }
 
@@ -68,6 +71,7 @@ export function PatientReportDocument({
   kind,
   data,
   observation,
+  records,
   sections,
 }: PatientReportDocumentProps) {
   return (
@@ -137,6 +141,23 @@ export function PatientReportDocument({
               <View key={i} style={styles.item}>
                 <Text>{c.date} — {safeText(c.title)}</Text>
                 <Text style={{ fontStyle: "italic", color: "#5a8b7d" }}>"{safeText(c.comment)}"</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {sections.records && records && records.length > 0 && (
+          <View style={styles.section} break>
+            <Text style={styles.sectionTitle}>Registros das sessões</Text>
+            {records.map((r) => (
+              <View key={r.id} style={styles.item} wrap={false}>
+                <Text style={{ fontWeight: 700 }}>
+                  {r.date.split("-").reverse().join("/")}
+                  {r.riskFlag ? "  — atenção a risco" : ""}
+                </Text>
+                {safeText(r.complaint) !== "" && <Text>Demanda: {safeText(r.complaint)}</Text>}
+                <Text>{safeText(r.evolution)}</Text>
+                {safeText(r.plan) !== "" && <Text>Plano: {safeText(r.plan)}</Text>}
               </View>
             ))}
           </View>

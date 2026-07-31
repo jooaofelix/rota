@@ -9,5 +9,5 @@ export function RootRedirect() {
   if (!firebaseUser) return <Navigate to="/login" replace />;
   if (!userDoc) return <LoadingSpinner label="Preparando sua conta..." />;
 
-  return <Navigate to={userDoc.role === "professional" ? "/painel" : "/hoje"} replace />;
+  return <Navigate to={userDoc.role === "professional" ? "/inicio" : "/hoje"} replace />;
 }

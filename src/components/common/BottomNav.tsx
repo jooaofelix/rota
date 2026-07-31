@@ -15,11 +15,12 @@ const PATIENT_ITEMS: NavItem[] = [
   { to: "/perfil", label: "Perfil", icon: "👤" },
 ];
 
+// Cinco itens: os mais usados no dia a dia. Rotinas, Prontuários e Relatórios
+// ficam a um toque, nos atalhos do Início.
 const PROFESSIONAL_ITEMS: NavItem[] = [
+  { to: "/inicio", label: "Início", icon: "🏠" },
   { to: "/agenda", label: "Agenda", icon: "🗓️" },
-  { to: "/painel", label: "Painel", icon: "📊" },
   { to: "/pacientes", label: "Pacientes", icon: "🧑‍🤝‍🧑" },
-  { to: "/rotinas", label: "Rotinas", icon: "📋" },
   { to: "/financas", label: "Finanças", icon: "💰" },
   { to: "/conta", label: "Perfil", icon: "👤" },
 ];

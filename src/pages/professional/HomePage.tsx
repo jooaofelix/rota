@@ -11,7 +11,17 @@ import { NotificationsBell } from "@/components/common/NotificationsBell";
 import { UpcomingSessions } from "@/components/professional/UpcomingSessions";
 import { FEELING_OPTIONS } from "@/utils/constants";
 
-export function DashboardPage() {
+/** Os lugares do aplicativo, reunidos num só ponto de partida. */
+const ATALHOS = [
+  { to: "/agenda", icon: "🗓️", label: "Agenda", hint: "Semana e agendamentos" },
+  { to: "/pacientes", icon: "🧑‍🤝‍🧑", label: "Pacientes", hint: "Lista e perfis" },
+  { to: "/prontuarios", icon: "📓", label: "Prontuários", hint: "Registros por paciente" },
+  { to: "/rotinas", icon: "📋", label: "Rotinas", hint: "Modelos prontos" },
+  { to: "/relatorios", icon: "📄", label: "Relatórios", hint: "Gerar PDF por período" },
+  { to: "/financas", icon: "💰", label: "Finanças", hint: "Recebido e em aberto" },
+];
+
+export function HomePage() {
   const { firebaseUser, userDoc } = useAuth();
   const navigate = useNavigate();
   const [patientIds, setPatientIds] = useState<string[] | null>(null);
@@ -32,7 +42,6 @@ export function DashboardPage() {
   }, [patientIds]);
 
   const stats = useMemo(() => {
-    const active = overview.length;
     const withPending = overview.filter((o) => o.todayPending > 0).length;
     const withLate = overview.filter((o) => o.todayLate > 0).length;
     const inactive = overview.filter((o) => {
@@ -41,44 +50,68 @@ export function DashboardPage() {
     }).length;
     const totalScheduled = overview.reduce((acc, o) => acc + o.todayTotal, 0);
     const totalCompleted = overview.reduce((acc, o) => acc + o.todayCompleted, 0);
-    const completionRate = totalScheduled ? Math.round((totalCompleted / totalScheduled) * 100) : 0;
 
     const feelingCounts = new Map<string, number>();
     overview.forEach((o) => {
       if (o.lastFeeling) feelingCounts.set(o.lastFeeling, (feelingCounts.get(o.lastFeeling) ?? 0) + 1);
     });
-    const topFeelings = Array.from(feelingCounts.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 3);
 
-    const alerts = overview.filter((o) => o.hasAttentionAlert);
-
-    return { active, withPending, withLate, inactive, completionRate, topFeelings, alerts };
+    return {
+      active: overview.length,
+      withPending,
+      withLate,
+      inactive,
+      completionRate: totalScheduled ? Math.round((totalCompleted / totalScheduled) * 100) : 0,
+      topFeelings: Array.from(feelingCounts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 3),
+      alerts: overview.filter((o) => o.hasAttentionAlert),
+    };
   }, [overview]);
 
-  if (patientIds === null || loadingOverview) return <LoadingSpinner label="Carregando painel..." />;
+  if (patientIds === null || loadingOverview) return <LoadingSpinner label="Carregando..." />;
 
   return (
     <div>
       <TopBar
-        title="Dashboard"
-        subtitle={`Olá, ${userDoc?.name?.split(" ")[0] ?? ""}`}
+        title={`Olá, ${userDoc?.name?.split(" ")[0] ?? ""}`}
+        subtitle="O que precisa da sua atenção hoje"
         action={firebaseUser && <NotificationsBell userId={firebaseUser.uid} />}
       />
 
       <div className="flex flex-col gap-4 px-4 pb-4">
-        {firebaseUser && <UpcomingSessions professionalId={firebaseUser.uid} />}
+        {firebaseUser && <UpcomingSessions professionalId={firebaseUser.uid} max={5} />}
 
-        <div className="grid grid-cols-2 gap-2.5">
-          <StatCard label="Pacientes ativos" value={stats.active} icon="🧑‍🤝‍🧑" />
-          <StatCard label="Taxa de conclusão hoje" value={`${stats.completionRate}%`} icon="📈" />
-          <StatCard label="Com pendências hoje" value={stats.withPending} icon="🕐" />
-          <StatCard label="Com atrasos hoje" value={stats.withLate} icon="⏰" />
+        <div>
+          <p className="mb-2 text-sm font-bold text-brand-700">Ir para</p>
+          <div className="grid grid-cols-3 gap-2.5">
+            {ATALHOS.map((a) => (
+              <button
+                key={a.to}
+                onClick={() => navigate(a.to)}
+                className="card flex flex-col items-center gap-1 px-2 py-3 text-center transition active:scale-[0.97]"
+              >
+                <span className="text-2xl">{a.icon}</span>
+                <span className="text-xs font-bold leading-tight text-brand-800">{a.label}</span>
+                <span className="text-[10px] leading-tight text-brand-400">{a.hint}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <p className="mb-2 text-sm font-bold text-brand-700">Seus pacientes hoje</p>
+          <div className="grid grid-cols-2 gap-2.5">
+            <StatCard label="Pacientes ativos" value={stats.active} icon="🧑‍🤝‍🧑" />
+            <StatCard label="Taxa de conclusão hoje" value={`${stats.completionRate}%`} icon="📈" />
+            <StatCard label="Com pendências hoje" value={stats.withPending} icon="🕐" />
+            <StatCard label="Com atrasos hoje" value={stats.withLate} icon="⏰" />
+          </div>
         </div>
 
         {stats.inactive > 0 && (
           <div className="card border-2 border-amber-200 bg-amber-50">
-            <p className="text-sm font-bold text-amber-800">⚠️ {stats.inactive} paciente(s) sem acessar há 3+ dias</p>
+            <p className="text-sm font-bold text-amber-800">
+              ⚠️ {stats.inactive} paciente(s) sem acessar há 3+ dias
+            </p>
           </div>
         )}
 
@@ -102,23 +135,6 @@ export function DashboardPage() {
             </div>
           </div>
         )}
-
-        <div className="flex gap-2">
-          <button
-            onClick={() => navigate("/relatorios")}
-            className="card flex-1 text-left text-sm font-bold text-brand-700"
-          >
-            📄 Relatórios
-            <span className="mt-0.5 block text-xs font-normal text-brand-400">Gerar PDF por período</span>
-          </button>
-          <button
-            onClick={() => navigate("/financas")}
-            className="card flex-1 text-left text-sm font-bold text-brand-700"
-          >
-            💰 Finanças
-            <span className="mt-0.5 block text-xs font-normal text-brand-400">Recebido, previsto e em aberto</span>
-          </button>
-        </div>
 
         {stats.topFeelings.length > 0 && (
           <div className="card">

@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { addDays } from "date-fns";
 import clsx from "clsx";
 import { useAuth } from "@/contexts/AuthContext";
-import { subscribeToSessionsInRange } from "@/services/sessions";
+import { subscribeToSessionsInRange, updateSession } from "@/services/sessions";
+import { useSessionDrag } from "@/hooks/useSessionDrag";
+import { useToast } from "@/contexts/ToastContext";
 import type { SessionDoc } from "@/types";
 import { TopBar } from "@/components/common/TopBar";
 import { SessionEditorSheet } from "@/components/professional/SessionEditorSheet";
@@ -14,6 +16,7 @@ import {
   dayLabel,
   hourRange,
   layoutDay,
+  minutesOf,
   sessionColor,
   weekDays,
   weekLabel,
@@ -22,6 +25,7 @@ import { todayKey } from "@/utils/date";
 
 export function AgendaPage() {
   const { firebaseUser } = useAuth();
+  const { showToast } = useToast();
   const [reference, setReference] = useState(() => new Date());
   const [sessions, setSessions] = useState<SessionDoc[]>([]);
   const [editing, setEditing] = useState<SessionDoc | "new" | null>(null);
@@ -39,6 +43,18 @@ export function AgendaPage() {
   const hours = useMemo(() => hourRange(sessions), [sessions]);
   const firstHour = hours[0];
   const today = todayKey();
+
+  const { preview, onPointerDown, onPointerMove, finish, consumeDrag } = useSessionDrag(
+    firstHour,
+    async ({ sessionId, date, startTime, endTime }) => {
+      try {
+        await updateSession(sessionId, { date, startTime, endTime });
+        showToast("Sessão remarcada.");
+      } catch {
+        showToast("Não foi possível remarcar agora.", "error");
+      }
+    }
+  );
 
   return (
     <div>
@@ -110,6 +126,7 @@ export function AgendaPage() {
               return (
                 <div
                   key={key}
+                  data-day={key}
                   className={clsx("relative flex-1 border-l border-brand-100", key === today && "bg-brand-50/40")}
                   style={{ height: hours.length * HOUR_PX }}
                 >
@@ -121,10 +138,18 @@ export function AgendaPage() {
                     const { top, height } = blockGeometry(session, firstHour);
                     const color = sessionColor(session);
                     const off = session.status === "cancelled" || session.status === "no_show";
+                    const arrastando = preview?.sessionId === session.id;
                     return (
                       <button
                         key={session.id}
-                        onClick={() => setActive(session)}
+                        onPointerDown={(e) => onPointerDown(e, session)}
+                        onPointerMove={onPointerMove}
+                        onPointerUp={() => finish(true)}
+                        onPointerCancel={() => finish(false)}
+                        onClick={() => {
+                          if (consumeDrag()) return; // acabou de arrastar: não abre a folha
+                          setActive(session);
+                        }}
                         style={{
                           top,
                           height,
@@ -132,10 +157,14 @@ export function AgendaPage() {
                           width: `${100 / lanes}%`,
                           backgroundColor: off ? "transparent" : color,
                           borderColor: color,
+                          // Só trava a rolagem depois que o arraste arma; antes disso a
+                          // grade precisa continuar rolando na horizontal normalmente.
+                          touchAction: arrastando ? "none" : "manipulation",
                         }}
                         className={clsx(
                           "absolute overflow-hidden rounded-md border-l-4 px-1.5 py-1 text-left",
-                          off ? "border border-dashed opacity-70" : "text-white"
+                          off ? "border border-dashed opacity-70" : "text-white",
+                          arrastando && "opacity-30"
                         )}
                       >
                         <p
@@ -154,6 +183,22 @@ export function AgendaPage() {
                       </button>
                     );
                   })}
+
+                  {preview?.date === key && (
+                    <div
+                      className="pointer-events-none absolute rounded-md border-2 border-dashed border-brand-500 bg-brand-500/20 px-1.5 py-1"
+                      style={{
+                        top: ((minutesOf(preview.startTime) - firstHour * 60) / 60) * HOUR_PX,
+                        height: Math.max(((minutesOf(preview.endTime) - minutesOf(preview.startTime)) / 60) * HOUR_PX, 26),
+                        left: 0,
+                        width: "100%",
+                      }}
+                    >
+                      <p className="text-[11px] font-bold leading-tight text-brand-700">
+                        {preview.startTime} - {preview.endTime}
+                      </p>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -164,6 +209,12 @@ export function AgendaPage() {
       {sessions.length === 0 && (
         <p className="px-4 pb-6 text-center text-sm text-brand-400">
           Nenhum atendimento nesta semana. Toque em <span className="font-bold">+ Sessão</span> para agendar.
+        </p>
+      )}
+
+      {sessions.length > 0 && (
+        <p className="px-4 pb-6 text-center text-xs text-brand-400">
+          Segure um atendimento por um instante e arraste para mudar de dia ou horário.
         </p>
       )}
 

@@ -15,3 +15,8 @@ export function subscribeToUpcomingSessions(_p: string, cb: (s: SessionDoc[]) =>
 export async function getRecordForSession() {
   return null; // nas capturas o registro começa em branco
 }
+
+export function subscribeToProfessionalRecords(_p: string, cb: (r: never[]) => void) {
+  cb([]);
+  return () => undefined;
+}

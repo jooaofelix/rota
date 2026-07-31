@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ToastProvider } from "@/contexts/ToastContext";
 import { RequireAuth } from "@/routes/RequireAuth";
@@ -24,7 +24,8 @@ import { PatientProfilePage } from "@/pages/patient/PatientProfilePage";
 
 import { ProfessionalLayout } from "@/layouts/ProfessionalLayout";
 import { AgendaPage } from "@/pages/professional/AgendaPage";
-import { DashboardPage } from "@/pages/professional/DashboardPage";
+import { HomePage } from "@/pages/professional/HomePage";
+import { RecordsPage } from "@/pages/professional/RecordsPage";
 import { PatientsListPage } from "@/pages/professional/PatientsListPage";
 import { PatientDetailPage } from "@/pages/professional/PatientDetailPage";
 import { RoutinesPage } from "@/pages/professional/RoutinesPage";
@@ -65,8 +66,11 @@ export default function App() {
 
             <Route element={<RequireAuth role="professional" />}>
               <Route element={<ProfessionalLayout />}>
+                <Route path="/inicio" element={<HomePage />} />
+                {/* Rota antiga do painel: quem tinha atalho salvo continua chegando. */}
+                <Route path="/painel" element={<Navigate to="/inicio" replace />} />
                 <Route path="/agenda" element={<AgendaPage />} />
-                <Route path="/painel" element={<DashboardPage />} />
+                <Route path="/prontuarios" element={<RecordsPage />} />
                 <Route path="/pacientes" element={<PatientsListPage />} />
                 <Route path="/pacientes/:patientId" element={<PatientDetailPage />} />
                 <Route path="/rotinas" element={<RoutinesPage />} />

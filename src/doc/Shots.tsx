@@ -15,7 +15,8 @@ import { LoginPage } from "@/pages/auth/LoginPage";
 import { PatientProfilePage } from "@/pages/patient/PatientProfilePage";
 import { RoutinePage } from "@/pages/patient/RoutinePage";
 import { AgendaPage } from "@/pages/professional/AgendaPage";
-import { DashboardPage } from "@/pages/professional/DashboardPage";
+import { HomePage } from "@/pages/professional/HomePage";
+import { RecordsPage } from "@/pages/professional/RecordsPage";
 import { FinancePage } from "@/pages/professional/FinancePage";
 import { RoutinesPage } from "@/pages/professional/RoutinesPage";
 import "@/styles/index.css";
@@ -40,9 +41,10 @@ function App() {
 
   const PRO: Record<string, { path: string; element: JSX.Element }> = {
     modelos: { path: "/rotinas", element: <RoutinesPage /> },
-    dashboard: { path: "/painel", element: <DashboardPage /> },
+    dashboard: { path: "/inicio", element: <HomePage /> },
     agenda: { path: "/agenda", element: <AgendaPage /> },
     financas: { path: "/financas", element: <FinancePage /> },
+    prontuarios: { path: "/prontuarios", element: <RecordsPage /> },
   };
   const pro = PRO[screen];
   if (pro) {

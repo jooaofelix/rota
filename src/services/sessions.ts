@@ -159,3 +159,23 @@ export async function addAddendum(record: SessionRecordDoc, text: string) {
   const addenda = [...(record.addenda ?? []), { text, createdAt: new Date() as never }];
   await updateDoc(doc(db, RECORDS, record.id), { addenda, updatedAt: serverTimestamp() });
 }
+
+/** Todos os registros da profissional, para a tela que reúne os prontuários. */
+export function subscribeToProfessionalRecords(
+  professionalId: string,
+  callback: (records: SessionRecordDoc[]) => void
+) {
+  const q = query(collection(db, RECORDS), where("professionalId", "==", professionalId));
+  return onSnapshot(q, (snap) => {
+    const items = snap.docs.map((d) => ({ id: d.id, ...d.data() } as SessionRecordDoc));
+    callback(items.sort((a, b) => b.date.localeCompare(a.date)));
+  });
+}
+
+/** Os registros de um paciente, buscados uma vez (para montar o PDF do relatório). */
+export async function fetchPatientRecords(patientId: string): Promise<SessionRecordDoc[]> {
+  const snap = await getDocs(query(collection(db, RECORDS), where("patientId", "==", patientId)));
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() } as SessionRecordDoc))
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
