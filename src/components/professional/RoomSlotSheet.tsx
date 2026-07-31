@@ -72,7 +72,23 @@ export function RoomSlotSheet({
   const podeSalvar = !!partnerId && weekdays.length > 0 && startTime < endTime;
 
   return (
-    <BottomSheet open onClose={onClose} title={existing ? "Editar horário da sala" : "Novo horário na sala"}>
+    <BottomSheet
+      open
+      onClose={onClose}
+      title={existing ? "Editar horário da sala" : "Novo horário na sala"}
+      footer={
+        <div className="flex flex-col gap-2">
+          <button className="btn-primary" onClick={handleSave} disabled={!podeSalvar || saving}>
+            {saving ? "Salvando..." : existing ? "Salvar" : "Adicionar à escala"}
+          </button>
+          {existing && (
+            <button onClick={() => setConfirmingDelete(true)} className="text-sm font-bold text-rose-500">
+              Remover horário
+            </button>
+          )}
+        </div>
+      }
+    >
       <div className="flex flex-col gap-3">
         <div>
           <p className="mb-1 text-xs font-bold text-brand-500">Profissional</p>
@@ -144,15 +160,6 @@ export function RoomSlotSheet({
           />
         </div>
 
-        <button className="btn-primary" onClick={handleSave} disabled={!podeSalvar || saving}>
-          {saving ? "Salvando..." : existing ? "Salvar" : "Adicionar à escala"}
-        </button>
-
-        {existing && (
-          <button onClick={() => setConfirmingDelete(true)} className="text-sm font-bold text-rose-500">
-            Remover horário
-          </button>
-        )}
       </div>
 
       <ConfirmDialog

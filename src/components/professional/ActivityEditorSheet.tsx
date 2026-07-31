@@ -131,7 +131,31 @@ export function ActivityEditorSheet({ patientId, professionalId, routineId, exis
   }
 
   return (
-    <BottomSheet open onClose={onClose} title={existingItem ? "Editar atividade" : "Nova atividade"}>
+    <BottomSheet
+      open
+      onClose={onClose}
+      title={existingItem ? "Editar atividade" : "Nova atividade"}
+      footer={
+        <div className="flex flex-col gap-2">
+          <button className="btn-primary" onClick={handleSave} disabled={saving || !form.title.trim()}>
+            {saving ? "Salvando..." : existingItem ? "Salvar alterações" : "Criar atividade"}
+          </button>
+          {existingItem && (
+            <div className="flex gap-2">
+              <button className="btn-secondary" onClick={handleDuplicate}>
+                Duplicar
+              </button>
+              <button
+                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-rose-50 px-4 py-3 text-base font-bold text-rose-500"
+                onClick={() => setConfirmingDelete(true)}
+              >
+                Excluir
+              </button>
+            </div>
+          )}
+        </div>
+      }
+    >
       <div className="flex flex-col gap-3">
         <input value={form.title} onChange={(e) => update("title", e.target.value)} placeholder="Título da atividade" className="input-field" />
         <textarea
@@ -267,20 +291,6 @@ export function ActivityEditorSheet({ patientId, professionalId, routineId, exis
           <input type="checkbox" checked={notifyOnSave} onChange={(e) => setNotifyOnSave(e.target.checked)} className="h-5 w-5 rounded border-brand-300" />
         </label>
 
-        <button className="btn-primary" onClick={handleSave} disabled={saving || !form.title.trim()}>
-          {saving ? "Salvando..." : existingItem ? "Salvar alterações" : "Criar atividade"}
-        </button>
-
-        {existingItem && (
-          <div className="flex gap-2">
-            <button className="btn-secondary" onClick={handleDuplicate}>
-              Duplicar
-            </button>
-            <button className="flex w-full items-center justify-center gap-2 rounded-2xl bg-rose-50 px-4 py-3.5 text-base font-bold text-rose-500" onClick={() => setConfirmingDelete(true)}>
-              Excluir
-            </button>
-          </div>
-        )}
       </div>
 
       <ConfirmDialog

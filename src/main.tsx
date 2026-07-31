@@ -5,7 +5,15 @@ import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { initPwa } from "@/pwa/registerSW";
 import "@/styles/index.css";
 
-if (localStorage.getItem("rota-desktop-mode") === "1") {
+// Antes da primeira pintura, para a largura não pular depois que o React monta.
+const larguraGuardada = (() => {
+  try {
+    return localStorage.getItem("rota-desktop-mode");
+  } catch {
+    return null;
+  }
+})();
+if (larguraGuardada === "1" || (larguraGuardada === null && window.matchMedia("(min-width: 900px)").matches)) {
   document.documentElement.classList.add("desktop-mode");
 }
 

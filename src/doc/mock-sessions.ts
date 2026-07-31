@@ -20,3 +20,12 @@ export function subscribeToProfessionalRecords(_p: string, cb: (r: never[]) => v
   cb([]);
   return () => undefined;
 }
+
+// Nas capturas não há Firestore: gravar precisa apenas não falhar, para a folha
+// mostrar a escolha aplicada em vez de desfazê-la.
+export async function updateSession() {
+  return undefined;
+}
+export async function setPaymentStatus() {
+  return undefined;
+}

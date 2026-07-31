@@ -2,11 +2,23 @@ import { useCallback, useEffect, useState } from "react";
 
 const STORAGE_KEY = "rota-desktop-mode";
 
+/**
+ * Sem preferência guardada, quem manda é o tamanho da tela: num computador o app
+ * já abre largo, em vez de ficar numa tira estreita no meio do monitor até a
+ * pessoa achar o interruptor. Escolhendo pelo botão, a escolha passa a valer.
+ */
+export function defaultDesktopMode(): boolean {
+  return typeof window !== "undefined" && window.matchMedia("(min-width: 900px)").matches;
+}
+
 function readStored(): boolean {
   try {
-    return localStorage.getItem(STORAGE_KEY) === "1";
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored === "1") return true;
+    if (stored === "0") return false;
+    return defaultDesktopMode();
   } catch {
-    return false;
+    return defaultDesktopMode();
   }
 }
 

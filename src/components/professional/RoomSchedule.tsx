@@ -81,7 +81,7 @@ export function RoomSchedule({ professionalId, ownerName }: { professionalId: st
         <div className="overflow-x-auto pb-3">
           <div className="min-w-[680px] px-4">
             <div className="flex">
-              <div className="w-11 shrink-0" />
+              <div className="sticky left-0 z-20 w-11 shrink-0 bg-cream-50" />
               {WEEKDAY_ORDER.map((wd) => (
                 <div key={wd} className="flex-1 pb-1.5 text-center">
                   <p className="text-[11px] font-bold uppercase text-brand-400">{WEEKDAY_SHORT[wd]}</p>
@@ -90,7 +90,9 @@ export function RoomSchedule({ professionalId, ownerName }: { professionalId: st
             </div>
 
             <div className="relative flex">
-              <div className="w-11 shrink-0">
+              {/* Fica presa à esquerda: rolando a semana no celular, o horário
+                continua à vista em vez de sair junto com os dias. */}
+            <div className="sticky left-0 z-20 w-11 shrink-0 bg-cream-50">
                 {hours.map((hour) => (
                   <div key={hour} style={{ height: HOUR_PX }} className="relative">
                     <span className="absolute -top-1.5 right-1.5 text-[10px] font-bold text-brand-300">

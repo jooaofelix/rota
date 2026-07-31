@@ -138,7 +138,23 @@ export function SessionEditorSheet({ professionalId, existing, defaultDate, owne
   const canSave = !!form.patientId && !!form.date && form.startTime < form.endTime;
 
   return (
-    <BottomSheet open onClose={onClose} title={existing ? "Editar sessão" : "Nova sessão"}>
+    <BottomSheet
+      open
+      onClose={onClose}
+      title={existing ? "Editar sessão" : "Nova sessão"}
+      footer={
+        <div className="flex flex-col gap-2">
+          <button className="btn-primary" onClick={handleSave} disabled={!canSave || saving}>
+            {saving ? "Salvando..." : existing ? "Salvar alterações" : "Agendar"}
+          </button>
+          {existing && (
+            <button onClick={() => setConfirmingDelete(true)} className="text-sm font-bold text-rose-500">
+              Remover sessão
+            </button>
+          )}
+        </div>
+      }
+    >
       <div className="flex flex-col gap-3">
         <Field label="Paciente">
           <select
@@ -250,15 +266,6 @@ export function SessionEditorSheet({ professionalId, existing, defaultDate, owne
           </p>
         </Field>
 
-        <button className="btn-primary" onClick={handleSave} disabled={!canSave || saving}>
-          {saving ? "Salvando..." : existing ? "Salvar alterações" : "Agendar"}
-        </button>
-
-        {existing && (
-          <button onClick={() => setConfirmingDelete(true)} className="text-sm font-bold text-rose-500">
-            Remover sessão
-          </button>
-        )}
       </div>
 
       {conflito && (

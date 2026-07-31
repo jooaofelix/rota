@@ -64,7 +64,16 @@ export function PartnerSheet({
   }
 
   return (
-    <BottomSheet open onClose={onClose} title="Quem divide a sala">
+    <BottomSheet
+      open
+      onClose={onClose}
+      title="Quem divide a sala"
+      footer={
+        <button onClick={() => setEditing("new")} className="btn-primary">
+          + Cadastrar profissional
+        </button>
+      }
+    >
       <div className="flex flex-col gap-2">
         {partners.length === 0 && (
           <p className="py-3 text-center text-sm text-brand-400">
@@ -151,9 +160,6 @@ export function PartnerSheet({
           );
         })}
 
-        <button onClick={() => setEditing("new")} className="btn-primary mt-1">
-          + Cadastrar profissional
-        </button>
       </div>
     </BottomSheet>
   );
@@ -203,7 +209,21 @@ function PartnerForm({
   }
 
   return (
-    <BottomSheet open onClose={onClose} title={existing ? "Editar profissional" : "Cadastrar profissional"}>
+    <BottomSheet
+      open
+      onClose={onClose}
+      title={existing ? "Editar profissional" : "Cadastrar profissional"}
+      footer={
+        <div className="flex gap-2">
+          <button onClick={onBack} className="btn-secondary flex-1">
+            Voltar
+          </button>
+          <button className="btn-primary flex-1" onClick={handleSave} disabled={!name.trim() || saving}>
+            {saving ? "Salvando..." : "Salvar"}
+          </button>
+        </div>
+      }
+    >
       <div className="flex flex-col gap-3">
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome" className="input-field" />
         <input
@@ -256,12 +276,6 @@ function PartnerForm({
           </div>
         </div>
 
-        <button className="btn-primary" onClick={handleSave} disabled={!name.trim() || saving}>
-          {saving ? "Salvando..." : "Salvar"}
-        </button>
-        <button onClick={onBack} className="text-sm font-bold text-brand-500">
-          Voltar
-        </button>
       </div>
     </BottomSheet>
   );

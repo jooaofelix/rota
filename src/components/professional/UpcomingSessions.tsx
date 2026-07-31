@@ -28,7 +28,9 @@ function initials(name: string) {
 export function UpcomingSessions({ professionalId, max = 8 }: { professionalId: string; max?: number }) {
   const navigate = useNavigate();
   const [sessions, setSessions] = useState<SessionDoc[]>([]);
-  const [active, setActive] = useState<SessionDoc | null>(null);
+  // Guarda o id, e não o documento: assim a folha aberta acompanha o que a
+  // assinatura traz de novo em vez de ficar presa ao retrato do toque.
+  const [activeId, setActiveId] = useState<string | null>(null);
 
   useEffect(() => subscribeToUpcomingSessions(professionalId, setSessions), [professionalId]);
 
@@ -39,6 +41,8 @@ export function UpcomingSessions({ professionalId, max = 8 }: { professionalId: 
     });
     return Array.from(days.entries());
   }, [sessions, max]);
+
+  const active = activeId ? sessions.find((s) => s.id === activeId) ?? null : null;
 
   return (
     <div className="card">
@@ -62,7 +66,7 @@ export function UpcomingSessions({ professionalId, max = 8 }: { professionalId: 
                 {items.map((s) => (
                   <button
                     key={s.id}
-                    onClick={() => setActive(s)}
+                    onClick={() => setActiveId(s.id)}
                     className="flex items-center gap-3 border-b border-brand-50 py-2.5 text-left last:border-b-0"
                   >
                     <span className="w-12 shrink-0 text-sm font-bold text-brand-700">{hourLabel(s.startTime)}</span>
@@ -76,6 +80,10 @@ export function UpcomingSessions({ professionalId, max = 8 }: { professionalId: 
                       <span className="block truncate text-sm font-bold text-brand-800">{s.patientName}</span>
                       <span className="block text-xs text-brand-400">
                         {s.modality === "online" ? "🎥 Online" : "Presencial"}
+                        {/* Marcar "realizada" ou "faltou" precisa aparecer na própria
+                            linha; antes só o pagamento mudava e a escolha parecia
+                            não ter pegado. */}
+                        {s.status === "done" && " · ✓ realizada"}
                         {s.status === "no_show" && " · faltou"}
                       </span>
                     </span>
@@ -98,9 +106,9 @@ export function UpcomingSessions({ professionalId, max = 8 }: { professionalId: 
       {active && (
         <SessionActionSheet
           session={active}
-          onClose={() => setActive(null)}
+          onClose={() => setActiveId(null)}
           onEdit={() => {
-            setActive(null);
+            setActiveId(null);
             navigate("/agenda");
           }}
         />

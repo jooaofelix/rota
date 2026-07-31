@@ -118,7 +118,34 @@ export function SessionRecordSheet({
   }
 
   return (
-    <BottomSheet open onClose={onClose} title="Registro da sessão">
+    <BottomSheet
+      open
+      onClose={onClose}
+      title="Registro da sessão"
+      footer={
+        loading ? undefined : signed ? (
+          <button onClick={onBack} className="btn-secondary">
+            Voltar
+          </button>
+        ) : (
+          <div className="flex flex-col gap-2">
+            <button className="btn-primary" onClick={handleSave} disabled={saving || !form.evolution.trim()}>
+              {saving ? "Salvando..." : "Salvar registro"}
+            </button>
+            <div className="flex gap-2">
+              <button onClick={onBack} className="btn-secondary flex-1">
+                Voltar
+              </button>
+              {record && (
+                <button className="btn-secondary flex-1" onClick={() => setConfirmingSign(true)}>
+                  Encerrar registro
+                </button>
+              )}
+            </div>
+          </div>
+        )
+      }
+    >
       <p className="mb-3 text-sm text-brand-500">
         <span className="font-bold text-brand-700">{session.patientName}</span> ·{" "}
         {formatShortDate(session.date)} · {session.startTime}
@@ -196,18 +223,7 @@ export function SessionRecordSheet({
                 Adicionar adendo
               </button>
             </div>
-          ) : (
-            <>
-              <button className="btn-primary" onClick={handleSave} disabled={saving || !form.evolution.trim()}>
-                {saving ? "Salvando..." : "Salvar registro"}
-              </button>
-              {record && (
-                <button className="btn-secondary" onClick={() => setConfirmingSign(true)}>
-                  Encerrar registro
-                </button>
-              )}
-            </>
-          )}
+          ) : null}
 
           {record && (
             <Suspense fallback={<p className="text-center text-xs text-brand-400">Preparando PDF...</p>}>
@@ -220,9 +236,6 @@ export function SessionRecordSheet({
             </Suspense>
           )}
 
-          <button onClick={onBack} className="text-sm font-bold text-brand-500">
-            Voltar
-          </button>
         </div>
       )}
 

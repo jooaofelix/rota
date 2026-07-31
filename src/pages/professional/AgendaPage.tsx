@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { addDays } from "date-fns";
 import clsx from "clsx";
 import { useAuth } from "@/contexts/AuthContext";
@@ -46,6 +46,7 @@ export function AgendaPage() {
   >(null);
 
   const days = useMemo(() => weekDays(reference), [reference]);
+  const gradeRef = useRef<HTMLDivElement>(null);
   const start = dayKey(days[0]);
   const end = dayKey(days[6]);
 
@@ -68,6 +69,20 @@ export function AgendaPage() {
   const hours = useMemo(() => hourRange(sessions), [sessions]);
   const firstHour = hours[0];
   const today = todayKey();
+
+  /**
+   * No celular só cabem ~3 colunas, e a semana começa na segunda: abrindo a
+   * agenda numa sexta, o dia de hoje ficava fora da tela e a impressão era de
+   * agenda vazia. Traz a coluna de hoje para o centro assim que a grade monta.
+   */
+  useEffect(() => {
+    const grade = gradeRef.current;
+    if (!grade) return;
+    const coluna = grade.querySelector<HTMLElement>(`[data-day="${today}"]`);
+    if (!coluna) return;
+    const alvo = coluna.offsetLeft - (grade.clientWidth - coluna.clientWidth) / 2;
+    grade.scrollTo({ left: Math.max(0, alvo), behavior: "auto" });
+  }, [today, start, aba, hours.length]);
 
   const { preview, onPointerDown, onPointerMove, finish, consumeDrag } = useSessionDrag(
     firstHour,
@@ -139,10 +154,10 @@ export function AgendaPage() {
       </div>
 
       {/* A grade rola na horizontal no celular: sete colunas legíveis não cabem em 390px. */}
-      <div data-hscroll className="overflow-x-auto pb-4">
+      <div ref={gradeRef} data-hscroll className="overflow-x-auto pb-4">
         <div className="min-w-[680px] px-4">
           <div className="flex">
-            <div className="w-11 shrink-0" />
+            <div className="sticky left-0 z-20 w-11 shrink-0 bg-cream-50" />
             {days.map((day) => {
               const key = dayKey(day);
               const { weekday, day: dayNumber } = dayLabel(day);
@@ -166,7 +181,9 @@ export function AgendaPage() {
           </div>
 
           <div className="relative flex">
-            <div className="w-11 shrink-0">
+            {/* Fica presa à esquerda: rolando a semana no celular, o horário
+                continua à vista em vez de sair junto com os dias. */}
+            <div className="sticky left-0 z-20 w-11 shrink-0 bg-cream-50">
               {hours.map((hour) => (
                 <div key={hour} style={{ height: HOUR_PX }} className="relative">
                   <span className="absolute -top-1.5 right-1.5 text-[10px] font-bold text-brand-300">
