@@ -309,6 +309,7 @@ export function AgendaPage() {
       {pendingDrop && (
         <RoomConflictDialog
           check={pendingDrop.check}
+          professionalId={firebaseUser?.uid ?? ""}
           ownerName={userDoc?.name ?? "Responsável"}
           date={pendingDrop.date}
           startTime={pendingDrop.startTime}

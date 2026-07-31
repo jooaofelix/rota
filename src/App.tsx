@@ -14,6 +14,7 @@ import { ForgotPasswordPage } from "@/pages/auth/ForgotPasswordPage";
 
 import { PrivacyPolicyPage } from "@/pages/legal/PrivacyPolicyPage";
 import { TermsPage } from "@/pages/legal/TermsPage";
+import { RoomRequestReplyPage } from "@/pages/legal/RoomRequestReplyPage";
 
 import { PatientLayout } from "@/layouts/PatientLayout";
 import { TodayPage } from "@/pages/patient/TodayPage";
@@ -53,6 +54,8 @@ export default function App() {
 
             <Route path="/privacidade" element={<PrivacyPolicyPage />} />
             <Route path="/termos" element={<TermsPage />} />
+            {/* Aberta pelo link do e-mail, sem login: quem divide a sala não tem conta. */}
+            <Route path="/sala/resposta/:token" element={<RoomRequestReplyPage />} />
 
             <Route element={<RequireAuth role="patient" />}>
               <Route element={<PatientLayout />}>

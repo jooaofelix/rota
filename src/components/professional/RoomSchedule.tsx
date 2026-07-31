@@ -14,6 +14,7 @@ import {
 } from "@/utils/agenda";
 import { PartnerSheet } from "./PartnerSheet";
 import { RoomSlotSheet } from "./RoomSlotSheet";
+import { RoomRequestsFeed } from "./RoomRequestsFeed";
 
 const RoomSchedulePdfLink = lazy(() =>
   import("./RoomSchedulePdfLink").then((m) => ({ default: m.RoomSchedulePdfLink }))
@@ -145,7 +146,9 @@ export function RoomSchedule({ professionalId, ownerName }: { professionalId: st
         </div>
       )}
 
-      <div className="flex flex-col gap-2 px-4 pb-4">
+      <div className="flex flex-col gap-3 px-4 pb-4">
+        <RoomRequestsFeed professionalId={professionalId} />
+
         <div className="flex gap-2">
           <button onClick={() => setEditingSlot("new")} className="btn-primary flex-1" disabled={partners.length === 0}>
             + Horário na sala

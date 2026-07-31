@@ -1,5 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
-import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import clsx from "clsx";
 import { useAuth } from "@/contexts/AuthContext";
 import { subscribeToSessionsInRange, setPaymentStatus } from "@/services/sessions";
@@ -10,7 +23,9 @@ import { useToast } from "@/contexts/ToastContext";
 import { formatMoney, monthKeyOf, monthLabel } from "@/utils/agenda";
 import { formatShortDate, todayKey } from "@/utils/date";
 
-const MONTHS_BACK = 5;
+/** Um ano fechado: a linha de evolução usa tudo, as barras só os 6 últimos. */
+const MONTHS_BACK = 11;
+const BARS_VISIVEIS = 6;
 
 const METHOD_LABELS: Record<PaymentMethod, string> = {
   pix: "Pix",
@@ -69,14 +84,43 @@ export function FinancePage() {
     () =>
       months.map((m) => {
         const doMes = billable.filter((s) => monthKeyOf(s.date) === m);
+        const recebido = doMes.filter((s) => s.paymentStatus === "paid").reduce((a, s) => a + (s.price ?? 0), 0);
+        const previsto = doMes.reduce((a, s) => a + (s.price ?? 0), 0);
         return {
           mes: monthLabel(m),
-          recebido: doMes.filter((s) => s.paymentStatus === "paid").reduce((a, s) => a + (s.price ?? 0), 0),
-          previsto: doMes.reduce((a, s) => a + (s.price ?? 0), 0),
+          recebido,
+          previsto,
+          // Quanto valeu, em média, cada atendimento do mês — sobe quando ela
+          // reajusta o valor da sessão e cai quando dá desconto.
+          ticket: doMes.length ? Math.round(previsto / doMes.length) : 0,
         };
       }),
     [billable, months]
   );
+
+  /**
+   * Só os meses que já têm história: enquanto o app é novo, uma linha começando
+   * em zero há um ano dá a impressão errada de queda.
+   */
+  const evolucao = useMemo(() => {
+    const primeiro = porMes.findIndex((m) => m.previsto > 0);
+    return primeiro === -1 ? [] : porMes.slice(primeiro);
+  }, [porMes]);
+
+  const tendencia = useMemo(() => {
+    const fechados = evolucao.slice(0, -1); // o mês corrente ainda está incompleto
+    const comValor = fechados.filter((m) => m.recebido > 0);
+    const media = comValor.length ? comValor.reduce((a, m) => a + m.recebido, 0) / comValor.length : 0;
+    const melhor = fechados.reduce<(typeof porMes)[number] | null>(
+      (best, m) => (!best || m.recebido > best.recebido ? m : best),
+      null
+    );
+    const atual = porMes[porMes.length - 1];
+    const anterior = porMes[porMes.length - 2];
+    const variacao =
+      anterior && anterior.recebido > 0 ? ((atual.recebido - anterior.recebido) / anterior.recebido) * 100 : null;
+    return { media, melhor, variacao, mesAnterior: anterior?.mes ?? "" };
+  }, [evolucao, porMes]);
 
   const porForma = useMemo(() => {
     const totals = new Map<PaymentMethod, number>();
@@ -116,6 +160,107 @@ export function FinancePage() {
           <Stat label="Atrasado" value={formatMoney(resumo.atrasado)} tone={resumo.atrasado > 0 ? "bad" : undefined} />
         </div>
 
+        {evolucao.length > 1 && (
+          <div className="card">
+            <div className="mb-1 flex items-baseline justify-between gap-2">
+              <p className="text-sm font-bold text-brand-700">Evolução do faturamento</p>
+              {tendencia.variacao !== null && (
+                <span
+                  className={clsx(
+                    "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-extrabold",
+                    tendencia.variacao >= 0 ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
+                  )}
+                >
+                  {tendencia.variacao >= 0 ? "▲" : "▼"} {Math.abs(tendencia.variacao).toFixed(0)}% vs. {tendencia.mesAnterior}
+                </span>
+              )}
+            </div>
+            <p className="mb-3 text-xs text-brand-400">
+              A linha cheia é o que entrou; a pontilhada, o que estava agendado. A distância entre
+              as duas é a inadimplência do mês.
+            </p>
+            <div className="h-56">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={evolucao} margin={{ top: 6, right: 8, left: -14, bottom: 0 }}>
+                  <CartesianGrid vertical={false} stroke="#e2e8f0" strokeDasharray="3 3" />
+                  <XAxis dataKey="mes" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} minTickGap={4} />
+                  <YAxis
+                    tick={{ fontSize: 10 }}
+                    axisLine={false}
+                    tickLine={false}
+                    width={44}
+                    tickFormatter={compactMoney}
+                  />
+                  <Tooltip
+                    formatter={(v: number, name) => [formatMoney(v), name === "recebido" ? "Recebido" : "Previsto"]}
+                    contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 4px 16px rgba(0,0,0,.1)", fontSize: 12 }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="previsto"
+                    stroke="#a5b4fc"
+                    strokeWidth={2}
+                    strokeDasharray="4 4"
+                    dot={false}
+                    isAnimationActive={false}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="recebido"
+                    stroke="#4f46e5"
+                    strokeWidth={2.5}
+                    dot={{ r: 3, fill: "#4f46e5" }}
+                    activeDot={{ r: 5 }}
+                    isAnimationActive={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="mt-3 grid grid-cols-2 gap-2 border-t border-brand-100 pt-3">
+              <div>
+                <p className="text-sm font-extrabold text-brand-900">{formatMoney(tendencia.media)}</p>
+                <p className="text-[11px] text-brand-400">Média por mês fechado</p>
+              </div>
+              {tendencia.melhor && tendencia.melhor.recebido > 0 && (
+                <div>
+                  <p className="text-sm font-extrabold text-brand-900">
+                    {formatMoney(tendencia.melhor.recebido)}
+                  </p>
+                  <p className="text-[11px] text-brand-400">Melhor mês ({tendencia.melhor.mes})</p>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-3 border-t border-brand-100 pt-3">
+              <p className="text-sm font-bold text-brand-700">Valor médio por sessão</p>
+              <p className="mb-2 text-xs text-brand-400">
+                Média do que foi cobrado em cada atendimento do mês.
+              </p>
+              <div className="h-28">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={evolucao} margin={{ top: 6, right: 8, left: -14, bottom: 0 }}>
+                    <XAxis dataKey="mes" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} minTickGap={4} />
+                    <YAxis
+                      tick={{ fontSize: 10 }}
+                      axisLine={false}
+                      tickLine={false}
+                      width={44}
+                      domain={["dataMin - 20", "dataMax + 20"]}
+                      tickFormatter={compactMoney}
+                    />
+                    <Tooltip
+                      formatter={(v: number) => [formatMoney(v), "Valor médio"]}
+                      contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 4px 16px rgba(0,0,0,.1)", fontSize: 12 }}
+                    />
+                    <Line type="monotone" dataKey="ticket" stroke="#0ea5e9" strokeWidth={2.5} dot={{ r: 2.5, fill: "#0ea5e9" }} isAnimationActive={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="card">
           <p className="mb-1 text-sm font-bold text-brand-700">Recebido e previsto por mês</p>
           <p className="mb-3 text-xs text-brand-400">
@@ -123,15 +268,15 @@ export function FinancePage() {
           </p>
           <div className="h-52">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={porMes} margin={{ top: 4, right: 4, left: -18, bottom: 0 }}>
+              <BarChart data={porMes.slice(-BARS_VISIVEIS)} margin={{ top: 4, right: 4, left: -18, bottom: 0 }}>
                 <XAxis dataKey="mes" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} width={54} />
                 <Tooltip
                   formatter={(v: number, name) => [formatMoney(v), name === "recebido" ? "Recebido" : "Previsto"]}
                   contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 4px 16px rgba(0,0,0,.1)", fontSize: 12 }}
                 />
-                <Bar dataKey="previsto" fill="#c7d2fe" radius={[6, 6, 0, 0]} />
-                <Bar dataKey="recebido" fill="#4f46e5" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="previsto" fill="#c7d2fe" radius={[6, 6, 0, 0]} isAnimationActive={false} />
+                <Bar dataKey="recebido" fill="#4f46e5" radius={[6, 6, 0, 0]} isAnimationActive={false} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -144,7 +289,7 @@ export function FinancePage() {
               <div className="h-36 w-36 shrink-0">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie data={porForma} dataKey="value" nameKey="nome" innerRadius={34} outerRadius={62} paddingAngle={2}>
+                    <Pie data={porForma} dataKey="value" nameKey="nome" innerRadius={34} outerRadius={62} paddingAngle={2} isAnimationActive={false}>
                       {porForma.map((_, i) => (
                         <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                       ))}
@@ -212,6 +357,12 @@ export function FinancePage() {
       </div>
     </div>
   );
+}
+
+/** Eixo Y curto: "R$ 1.350,00" não cabe na largura de um celular. */
+function compactMoney(value: number): string {
+  if (value >= 1000) return `${(value / 1000).toFixed(value % 1000 === 0 ? 0 : 1)}k`;
+  return String(value);
 }
 
 function Stat({ label, value, tone }: { label: string; value: string; tone?: "good" | "warn" | "bad" }) {

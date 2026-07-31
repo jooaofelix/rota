@@ -19,6 +19,7 @@ import { RoutinePage } from "@/pages/patient/RoutinePage";
 import { AgendaPage } from "@/pages/professional/AgendaPage";
 import { HomePage } from "@/pages/professional/HomePage";
 import { RecordsPage } from "@/pages/professional/RecordsPage";
+import { RoomRequestReplyPage } from "@/pages/legal/RoomRequestReplyPage";
 import { FinancePage } from "@/pages/professional/FinancePage";
 import { RoutinesPage } from "@/pages/professional/RoutinesPage";
 import "@/styles/index.css";
@@ -49,6 +50,15 @@ function QuadroSolto() {
 
 function App() {
   if (screen === "quadro") return <QuadroSolto />;
+  if (screen === "resposta") {
+    return (
+      <MemoryRouter initialEntries={["/sala/resposta/abc123"]}>
+        <Routes>
+          <Route path="/sala/resposta/:token" element={<RoomRequestReplyPage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+  }
   if (screen === "login") {
     return (
       <MemoryRouter initialEntries={["/entrar"]}>

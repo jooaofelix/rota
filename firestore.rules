@@ -222,6 +222,23 @@ service cloud.firestore {
       allow create: if isProfessional() && request.resource.data.professionalId == request.auth.uid;
     }
 
+    // ---------- roomRequests (aviso de uso da sala) ----------
+    // O parceiro não tem conta: ele responde por um link cujo código é o próprio id
+    // do documento. Por isso a leitura de um documento específico é aberta — quem
+    // tem o código tem o aviso —, mas listar continua restrito à dona da agenda.
+    // O documento guarda só nomes, data e horário; nada de paciente entra aqui.
+    match /roomRequests/{token} {
+      allow get: if true;
+      allow list: if isSignedIn() && resource.data.professionalId == request.auth.uid;
+      allow create: if isProfessional() && request.resource.data.professionalId == request.auth.uid;
+      // Uma resposta só sai de "pendente", só mexe nos campos da resposta e só pode
+      // virar confirmado ou recusado — o link não serve para alterar mais nada.
+      allow update: if resource.data.status == 'pending'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'replyNote', 'respondedAt'])
+        && (request.resource.data.status == 'confirmed' || request.resource.data.status == 'declined');
+      allow delete: if isSignedIn() && resource.data.professionalId == request.auth.uid;
+    }
+
     // ---------- routineTemplates (modelos personalizados da profissional) ----------
     match /routineTemplates/{id} {
       // A própria profissional sempre lê os modelos dela; o paciente lê os modelos da

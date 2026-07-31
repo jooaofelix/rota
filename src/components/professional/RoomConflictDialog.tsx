@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { createPortal } from "react-dom";
 import type { RoomCheck } from "@/utils/roomAvailability";
 import { conflictEmailBody } from "@/utils/roomAvailability";
+import { createRoomRequest, newRequestToken, requestLink } from "@/services/roomRequests";
 import { formatShortDate } from "@/utils/date";
 
 /**
@@ -12,6 +14,7 @@ import { formatShortDate } from "@/utils/date";
  */
 export function RoomConflictDialog({
   check,
+  professionalId,
   ownerName,
   date,
   startTime,
@@ -20,6 +23,7 @@ export function RoomConflictDialog({
   onCancel,
 }: {
   check: RoomCheck;
+  professionalId: string;
   ownerName: string;
   date: string;
   startTime: string;
@@ -27,12 +31,39 @@ export function RoomConflictDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  // O código é sorteado aqui para o corpo do e-mail já sair com os links prontos;
+  // o registro só é gravado se ela realmente escolher avisar.
+  const [token] = useState(newRequestToken);
   if (check.status === "own" || check.status === "unknown") return null;
 
   const ocupada = check.status === "taken";
   const nome = ocupada ? check.occupantName : "";
   const email = ocupada ? check.occupant?.email : undefined;
-  const corpo = ocupada ? conflictEmailBody(nome, ownerName, date, startTime, endTime) : "";
+  const corpo = ocupada
+    ? conflictEmailBody(nome, ownerName, date, startTime, endTime, {
+        sim: requestLink(token, "sim"),
+        nao: requestLink(token, "nao"),
+      })
+    : "";
+
+  async function avisarEAgendar() {
+    if (ocupada && check.occupant) {
+      try {
+        await createRoomRequest(token, {
+          professionalId,
+          ownerName,
+          partnerId: check.occupant.id,
+          partnerName: check.occupant.name,
+          date,
+          startTime,
+          endTime,
+        });
+      } catch {
+        // Se o registro falhar, o e-mail ainda vale — só não haverá resposta no feed.
+      }
+    }
+    onConfirm();
+  }
 
   return createPortal(
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-5">
@@ -53,34 +84,56 @@ export function RoomConflictDialog({
           )}
         </p>
 
-        {ocupada && (
+        {ocupada && email && (
           <div className="mt-3 rounded-2xl bg-cream-100 p-3">
             <p className="text-xs leading-snug text-brand-600">
-              Se for uma troca combinada, siga em frente. Vale avisar {nome.split(" ")[0]} para não
-              haver dois atendimentos na mesma sala.
+              Ao avisar e agendar, abre seu aplicativo de e-mail com uma mensagem pronta para{" "}
+              <span className="font-bold text-brand-800">{email}</span>, dizendo que{" "}
+              <span className="font-bold text-brand-800">{ownerName}</span> vai usar a sala em{" "}
+              {formatShortDate(date)}, das {startTime} às {endTime}. Você confere e envia.
+              <br />
+              <span className="mt-1 block font-bold text-brand-700">
+                A mensagem leva dois links — "pode usar" e "não posso" — e a resposta aparece
+                aqui na agenda.
+              </span>
             </p>
-            {email ? (
-              <a
-                href={`mailto:${email}?subject=${encodeURIComponent("Uso da sala — " + formatShortDate(date))}&body=${encodeURIComponent(corpo)}`}
-                className="btn-secondary mt-2.5"
-              >
-                ✉️ Avisar {nome.split(" ")[0]}
-              </a>
-            ) : (
-              <p className="mt-2 text-xs font-bold text-brand-400">
-                Sem e-mail cadastrado para {nome.split(" ")[0]}.
-              </p>
-            )}
           </div>
         )}
 
-        <div className="mt-4 flex gap-2">
-          <button onClick={onCancel} className="btn-secondary flex-1">
-            Escolher outro
-          </button>
-          <button onClick={onConfirm} className="btn-primary flex-1">
-            Marcar assim mesmo
-          </button>
+        {ocupada && !email && (
+          <p className="mt-3 rounded-2xl bg-cream-100 p-3 text-xs font-bold leading-snug text-brand-500">
+            {nome.split(" ")[0]} não tem e-mail cadastrado, então não dá para avisar por aqui.
+            Cadastre em Agenda › Uso da sala › Profissionais.
+          </p>
+        )}
+
+        <div className="mt-4 flex flex-col gap-2">
+          {/* Âncora, e não botão: a navegação do mailto precisa sair do próprio gesto do
+              toque. O agendamento dispara junto, no mesmo clique. */}
+          {ocupada && email ? (
+            <a
+              href={`mailto:${email}?subject=${encodeURIComponent("Uso da sala — " + formatShortDate(date))}&body=${encodeURIComponent(corpo)}`}
+              onClick={avisarEAgendar}
+              className="btn-primary"
+            >
+              ✉️ Avisar {nome.split(" ")[0]} e agendar
+            </a>
+          ) : (
+            <button onClick={onConfirm} className="btn-primary">
+              Marcar assim mesmo
+            </button>
+          )}
+
+          <div className="flex gap-2">
+            <button onClick={onCancel} className="btn-secondary flex-1">
+              Escolher outro
+            </button>
+            {ocupada && email && (
+              <button onClick={onConfirm} className="btn-secondary flex-1">
+                Só agendar
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>,

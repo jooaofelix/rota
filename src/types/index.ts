@@ -452,6 +452,29 @@ export interface RoomSlotDoc {
   updatedAt: Timestamp;
 }
 
+/**
+ * documento em /roomRequests/{token} — aviso de uso da sala em turno de outra pessoa.
+ *
+ * O id do documento é um código sorteado que vai no link do e-mail: é ele que
+ * autoriza a resposta. O parceiro não tem conta no ROTA, então o próprio endereço
+ * funciona como credencial — por isso o documento guarda o mínimo (nomes, data e
+ * horário) e nunca o e-mail nem qualquer dado de paciente.
+ */
+export interface RoomRequestDoc {
+  id: string;
+  professionalId: string;
+  ownerName: string;
+  partnerId: string;
+  partnerName: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  status: "pending" | "confirmed" | "declined";
+  replyNote?: string;
+  createdAt: Timestamp;
+  respondedAt?: Timestamp;
+}
+
 export type ReportKind = "summary" | "full" | "patient" | "guardian" | "medical_record" | "custom";
 
 /** documento em /reports/{id} */

@@ -7,7 +7,7 @@
  * `vite.shots.config.ts`, usada apenas na geração do documento.
  */
 import { Timestamp } from "firebase/firestore";
-import type { CompletionDoc, PatientDoc, RoutineDoc, RoutineItemDoc, RoomPartnerDoc, RoomSlotDoc, SessionDoc, UserDoc } from "@/types";
+import type { CompletionDoc, PatientDoc, RoutineDoc, RoutineItemDoc, RoomPartnerDoc, RoomRequestDoc, RoomSlotDoc, SessionDoc, UserDoc } from "@/types";
 import type { PatientOverview } from "@/services/professionalOverview";
 
 export const PATIENT_ID = "demo-ana";
@@ -22,6 +22,7 @@ export const DEMO_USER: UserDoc = {
   email: "ana@exemplo.com",
   createdAt: now,
   active: true,
+  consentAcceptedAt: now,
   notificationPrefs: {
     activityUpcoming: true,
     activityDue: true,
@@ -44,6 +45,7 @@ export const DEMO_PROFESSIONAL_USER: UserDoc = {
   email: "camila@exemplo.com",
   createdAt: now,
   active: true,
+  consentAcceptedAt: now,
 };
 
 export const DEMO_PATIENT: PatientDoc = {
@@ -200,7 +202,51 @@ function sessionSeed(
   } as SessionDoc & typeof extra;
 }
 
+/**
+ * Meses anteriores para a linha de evolução ter história: a agenda cresce de
+ * ~8 para ~14 sessões por mês e o valor da sessão sobe de R$ 120 para R$ 150,
+ * que é o que a curva do valor médio mostra.
+ */
+function mesesAnteriores(): SessionDoc[] {
+  const nomes: Array<[string, string]> = [
+    [PATIENT_ID, "Ana Beatriz"],
+    ["demo-pedro", "Pedro Henrique"],
+    ["demo-larissa", "Larissa Souza"],
+  ];
+  const out: SessionDoc[] = [];
+  for (let back = 6; back >= 1; back--) {
+    const base = new Date();
+    base.setMonth(base.getMonth() - back, 1);
+    const quantidade = 8 + (6 - back);
+    const preco = back >= 4 ? 120 : back >= 2 ? 135 : 150;
+    for (let i = 0; i < quantidade; i++) {
+      const d = new Date(base);
+      d.setDate(2 + i * 2);
+      const [patientId, patientName] = nomes[i % nomes.length];
+      out.push({
+        id: `h${back}-${i}`,
+        professionalId: PROFESSIONAL_ID,
+        patientId,
+        patientName,
+        date: d.toISOString().slice(0, 10),
+        startTime: "13:00",
+        endTime: "13:50",
+        modality: "online",
+        status: "done",
+        price: preco,
+        // Um ou outro fica sem pagar, para a linha do previsto descolar da do recebido.
+        paymentStatus: i % 7 === 3 ? "pending" : "paid",
+        paymentMethod: i % 7 === 3 ? undefined : i % 3 === 0 ? "card" : "pix",
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+  }
+  return out;
+}
+
 export const DEMO_SESSIONS: SessionDoc[] = [
+  ...mesesAnteriores(),
   sessionSeed("s1", PATIENT_ID, "Ana Beatriz", 0, "13:00", "13:50"),
   sessionSeed("s2", "demo-pedro", "Pedro Henrique", 0, "14:00", "14:50"),
   sessionSeed("s3", "demo-larissa", "Larissa Souza", 0, "15:00", "16:00"),
@@ -242,4 +288,10 @@ export const DEMO_SLOTS: RoomSlotDoc[] = [
   slot("t9", "p0", "Dra. Camila Fernandes", 2, "12:00", "20:00"),
   slot("t10", "p0", "Dra. Camila Fernandes", 4, "13:00", "20:00"),
   slot("t11", "p0", "Dra. Camila Fernandes", 3, "07:00", "09:00"),
+];
+
+export const DEMO_REQUESTS: RoomRequestDoc[] = [
+  { id: "r1", professionalId: PROFESSIONAL_ID, ownerName: "Dra. Camila Fernandes", partnerId: "p1", partnerName: "Isabela Dias", date: new Date().toISOString().slice(0,10), startTime: "10:00", endTime: "10:50", status: "pending", createdAt: now },
+  { id: "r2", professionalId: PROFESSIONAL_ID, ownerName: "Dra. Camila Fernandes", partnerId: "p3", partnerName: "Sinara Florêncio", date: "2026-07-22", startTime: "14:00", endTime: "14:50", status: "confirmed", replyNote: "Pode usar sim, nesse dia eu não vou.", createdAt: now },
+  { id: "r3", professionalId: PROFESSIONAL_ID, ownerName: "Dra. Camila Fernandes", partnerId: "p4", partnerName: "Amanda Vieira", date: "2026-07-18", startTime: "09:00", endTime: "09:50", status: "declined", replyNote: "Tenho atendimento marcado, desculpa!", createdAt: now },
 ];

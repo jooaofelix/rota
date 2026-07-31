@@ -264,6 +264,7 @@ export function SessionEditorSheet({ professionalId, existing, defaultDate, owne
       {conflito && (
         <RoomConflictDialog
           check={conflito}
+          professionalId={professionalId}
           ownerName={ownerName}
           date={form.date}
           startTime={form.startTime}

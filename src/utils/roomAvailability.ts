@@ -64,16 +64,28 @@ export function conflictEmailBody(
   ownerName: string,
   date: string,
   startTime: string,
-  endTime: string
+  endTime: string,
+  links?: { sim: string; nao: string }
 ): string {
   const dia = date.split("-").reverse().join("/");
+  const resposta = links
+    ? [
+        "Dá para responder direto por aqui, num toque:",
+        "",
+        `Pode usar, tudo certo: ${links.sim}`,
+        `Não posso ceder nesse dia: ${links.nao}`,
+        "",
+        "A resposta chega na minha agenda na hora.",
+        "",
+      ]
+    : ["Consegue me confirmar se tudo bem? Se atrapalhar, a gente combina outro horário.", ""];
+
   return [
     `Olá, ${occupantName.split(" ")[0]}!`,
     "",
     `Preciso usar a sala no dia ${dia}, das ${startTime} às ${endTime} — horário que na escala é seu.`,
     "",
-    "Consegue me confirmar se tudo bem? Se atrapalhar, a gente combina outro horário.",
-    "",
+    ...resposta,
     ownerName,
   ].join("\n");
 }
