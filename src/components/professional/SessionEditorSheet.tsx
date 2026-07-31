@@ -5,12 +5,16 @@ import { useToast } from "@/contexts/ToastContext";
 import { subscribeToLinkedPatients } from "@/services/patients";
 import { getPatientsOverview } from "@/services/professionalOverview";
 import { createRecurringSessions, createSession, deleteSession, updateSession } from "@/services/sessions";
-import type { PaymentStatus, SessionDoc, SessionModality } from "@/types";
+import { subscribeToPartners, subscribeToRoomSlots } from "@/services/room";
+import { checkRoom, type RoomCheck } from "@/utils/roomAvailability";
+import { RoomConflictDialog } from "./RoomConflictDialog";
+import type { PaymentStatus, RoomPartnerDoc, RoomSlotDoc, SessionDoc, SessionModality } from "@/types";
 
 interface SessionEditorSheetProps {
   professionalId: string;
   existing?: SessionDoc;
   defaultDate: string;
+  ownerName: string;
   onClose: () => void;
 }
 
@@ -27,11 +31,14 @@ const emptyForm = {
   repeatWeeks: 8,
 };
 
-export function SessionEditorSheet({ professionalId, existing, defaultDate, onClose }: SessionEditorSheetProps) {
+export function SessionEditorSheet({ professionalId, existing, defaultDate, ownerName, onClose }: SessionEditorSheetProps) {
   const { showToast } = useToast();
   const [patients, setPatients] = useState<Array<{ id: string; name: string }>>([]);
   const [saving, setSaving] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [partners, setPartners] = useState<RoomPartnerDoc[]>([]);
+  const [slots, setSlots] = useState<RoomSlotDoc[]>([]);
+  const [conflito, setConflito] = useState<RoomCheck | null>(null);
   const [form, setForm] = useState(() =>
     existing
       ? {
@@ -56,6 +63,9 @@ export function SessionEditorSheet({ professionalId, existing, defaultDate, onCl
     });
   }, [professionalId]);
 
+  useEffect(() => subscribeToPartners(professionalId, setPartners), [professionalId]);
+  useEffect(() => subscribeToRoomSlots(professionalId, setSlots), [professionalId]);
+
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
@@ -71,7 +81,18 @@ export function SessionEditorSheet({ professionalId, existing, defaultDate, onCl
     }));
   }
 
-  async function handleSave() {
+  /** Confere a sala antes de gravar; se estiver fora do turno dela, pede confirmação. */
+  function handleSave() {
+    const check = checkRoom(form.date, form.startTime, form.endTime, slots, partners);
+    if (check.status === "taken" || check.status === "free") {
+      setConflito(check);
+      return;
+    }
+    persist();
+  }
+
+  async function persist() {
+    setConflito(null);
     const patient = patients.find((p) => p.id === form.patientId);
     if (!patient || !form.date) return;
 
@@ -239,6 +260,18 @@ export function SessionEditorSheet({ professionalId, existing, defaultDate, onCl
           </button>
         )}
       </div>
+
+      {conflito && (
+        <RoomConflictDialog
+          check={conflito}
+          ownerName={ownerName}
+          date={form.date}
+          startTime={form.startTime}
+          endTime={form.endTime}
+          onConfirm={persist}
+          onCancel={() => setConflito(null)}
+        />
+      )}
 
       <ConfirmDialog
         open={confirmingDelete}

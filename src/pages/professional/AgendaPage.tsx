@@ -10,6 +10,10 @@ import { TopBar } from "@/components/common/TopBar";
 import { SessionEditorSheet } from "@/components/professional/SessionEditorSheet";
 import { SessionActionSheet } from "@/components/professional/SessionActionSheet";
 import { RoomSchedule } from "@/components/professional/RoomSchedule";
+import { RoomConflictDialog } from "@/components/professional/RoomConflictDialog";
+import { subscribeToPartners, subscribeToRoomSlots } from "@/services/room";
+import { checkRoom, hasOwnSchedule, ownWindows, type RoomCheck } from "@/utils/roomAvailability";
+import type { RoomPartnerDoc, RoomSlotDoc } from "@/types";
 import {
   HOUR_PX,
   blockGeometry,
@@ -34,6 +38,12 @@ export function AgendaPage() {
   const [sessions, setSessions] = useState<SessionDoc[]>([]);
   const [editing, setEditing] = useState<SessionDoc | "new" | null>(null);
   const [active, setActive] = useState<SessionDoc | null>(null);
+  const [partners, setPartners] = useState<RoomPartnerDoc[]>([]);
+  const [roomSlots, setRoomSlots] = useState<RoomSlotDoc[]>([]);
+  /** Arraste que caiu fora do turno dela e espera confirmação. */
+  const [pendingDrop, setPendingDrop] = useState<
+    { check: RoomCheck; sessionId: string; date: string; startTime: string; endTime: string } | null
+  >(null);
 
   const days = useMemo(() => weekDays(reference), [reference]);
   const start = dayKey(days[0]);
@@ -44,21 +54,42 @@ export function AgendaPage() {
     return subscribeToSessionsInRange(firebaseUser.uid, start, end, setSessions);
   }, [firebaseUser, start, end]);
 
+  useEffect(() => {
+    if (!firebaseUser) return;
+    return subscribeToPartners(firebaseUser.uid, setPartners);
+  }, [firebaseUser]);
+
+  useEffect(() => {
+    if (!firebaseUser) return;
+    return subscribeToRoomSlots(firebaseUser.uid, setRoomSlots);
+  }, [firebaseUser]);
+
+  const mostraSala = hasOwnSchedule(roomSlots, partners);
   const hours = useMemo(() => hourRange(sessions), [sessions]);
   const firstHour = hours[0];
   const today = todayKey();
 
   const { preview, onPointerDown, onPointerMove, finish, consumeDrag } = useSessionDrag(
     firstHour,
-    async ({ sessionId, date, startTime, endTime }) => {
-      try {
-        await updateSession(sessionId, { date, startTime, endTime });
-        showToast("Sessão remarcada.");
-      } catch {
-        showToast("Não foi possível remarcar agora.", "error");
+    ({ sessionId, date, startTime, endTime }) => {
+      const check = checkRoom(date, startTime, endTime, roomSlots, partners);
+      if (check.status === "taken" || check.status === "free") {
+        setPendingDrop({ check, sessionId, date, startTime, endTime });
+        return;
       }
+      applyDrop(sessionId, date, startTime, endTime);
     }
   );
+
+  async function applyDrop(sessionId: string, date: string, startTime: string, endTime: string) {
+    setPendingDrop(null);
+    try {
+      await updateSession(sessionId, { date, startTime, endTime });
+      showToast("Sessão remarcada.");
+    } catch {
+      showToast("Não foi possível remarcar agora.", "error");
+    }
+  }
 
   return (
     <div>
@@ -159,6 +190,23 @@ export function AgendaPage() {
                     <div key={hour} style={{ height: HOUR_PX }} className="border-b border-dashed border-brand-100" />
                   ))}
 
+                  {/* Só as faixas em que a sala é dela ficam limpas; o resto sai sombreado,
+                      para a semana já mostrar onde ela pode atender. */}
+                  {mostraSala && (
+                    <div className="pointer-events-none absolute inset-0 bg-slate-500/[0.07]">
+                      {ownWindows(day.getDay(), roomSlots, partners).map((w) => {
+                        const g = blockGeometry(w, firstHour);
+                        return (
+                          <div
+                            key={w.id}
+                            className="absolute inset-x-0 bg-white"
+                            style={{ top: g.top, height: g.height }}
+                          />
+                        );
+                      })}
+                    </div>
+                  )}
+
                   {laid.map(({ item: session, lane, lanes }) => {
                     const { top, height } = blockGeometry(session, firstHour);
                     const color = sessionColor(session);
@@ -240,10 +288,25 @@ export function AgendaPage() {
       {sessions.length > 0 && (
         <p className="px-4 pb-6 text-center text-xs text-brand-400">
           Segure um atendimento por um instante e arraste para mudar de dia ou horário.
+          {mostraSala && " As faixas sombreadas são horários em que a sala não é sua."}
         </p>
       )}
 
       </>
+      )}
+
+      {pendingDrop && (
+        <RoomConflictDialog
+          check={pendingDrop.check}
+          ownerName={userDoc?.name ?? "Responsável"}
+          date={pendingDrop.date}
+          startTime={pendingDrop.startTime}
+          endTime={pendingDrop.endTime}
+          onConfirm={() =>
+            applyDrop(pendingDrop.sessionId, pendingDrop.date, pendingDrop.startTime, pendingDrop.endTime)
+          }
+          onCancel={() => setPendingDrop(null)}
+        />
       )}
 
       {editing && firebaseUser && (
@@ -251,6 +314,7 @@ export function AgendaPage() {
           professionalId={firebaseUser.uid}
           existing={editing === "new" ? undefined : editing}
           defaultDate={start}
+          ownerName={userDoc?.name ?? "Responsável"}
           onClose={() => setEditing(null)}
         />
       )}

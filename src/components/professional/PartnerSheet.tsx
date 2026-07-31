@@ -86,7 +86,10 @@ export function PartnerSheet({
                   style={{ backgroundColor: p.color ?? colorForId(p.id) }}
                 />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-bold text-brand-800">{p.name}</span>
+                  <span className="block truncate text-sm font-bold text-brand-800">
+                    {p.name}
+                    {p.isOwner && <span className="ml-1.5 text-[10px] font-bold text-brand-400">(você)</span>}
+                  </span>
                   <span className="block truncate text-xs text-brand-400">
                     {p.profession || "—"} · {doParceiro.length} {doParceiro.length === 1 ? "horário" : "horários"}
                   </span>
@@ -175,6 +178,7 @@ function PartnerForm({
   const [email, setEmail] = useState(existing?.email ?? "");
   const [phone, setPhone] = useState(existing?.phone ?? "");
   const [color, setColor] = useState(existing?.color ?? CORES[0]);
+  const [isOwner, setIsOwner] = useState(existing?.isOwner ?? false);
   const [saving, setSaving] = useState(false);
 
   async function handleSave() {
@@ -188,6 +192,7 @@ function PartnerForm({
         email: email.trim(),
         phone: phone.trim(),
         color,
+        isOwner,
         active: true,
       });
       showToast(existing ? "Dados atualizados." : "Profissional cadastrado.");
@@ -215,6 +220,22 @@ function PartnerForm({
           className="input-field"
         />
         <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Telefone (opcional)" className="input-field" />
+
+        <label className="flex items-start justify-between gap-3 rounded-xl bg-brand-50/60 p-3">
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-bold text-brand-700">Sou eu</span>
+            <span className="block text-xs leading-snug text-brand-500">
+              Marque no seu próprio cadastro. É assim que o app sabe em quais horários
+              a sala é sua e avisa quando um atendimento cai no turno de outra pessoa.
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            checked={isOwner}
+            onChange={(e) => setIsOwner(e.target.checked)}
+            className="mt-0.5 h-5 w-5 shrink-0 rounded border-brand-300"
+          />
+        </label>
 
         <div>
           <p className="mb-1.5 text-xs font-bold text-brand-500">Cor na escala</p>

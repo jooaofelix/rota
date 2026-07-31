@@ -414,6 +414,12 @@ export interface RoomPartnerDoc {
   id: string;
   /** Dona da agenda da sala. */
   professionalId: string;
+  /**
+   * Marca o registro da própria dona da agenda. Ela também ocupa a sala em
+   * horários, e é comparando os atendimentos dela com esses horários que o app
+   * avisa quando uma consulta cai num turno de outra pessoa.
+   */
+  isOwner?: boolean;
   name: string;
   profession?: string;
   email?: string;

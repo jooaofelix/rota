@@ -222,6 +222,7 @@ export const DEMO_PARTNERS: RoomPartnerDoc[] = [
   { id: "p3", professionalId: PROFESSIONAL_ID, name: "Sinara Florêncio", profession: "Psicóloga", email: "sinara@exemplo.com", color: "#4f46e5", active: true, createdAt: now },
   { id: "p4", professionalId: PROFESSIONAL_ID, name: "Amanda Vieira", profession: "Fonoaudióloga", email: "amanda@exemplo.com", color: "#be185d", active: true, createdAt: now },
   { id: "p5", professionalId: PROFESSIONAL_ID, name: "Hudson Mesquita", profession: "Psicólogo", email: "hudson@exemplo.com", color: "#a16207", active: true, createdAt: now },
+  { id: "p0", professionalId: PROFESSIONAL_ID, name: "Dra. Camila Fernandes", profession: "Psicóloga", email: "camila@exemplo.com", color: "#0369a1", isOwner: true, active: true, createdAt: now },
 ];
 
 function slot(id: string, partnerId: string, partnerName: string, weekday: number, startTime: string, endTime: string): RoomSlotDoc {
@@ -237,4 +238,8 @@ export const DEMO_SLOTS: RoomSlotDoc[] = [
   slot("t6", "p3", "Sinara Florêncio", 3, "09:00", "20:00"),
   slot("t7", "p1", "Isabela Dias", 4, "07:00", "20:00"),
   slot("t8", "p4", "Amanda Vieira", 5, "08:00", "20:00"),
+  // Turnos da própria Camila: é o que deixa o resto da grade sombreado.
+  slot("t9", "p0", "Dra. Camila Fernandes", 2, "12:00", "20:00"),
+  slot("t10", "p0", "Dra. Camila Fernandes", 4, "13:00", "20:00"),
+  slot("t11", "p0", "Dra. Camila Fernandes", 3, "07:00", "09:00"),
 ];
