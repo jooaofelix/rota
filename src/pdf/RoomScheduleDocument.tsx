@@ -5,7 +5,7 @@ const styles = StyleSheet.create({
   page: { padding: 30, fontSize: 10, color: "#154238", fontFamily: "Helvetica" },
   title: { fontSize: 16, fontWeight: 700, marginBottom: 2 },
   meta: { fontSize: 9, color: "#6b7a99", marginBottom: 12 },
-  headRow: { flexDirection: "row", borderBottom: "1 solid #4f46e5", paddingBottom: 4, marginBottom: 2 },
+  headRow: { flexDirection: "row", borderBottom: "1 solid #a16207", paddingBottom: 4, marginBottom: 2 },
   headCell: { flex: 1, fontSize: 8.5, fontWeight: 700, color: "#4338ca", textAlign: "center" },
   hourCell: { width: 54, fontSize: 8.5, fontWeight: 700, color: "#6b7a99" },
   row: { flexDirection: "row", minHeight: 16, borderBottom: "0.5 solid #eef0f7", alignItems: "center" },

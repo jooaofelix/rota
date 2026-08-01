@@ -36,7 +36,7 @@ const METHOD_LABELS: Record<PaymentMethod, string> = {
   package: "Pacote mensal",
 };
 
-const PIE_COLORS = ["#4f46e5", "#0ea5e9", "#10b981", "#f59e0b", "#ec4899", "#64748b"];
+const PIE_COLORS = ["#a16207", "#ca8a04", "#0369a1", "#10b981", "#be185d", "#64748b"];
 
 function monthKeysBack(count: number): string[] {
   const keys: string[] = [];
@@ -199,7 +199,7 @@ export function FinancePage() {
                   <Line
                     type="monotone"
                     dataKey="previsto"
-                    stroke="#a5b4fc"
+                    stroke="#eab308"
                     strokeWidth={2}
                     strokeDasharray="4 4"
                     dot={false}
@@ -208,9 +208,9 @@ export function FinancePage() {
                   <Line
                     type="monotone"
                     dataKey="recebido"
-                    stroke="#4f46e5"
+                    stroke="#a16207"
                     strokeWidth={2.5}
-                    dot={{ r: 3, fill: "#4f46e5" }}
+                    dot={{ r: 3, fill: "#a16207" }}
                     activeDot={{ r: 5 }}
                     isAnimationActive={false}
                   />
@@ -254,7 +254,7 @@ export function FinancePage() {
                       formatter={(v: number) => [formatMoney(v), "Valor médio"]}
                       contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 4px 16px rgba(0,0,0,.1)", fontSize: 12 }}
                     />
-                    <Line type="monotone" dataKey="ticket" stroke="#0ea5e9" strokeWidth={2.5} dot={{ r: 2.5, fill: "#0ea5e9" }} isAnimationActive={false} />
+                    <Line type="monotone" dataKey="ticket" stroke="#0369a1" strokeWidth={2.5} dot={{ r: 2.5, fill: "#0369a1" }} isAnimationActive={false} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -276,8 +276,8 @@ export function FinancePage() {
                   formatter={(v: number, name) => [formatMoney(v), name === "recebido" ? "Recebido" : "Previsto"]}
                   contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 4px 16px rgba(0,0,0,.1)", fontSize: 12 }}
                 />
-                <Bar dataKey="previsto" fill="#c7d2fe" radius={[6, 6, 0, 0]} isAnimationActive={false} />
-                <Bar dataKey="recebido" fill="#4f46e5" radius={[6, 6, 0, 0]} isAnimationActive={false} />
+                <Bar dataKey="previsto" fill="#fde68a" radius={[6, 6, 0, 0]} isAnimationActive={false} />
+                <Bar dataKey="recebido" fill="#a16207" radius={[6, 6, 0, 0]} isAnimationActive={false} />
               </BarChart>
             </ResponsiveContainer>
           </div>

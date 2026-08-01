@@ -3,7 +3,7 @@ import type { SessionRecordDoc } from "@/types";
 
 const styles = StyleSheet.create({
   page: { padding: 34, fontSize: 10.5, color: "#154238", fontFamily: "Helvetica" },
-  header: { marginBottom: 14, borderBottom: "2 solid #4f46e5", paddingBottom: 9 },
+  header: { marginBottom: 14, borderBottom: "2 solid #a16207", paddingBottom: 9 },
   title: { fontSize: 17, fontWeight: 700, marginBottom: 3 },
   meta: { fontSize: 9.5, color: "#5a6b8b" },
   entry: { marginTop: 14, paddingTop: 10, borderTop: "0.5 solid #e3e6f3" },
@@ -12,7 +12,7 @@ const styles = StyleSheet.create({
   body: { fontSize: 10.5, lineHeight: 1.45, marginTop: 2 },
   risk: { marginTop: 7, padding: 7, backgroundColor: "#fff1f2", borderLeft: "2 solid #e11d48" },
   riskLabel: { fontSize: 8.5, fontWeight: 700, color: "#9f1239" },
-  addendum: { marginTop: 6, paddingLeft: 8, borderLeft: "1 solid #c7d2fe" },
+  addendum: { marginTop: 6, paddingLeft: 8, borderLeft: "1 solid #fde68a" },
   signed: { marginTop: 6, fontSize: 8.5, color: "#6b7a99", fontStyle: "italic" },
   footer: {
     position: "absolute", bottom: 24, left: 34, right: 34,
