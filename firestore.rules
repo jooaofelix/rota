@@ -53,7 +53,11 @@ service cloud.firestore {
     // ---------- users ----------
     match /users/{uid} {
       allow read: if isSelf(uid) || isLinkedProfessional(uid);
-      allow create: if isSelf(uid);
+      // O cadastro do app só cria paciente. Conta de profissional é feita à mão no
+      // console do Firebase, que passa por cima das regras — sem esta linha, quem
+      // soubesse chamar o SDK direto se cadastrava como profissional e enxergaria
+      // a lista de pacientes de quem o vinculasse.
+      allow create: if isSelf(uid) && request.resource.data.role == 'patient';
       // Paciente edita seu próprio perfil/preferências; a profissional nunca escreve no doc do paciente.
       // O papel nunca muda depois de criado: um erro do app vira escrita recusada em
       // vez de uma profissional rebaixada a paciente sem ninguém perceber.
