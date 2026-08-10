@@ -41,6 +41,12 @@ export function subscribeToUser(uid: string, callback: (user: UserDoc | null) =>
   });
 }
 
+/** Uma leitura só, para quando basta o e-mail ou o nome de cadastro. */
+export async function getUserDoc(uid: string): Promise<UserDoc | null> {
+  const snapshot = await getDoc(doc(db, "users", uid));
+  return snapshot.exists() ? ({ uid: snapshot.id, ...snapshot.data() } as UserDoc) : null;
+}
+
 export async function getPatient(patientId: string): Promise<PatientDoc | null> {
   const snapshot = await getDoc(doc(db, "patients", patientId));
   return snapshot.exists() ? ({ uid: snapshot.id, ...snapshot.data() } as PatientDoc) : null;

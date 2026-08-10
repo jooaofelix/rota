@@ -21,6 +21,7 @@ import { HomePage } from "@/pages/professional/HomePage";
 import { RecordsPage } from "@/pages/professional/RecordsPage";
 import { RoomRequestReplyPage } from "@/pages/legal/RoomRequestReplyPage";
 import { FinancePage } from "@/pages/professional/FinancePage";
+import { ProposalPage } from "@/pages/legal/ProposalPage";
 import { RoutinesPage } from "@/pages/professional/RoutinesPage";
 import "@/styles/index.css";
 
@@ -50,6 +51,15 @@ function QuadroSolto() {
 
 function App() {
   if (screen === "quadro") return <QuadroSolto />;
+  if (screen === "proposta") {
+    return (
+      <MemoryRouter initialEntries={["/proposta/p1"]}>
+        <Routes>
+          <Route path="/proposta/:token" element={<ProposalPage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+  }
   if (screen === "resposta") {
     return (
       <MemoryRouter initialEntries={["/sala/resposta/abc123"]}>

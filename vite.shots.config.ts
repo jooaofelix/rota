@@ -25,6 +25,7 @@ export default defineConfig({
       { find: "@/services/roomRequests", replacement: r("./src/doc/mock-roomrequests.ts") },
       { find: "@/services/room", replacement: r("./src/doc/mock-room.ts") },
       { find: "@/services/sessions", replacement: r("./src/doc/mock-sessions.ts") },
+      { find: "@/services/offers", replacement: r("./src/doc/mock-offers.ts") },
       { find: "@/services/notifications", replacement: r("./src/doc/mock-notifications.ts") },
       { find: "@/firebase/auth", replacement: r("./src/doc/mock-fbauth.ts") },
       { find: "@/firebase/messaging", replacement: r("./src/doc/mock-messaging.ts") },

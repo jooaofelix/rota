@@ -475,6 +475,68 @@ export interface RoomRequestDoc {
   respondedAt?: Timestamp;
 }
 
+/** O que está sendo vendido. Muda o texto da proposta, não a mecânica. */
+export type OfferKind = "package" | "monthly" | "single" | "assessment" | "intensive" | "gift" | "other";
+
+/**
+ * documento em /offers/{id} — o catálogo da profissional.
+ *
+ * É o que ela vende, escrito uma vez e reaproveitado: "pacote de 4 sessões",
+ * "acompanhamento mensal", "avaliação psicológica". A proposta enviada copia
+ * estes valores em vez de apontar para cá, para que mudar o preço amanhã não
+ * reescreva o que alguém já recebeu.
+ */
+export interface OfferDoc {
+  id: string;
+  professionalId: string;
+  title: string;
+  description?: string;
+  kind: OfferKind;
+  /** Quantos atendimentos entram. 0 quando não se conta por sessão. */
+  sessions: number;
+  price: number;
+  /** Preço cheio, quando existe desconto a mostrar. */
+  listPrice?: number;
+  /** Em quantas vezes pode dividir. 1 = à vista. */
+  installments?: number;
+  /** Prazo para usar as sessões, em dias. */
+  validityDays?: number;
+  active: boolean;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+/**
+ * documento em /proposals/{token} — uma proposta enviada a um paciente.
+ *
+ * O id é o código do link: quem o recebe abre a página de aceite sem ter conta,
+ * como no aviso de uso da sala. Por isso aqui só entra o que a própria pessoa já
+ * sabe (o nome dela, o que foi oferecido, o preço) — nada de prontuário, nada de
+ * histórico, nada sobre outros pacientes.
+ */
+export interface ProposalDoc {
+  id: string;
+  professionalId: string;
+  professionalName: string;
+  patientId?: string;
+  patientName: string;
+  patientEmail?: string;
+  title: string;
+  description?: string;
+  kind: OfferKind;
+  sessions: number;
+  price: number;
+  listPrice?: number;
+  installments?: number;
+  validityDays?: number;
+  /** Data limite para aceitar (YYYY-MM-DD). */
+  validUntil: string;
+  status: "sent" | "accepted" | "declined";
+  replyNote?: string;
+  createdAt: Timestamp;
+  respondedAt?: Timestamp;
+}
+
 export type ReportKind = "summary" | "full" | "patient" | "guardian" | "medical_record" | "custom";
 
 /** documento em /reports/{id} */

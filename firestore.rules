@@ -245,6 +245,31 @@ service cloud.firestore {
       allow delete: if isSignedIn() && resource.data.professionalId == request.auth.uid;
     }
 
+    // ---------- offers (catálogo do que a profissional vende) ----------
+    // Só dela: preço de tabela e desconto não são assunto do paciente. O que ele vê
+    // é a proposta, que carrega a cópia dos valores.
+    match /offers/{id} {
+      allow read, list: if isProfessional() && resource.data.professionalId == request.auth.uid;
+      allow create: if isProfessional() && request.resource.data.professionalId == request.auth.uid;
+      allow update, delete: if isProfessional() && resource.data.professionalId == request.auth.uid;
+    }
+
+    // ---------- proposals (proposta enviada a um paciente) ----------
+    // Mesmo desenho do aviso de sala: o id do documento é o código do link, e quem
+    // recebe o link responde sem ter conta. O documento guarda só o que a própria
+    // pessoa já sabe — o nome dela, o que foi oferecido e o preço.
+    match /proposals/{token} {
+      allow get: if true;
+      allow list: if isSignedIn() && resource.data.professionalId == request.auth.uid;
+      allow create: if isProfessional() && request.resource.data.professionalId == request.auth.uid;
+      // A resposta só sai de "enviada", só mexe nos campos da resposta e só pode
+      // virar aceita ou recusada. O link não altera preço nem prazo.
+      allow update: if resource.data.status == 'sent'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'replyNote', 'respondedAt'])
+        && (request.resource.data.status == 'accepted' || request.resource.data.status == 'declined');
+      allow delete: if isSignedIn() && resource.data.professionalId == request.auth.uid;
+    }
+
     // ---------- routineTemplates (modelos personalizados da profissional) ----------
     match /routineTemplates/{id} {
       // A própria profissional sempre lê os modelos dela; o paciente lê os modelos da
