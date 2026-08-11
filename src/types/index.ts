@@ -475,6 +475,31 @@ export interface RoomRequestDoc {
   respondedAt?: Timestamp;
 }
 
+export type PersonalKind = "personal" | "admin" | "study" | "break" | "errand" | "other";
+
+/**
+ * documento em /personalEvents/{id} — o que ocupa o dia dela e não é atendimento.
+ *
+ * Supervisão, almoço, banco, curso, buscar o filho na escola. Entra na mesma
+ * agenda porque o dia é um só: sem isso, a grade mostrava horários "livres" que
+ * na verdade já tinham dono, e a conta de quando ela pode atender saía errada.
+ *
+ * Sem horário, vira demanda do dia — uma tarefa a riscar, não um bloco na grade.
+ */
+export interface PersonalEventDoc {
+  id: string;
+  professionalId: string;
+  title: string;
+  note?: string;
+  kind: PersonalKind;
+  date: string;
+  startTime?: string;
+  endTime?: string;
+  done?: boolean;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
 /** O que está sendo vendido. Muda o texto da proposta, não a mecânica. */
 export type OfferKind = "package" | "monthly" | "single" | "assessment" | "intensive" | "gift" | "other";
 

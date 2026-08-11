@@ -3,13 +3,16 @@ import { addDays } from "date-fns";
 import clsx from "clsx";
 import { useAuth } from "@/contexts/AuthContext";
 import { subscribeToSessionsInRange, updateSession } from "@/services/sessions";
+import { subscribeToPersonalEventsInRange } from "@/services/personalEvents";
 import { useSessionDrag } from "@/hooks/useSessionDrag";
 import { useToast } from "@/contexts/ToastContext";
-import type { SessionDoc } from "@/types";
+import type { PersonalEventDoc, SessionDoc } from "@/types";
 import { TopBar } from "@/components/common/TopBar";
 import { SessionEditorSheet } from "@/components/professional/SessionEditorSheet";
 import { SessionActionSheet } from "@/components/professional/SessionActionSheet";
 import { RoomSchedule } from "@/components/professional/RoomSchedule";
+import { DayAgenda } from "@/components/professional/DayAgenda";
+import { PersonalEventSheet } from "@/components/professional/PersonalEventSheet";
 import { RoomConflictDialog } from "@/components/professional/RoomConflictDialog";
 import { subscribeToPartners, subscribeToRoomSlots } from "@/services/room";
 import { checkRoom, hasOwnSchedule, ownWindows, type RoomCheck } from "@/utils/roomAvailability";
@@ -27,8 +30,9 @@ import {
   weekLabel,
 } from "@/utils/agenda";
 import { todayKey } from "@/utils/date";
+import { PERSONAL_COLORS, PERSONAL_ICONS } from "@/utils/personal";
 
-type Aba = "pacientes" | "sala";
+type Aba = "pacientes" | "dia" | "sala";
 
 export function AgendaPage() {
   const { firebaseUser, userDoc } = useAuth();
@@ -40,6 +44,10 @@ export function AgendaPage() {
   const [active, setActive] = useState<SessionDoc | null>(null);
   const [partners, setPartners] = useState<RoomPartnerDoc[]>([]);
   const [roomSlots, setRoomSlots] = useState<RoomSlotDoc[]>([]);
+  const [events, setEvents] = useState<PersonalEventDoc[]>([]);
+  const [editingEvent, setEditingEvent] = useState<PersonalEventDoc | "new" | null>(null);
+  /** Dia mostrado na aba "Meu dia" — anda sozinho, sem mexer na semana. */
+  const [diaFoco, setDiaFoco] = useState(() => todayKey());
   /** Arraste que caiu fora do turno dela e espera confirmação. */
   const [pendingDrop, setPendingDrop] = useState<
     { check: RoomCheck; sessionId: string; date: string; startTime: string; endTime: string } | null
@@ -60,13 +68,26 @@ export function AgendaPage() {
     return subscribeToPartners(firebaseUser.uid, setPartners);
   }, [firebaseUser]);
 
+  // A aba do dia pode estar fora da semana exibida, então a busca cobre as duas
+  // pontas em vez de só a semana.
+  useEffect(() => {
+    if (!firebaseUser) return;
+    const de = diaFoco < start ? diaFoco : start;
+    const ate = diaFoco > end ? diaFoco : end;
+    return subscribeToPersonalEventsInRange(firebaseUser.uid, de, ate, setEvents);
+  }, [firebaseUser, start, end, diaFoco]);
+
   useEffect(() => {
     if (!firebaseUser) return;
     return subscribeToRoomSlots(firebaseUser.uid, setRoomSlots);
   }, [firebaseUser]);
 
   const mostraSala = hasOwnSchedule(roomSlots, partners);
-  const hours = useMemo(() => hourRange(sessions), [sessions]);
+  const comHora = useMemo(
+    () => events.filter((e): e is PersonalEventDoc & { startTime: string; endTime: string } => !!e.startTime && !!e.endTime),
+    [events]
+  );
+  const hours = useMemo(() => hourRange([...sessions, ...comHora]), [sessions, comHora]);
   const firstHour = hours[0];
   const today = todayKey();
 
@@ -110,7 +131,13 @@ export function AgendaPage() {
     <div>
       <TopBar
         title="Agenda"
-        subtitle={aba === "pacientes" ? weekLabel(days) : "Escala fixa da semana"}
+        subtitle={
+          aba === "pacientes"
+            ? weekLabel(days)
+            : aba === "dia"
+              ? "Atendimentos e compromissos"
+              : "Escala fixa da semana"
+        }
         action={
           aba === "pacientes" ? (
             <button
@@ -119,17 +146,30 @@ export function AgendaPage() {
             >
               + Sessão
             </button>
+          ) : aba === "dia" ? (
+            <button
+              onClick={() => setEditingEvent("new")}
+              className="rounded-full bg-brand-500 px-3 py-1.5 text-xs font-bold text-white"
+            >
+              + Pessoal
+            </button>
           ) : undefined
         }
       />
 
       <div className="mb-3 flex gap-2 px-4">
-        {([["pacientes", "👥 Pacientes"], ["sala", "🚪 Uso da sala"]] as Array<[Aba, string]>).map(([key, label]) => (
+        {(
+          [
+            ["pacientes", "👥 Semana"],
+            ["dia", "📋 Meu dia"],
+            ["sala", "🚪 Sala"],
+          ] as Array<[Aba, string]>
+        ).map(([key, label]) => (
           <button
             key={key}
             onClick={() => setAba(key)}
             className={clsx(
-              "flex-1 rounded-xl px-3 py-2 text-sm font-bold transition",
+              "flex-1 rounded-xl px-2 py-2 text-sm font-bold transition",
               aba === key ? "bg-brand-500 text-white" : "bg-white text-brand-500"
             )}
           >
@@ -140,6 +180,18 @@ export function AgendaPage() {
 
       {aba === "sala" ? (
         firebaseUser && <RoomSchedule professionalId={firebaseUser.uid} ownerName={userDoc?.name ?? "Responsável"} />
+      ) : aba === "dia" ? (
+        <DayAgenda
+          date={diaFoco}
+          sessions={sessions}
+          events={events}
+          onPrev={() => setDiaFoco(dayKey(addDays(new Date(`${diaFoco}T12:00:00`), -1)))}
+          onNext={() => setDiaFoco(dayKey(addDays(new Date(`${diaFoco}T12:00:00`), 1)))}
+          onToday={() => setDiaFoco(todayKey())}
+          onOpenSession={setActive}
+          onOpenEvent={setEditingEvent}
+          onNewEvent={() => setEditingEvent("new")}
+        />
       ) : (
       <>
       <div className="mb-2 flex items-center justify-center gap-2 px-4">
@@ -223,6 +275,32 @@ export function AgendaPage() {
                       })}
                     </div>
                   )}
+
+                  {/* Compromisso pessoal desenhado antes do atendimento e em faixa
+                      listrada: ocupa o horário de verdade, mas o atendimento é o que
+                      ela procura quando bate o olho na semana. */}
+                  {comHora
+                    .filter((e) => e.date === key)
+                    .map((e) => {
+                      const g = blockGeometry(e, firstHour);
+                      return (
+                        <button
+                          key={e.id}
+                          onClick={() => setEditingEvent(e)}
+                          style={{
+                            top: g.top,
+                            height: g.height,
+                            borderColor: PERSONAL_COLORS[e.kind],
+                            backgroundColor: `${PERSONAL_COLORS[e.kind]}22`,
+                          }}
+                          className="absolute inset-x-0 overflow-hidden rounded-md border-l-4 border-dashed px-1.5 py-1 text-left"
+                        >
+                          <p className="pointer-events-none truncate text-[11px] font-bold leading-tight text-brand-700">
+                            {PERSONAL_ICONS[e.kind]} {e.title}
+                          </p>
+                        </button>
+                      );
+                    })}
 
                   {laid.map(({ item: session, lane, lanes }) => {
                     const { top, height } = blockGeometry(session, firstHour);
@@ -335,6 +413,15 @@ export function AgendaPage() {
             applyDrop(pendingDrop.sessionId, pendingDrop.date, pendingDrop.startTime, pendingDrop.endTime)
           }
           onCancel={() => setPendingDrop(null)}
+        />
+      )}
+
+      {editingEvent && firebaseUser && (
+        <PersonalEventSheet
+          professionalId={firebaseUser.uid}
+          existing={editingEvent === "new" ? undefined : editingEvent}
+          defaultDate={aba === "dia" ? diaFoco : today}
+          onClose={() => setEditingEvent(null)}
         />
       )}
 

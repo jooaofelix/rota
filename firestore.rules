@@ -249,6 +249,15 @@ service cloud.firestore {
       allow delete: if isSignedIn() && resource.data.professionalId == request.auth.uid;
     }
 
+    // ---------- personalEvents (o que ocupa o dia dela e não é atendimento) ----------
+    // Só dela, em qualquer operação: aqui entra a vida particular — consulta médica,
+    // curso, filho na escola. Nenhum paciente e nenhum parceiro de sala lê isto.
+    match /personalEvents/{id} {
+      allow read, list: if isProfessional() && resource.data.professionalId == request.auth.uid;
+      allow create: if isProfessional() && request.resource.data.professionalId == request.auth.uid;
+      allow update, delete: if isProfessional() && resource.data.professionalId == request.auth.uid;
+    }
+
     // ---------- offers (catálogo do que a profissional vende) ----------
     // Só dela: preço de tabela e desconto não são assunto do paciente. O que ele vê
     // é a proposta, que carrega a cópia dos valores.
