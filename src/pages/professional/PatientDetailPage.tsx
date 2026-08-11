@@ -11,13 +11,14 @@ import { PatientRoutineTab } from "@/components/professional/PatientRoutineTab";
 import { PatientHistoryTab } from "@/components/professional/PatientHistoryTab";
 import { PatientRewardsTab } from "@/components/professional/PatientRewardsTab";
 import { PatientNotesTab } from "@/components/professional/PatientNotesTab";
+import { ReferralTab } from "@/components/professional/ReferralTab";
 import { useToast } from "@/contexts/ToastContext";
 import clsx from "clsx";
 
 // Carregada sob demanda: usa recharts, que não deve entrar no bundle inicial do app.
 const PatientOverviewTab = lazy(() => import("@/components/professional/PatientOverviewTab").then((m) => ({ default: m.PatientOverviewTab })));
 
-type Tab = "overview" | "routine" | "history" | "rewards" | "notes";
+type Tab = "overview" | "routine" | "history" | "rewards" | "notes" | "referral";
 
 const TABS: Array<{ key: Tab; label: string }> = [
   { key: "overview", label: "Visão geral" },
@@ -25,6 +26,7 @@ const TABS: Array<{ key: Tab; label: string }> = [
   { key: "history", label: "Histórico" },
   { key: "rewards", label: "Recompensas" },
   { key: "notes", label: "Observações" },
+  { key: "referral", label: "Encaminhar" },
 ];
 
 export function PatientDetailPage() {
@@ -96,6 +98,7 @@ export function PatientDetailPage() {
         {tab === "history" && <PatientHistoryTab patientId={patientId} />}
         {tab === "rewards" && <PatientRewardsTab patientId={patientId} professionalId={firebaseUser.uid} />}
         {tab === "notes" && <PatientNotesTab patientId={patientId} initialNotes={patient?.privateNotes ?? ""} />}
+        {tab === "referral" && <ReferralTab patientId={patientId} patientName={user.name} />}
       </div>
 
       <BottomSheet open={messageSheetOpen} onClose={() => setMessageSheetOpen(false)} title={`Mensagem para ${user.name}`}>

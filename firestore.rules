@@ -249,6 +249,16 @@ service cloud.firestore {
       allow delete: if isSignedIn() && resource.data.professionalId == request.auth.uid;
     }
 
+    // ---------- referrals (para quem a paciente já foi encaminhada) ----------
+    // Só a profissional que encaminhou. O paciente não lê pelo app: encaminhamento
+    // é conversa que se tem em sessão, não notificação que se descobre na tela.
+    match /referrals/{id} {
+      allow read, list: if isProfessional() && resource.data.professionalId == request.auth.uid;
+      allow create: if isLinkedProfessional(request.resource.data.patientId)
+        && request.resource.data.professionalId == request.auth.uid;
+      allow update, delete: if isProfessional() && resource.data.professionalId == request.auth.uid;
+    }
+
     // ---------- personalEvents (o que ocupa o dia dela e não é atendimento) ----------
     // Só dela, em qualquer operação: aqui entra a vida particular — consulta médica,
     // curso, filho na escola. Nenhum paciente e nenhum parceiro de sala lê isto.

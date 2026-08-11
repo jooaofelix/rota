@@ -475,6 +475,25 @@ export interface RoomRequestDoc {
   respondedAt?: Timestamp;
 }
 
+/**
+ * documento em /referrals/{id} — registro de um encaminhamento feito.
+ *
+ * Guarda para quem, quando e por quê, não o texto clínico: o encaminhamento em
+ * si é uma decisão do acompanhamento e merece ficar registrado, mas o que foi
+ * escrito ao colega já saiu pelo WhatsApp ou pelo e-mail dela.
+ */
+export interface ReferralDoc {
+  id: string;
+  professionalId: string;
+  patientId: string;
+  patientName: string;
+  especialidade: string;
+  colleagueName?: string;
+  motivo?: string;
+  urgente?: boolean;
+  createdAt: Timestamp;
+}
+
 export type PersonalKind = "personal" | "admin" | "study" | "break" | "errand" | "other";
 
 /**

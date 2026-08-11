@@ -22,6 +22,7 @@ import { RecordsPage } from "@/pages/professional/RecordsPage";
 import { RoomRequestReplyPage } from "@/pages/legal/RoomRequestReplyPage";
 import { FinancePage } from "@/pages/professional/FinancePage";
 import { ProposalPage } from "@/pages/legal/ProposalPage";
+import { ReferralTab } from "@/components/professional/ReferralTab";
 import { RoutinesPage } from "@/pages/professional/RoutinesPage";
 import "@/styles/index.css";
 
@@ -51,6 +52,24 @@ function QuadroSolto() {
 
 function App() {
   if (screen === "quadro") return <QuadroSolto />;
+  if (screen === "encaminhar") {
+    return (
+      <MemoryRouter initialEntries={["/x"]}>
+        <Routes>
+          <Route element={<ProfessionalLayout />}>
+            <Route
+              path="/x"
+              element={
+                <div className="px-4 py-4">
+                  <ReferralTab patientId="demo-ana" patientName="Ana Beatriz Souza" />
+                </div>
+              }
+            />
+          </Route>
+        </Routes>
+      </MemoryRouter>
+    );
+  }
   if (screen === "proposta") {
     return (
       <MemoryRouter initialEntries={["/proposta/p1"]}>
