@@ -4,6 +4,7 @@ import { BottomSheet } from "@/components/common/BottomSheet";
 import { useToast } from "@/contexts/ToastContext";
 import { setPaymentStatus, updateSession } from "@/services/sessions";
 import { draftFromSession } from "@/services/invoices";
+import { NFSE_ATIVA } from "@/config/features";
 import type { PaymentMethod, PaymentStatus, SessionDoc, SessionStatus } from "@/types";
 import { PAYMENT_LABELS, PAYMENT_STYLES, STATUS_LABELS, formatMoney } from "@/utils/agenda";
 import { formatShortDate } from "@/utils/date";
@@ -99,7 +100,7 @@ export function SessionActionSheet({
           <button className="btn-secondary" onClick={onEdit}>
             Editar horário e valor
           </button>
-          {view.price ? (
+          {NFSE_ATIVA && view.price ? (
             <button className="btn-secondary" onClick={gerarNota}>
               🧾 Emitir nota
             </button>

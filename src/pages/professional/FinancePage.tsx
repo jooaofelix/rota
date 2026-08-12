@@ -21,6 +21,7 @@ import { TopBar } from "@/components/common/TopBar";
 import { EmptyState } from "@/components/common/EmptyState";
 import { ProposalsSection } from "@/components/professional/ProposalsSection";
 import { InvoicesSection } from "@/components/professional/InvoicesSection";
+import { NFSE_ATIVA } from "@/config/features";
 import { useToast } from "@/contexts/ToastContext";
 import { formatMoney, monthKeyOf, monthLabel } from "@/utils/agenda";
 import { formatShortDate, todayKey } from "@/utils/date";
@@ -319,7 +320,7 @@ export function FinancePage() {
 
         <ProposalsSection />
 
-        <InvoicesSection />
+        {NFSE_ATIVA && <InvoicesSection />}
 
         <div className="card">
           <p className="mb-2 text-sm font-bold text-brand-700">A receber por paciente</p>

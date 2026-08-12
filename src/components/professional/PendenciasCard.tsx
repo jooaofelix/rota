@@ -9,6 +9,7 @@ import { subscribeToRoomRequests } from "@/services/roomRequests";
 import type { InvoiceDoc, ProposalDoc, RoomRequestDoc, SessionDoc, SessionRecordDoc } from "@/types";
 import { formatMoney } from "@/utils/agenda";
 import { todayKey } from "@/utils/date";
+import { NFSE_ATIVA } from "@/config/features";
 
 interface Pendencia {
   id: string;
@@ -109,7 +110,9 @@ export function PendenciasCard() {
       });
     }
 
-    const notasComErro = invoices.filter((n) => n.status === "erro");
+    // Com a emissão desligada não há o que cobrar sobre nota: seria pendência de
+    // uma coisa que a pessoa não tem como resolver.
+    const notasComErro = NFSE_ATIVA ? invoices.filter((n) => n.status === "erro") : [];
     if (notasComErro.length) {
       lista.push({
         id: "notas-erro",
@@ -121,7 +124,7 @@ export function PendenciasCard() {
       });
     }
 
-    const rascunhos = invoices.filter((n) => n.status === "rascunho");
+    const rascunhos = NFSE_ATIVA ? invoices.filter((n) => n.status === "rascunho") : [];
     if (rascunhos.length) {
       lista.push({
         id: "notas-rascunho",
