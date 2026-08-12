@@ -50,7 +50,7 @@ export function PatientRoutineTab({ patientId, professionalId }: { patientId: st
           if (!periodItems.length) return null;
           return (
             <div key={period}>
-              <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-brand-300">{PERIOD_LABELS[period]}</p>
+              <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-brand-400">{PERIOD_LABELS[period]}</p>
               <div className="flex flex-col gap-2">
                 {periodItems.map((item) => (
                   <ActivityCard key={item.id} item={item} status={getTodayStatus(item, undefined)} onOpen={() => setEditingItem(item)} />

@@ -221,7 +221,7 @@ export function AgendaPage() {
                     key === today ? "border-brand-500" : "border-transparent"
                   )}
                 >
-                  <p className={clsx("text-[11px] font-bold uppercase", key === today ? "text-brand-600" : "text-brand-300")}>
+                  <p className={clsx("text-[11px] font-bold uppercase", key === today ? "text-brand-600" : "text-brand-400")}>
                     {weekday}
                   </p>
                   <p className={clsx("text-xs font-bold", key === today ? "text-brand-700" : "text-brand-500")}>

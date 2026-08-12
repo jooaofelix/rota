@@ -35,7 +35,7 @@ export function PatientHistoryTab({ patientId }: { patientId: string }) {
     <div className="flex flex-col gap-4">
       {grouped.map(([date, completions]) => (
         <div key={date}>
-          <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-brand-300">{formatShortDate(date)}</p>
+          <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-brand-400">{formatShortDate(date)}</p>
           <div className="flex flex-col gap-2">
             {completions.map((c) => {
               const item = itemById.get(c.routineItemId);

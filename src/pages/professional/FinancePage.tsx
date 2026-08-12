@@ -39,7 +39,8 @@ const METHOD_LABELS: Record<PaymentMethod, string> = {
   package: "Pacote mensal",
 };
 
-const PIE_COLORS = ["#a16207", "#ca8a04", "#0369a1", "#10b981", "#be185d", "#64748b"];
+// Petróleo primeiro, depois tons que convivem com ele sem virar arco-íris.
+const PIE_COLORS = ["#3d6b7d", "#5c8da0", "#0369a1", "#3f7d5f", "#b4524a", "#8a8a80"];
 
 function monthKeysBack(count: number): string[] {
   const keys: string[] = [];
@@ -202,7 +203,7 @@ export function FinancePage() {
                   <Line
                     type="monotone"
                     dataKey="previsto"
-                    stroke="#eab308"
+                    stroke="#b4cdd6"
                     strokeWidth={2}
                     strokeDasharray="4 4"
                     dot={false}
@@ -211,9 +212,9 @@ export function FinancePage() {
                   <Line
                     type="monotone"
                     dataKey="recebido"
-                    stroke="#a16207"
+                    stroke="#3d6b7d"
                     strokeWidth={2.5}
-                    dot={{ r: 3, fill: "#a16207" }}
+                    dot={{ r: 3, fill: "#3d6b7d" }}
                     activeDot={{ r: 5 }}
                     isAnimationActive={false}
                   />
@@ -279,8 +280,8 @@ export function FinancePage() {
                   formatter={(v: number, name) => [formatMoney(v), name === "recebido" ? "Recebido" : "Previsto"]}
                   contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 4px 16px rgba(0,0,0,.1)", fontSize: 12 }}
                 />
-                <Bar dataKey="previsto" fill="#fde68a" radius={[6, 6, 0, 0]} isAnimationActive={false} />
-                <Bar dataKey="recebido" fill="#a16207" radius={[6, 6, 0, 0]} isAnimationActive={false} />
+                <Bar dataKey="previsto" fill="#d8e6eb" radius={[6, 6, 0, 0]} isAnimationActive={false} />
+                <Bar dataKey="recebido" fill="#3d6b7d" radius={[6, 6, 0, 0]} isAnimationActive={false} />
               </BarChart>
             </ResponsiveContainer>
           </div>

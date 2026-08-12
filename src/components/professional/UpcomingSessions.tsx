@@ -59,7 +59,7 @@ export function UpcomingSessions({ professionalId, max = 8 }: { professionalId: 
         <div className="flex flex-col gap-3">
           {grouped.map(([date, items]) => (
             <div key={date}>
-              <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-brand-300">
+              <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-brand-400">
                 {isDateKeyToday(date) ? "Hoje" : formatShortDate(date)}
               </p>
               <div className="flex flex-col">

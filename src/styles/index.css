@@ -24,33 +24,39 @@
 }
 
 /**
- * Área da profissional: mesma interface, paleta amarela. As duas áreas viviam
+ * Área da profissional: mesma interface, paleta petróleo. As duas áreas viviam
  * verdes idênticas e era fácil perder de vista em qual delas se estava —
  * principalmente para quem usa as duas contas no mesmo aparelho.
  *
- * Os tons claros (50 a 300) são amarelo mesmo; do 400 para baixo a escala vai
- * escurecendo para dourado e âmbar queimado, porque esses degraus não servem só
- * de fundo — o 500 é texto sobre branco e também fundo de botão com texto
- * branco, e amarelo puro não se lê em nenhum dos dois casos.
+ * Antes era amarela, e o amarelo não dava conta de uma exigência que esta
+ * escala tem: o 500 é ao mesmo tempo texto sobre fundo claro e fundo de botão
+ * com texto branco. Amarelo legível nos dois casos precisa descer tanto que
+ * vira mostarda. O petróleo passa nas duas leituras com folga (5,6:1 e 5,8:1)
+ * sem deixar de ser a cor que é.
+ *
+ * A base fria também devolve o vermelho e o âmbar para quem precisa deles: numa
+ * tela cheia de pendência e atraso, o alerta só alerta se o resto não competir.
  *
  * A classe entra em <html> (e não no layout) para alcançar também o que é
  * renderizado em portal, como as folhas e os diálogos.
  */
 html.pro-theme {
-  --brand-50: 254 252 232;
-  --brand-100: 254 249 195;
-  --brand-200: 253 224 71;
-  --brand-300: 217 152 5;
-  --brand-400: 187 124 5;
-  --brand-500: 161 98 7;
-  --brand-600: 133 77 14;
-  --brand-700: 113 63 18;
-  --brand-800: 92 51 15;
-  --brand-900: 69 39 12;
+  --brand-50: 238 244 246;
+  --brand-100: 216 230 235;
+  --brand-200: 180 205 214;
+  --brand-300: 134 174 188;
+  --brand-400: 92 141 160;
+  --brand-500: 61 107 125;
+  --brand-600: 51 89 106;
+  --brand-700: 41 72 86;
+  --brand-800: 31 55 66;
+  --brand-900: 20 37 45;
 
-  --cream-50: 255 253 244;
-  --cream-100: 254 249 231;
-  --cream-200: 253 243 208;
+  /* Superfícies em cinza quente, não em branco puro: tela brilhante cansa em
+     turno longo, e um fundo levemente tingido não muda nada de dia. */
+  --cream-50: 250 250 249;
+  --cream-100: 240 240 238;
+  --cream-200: 230 230 227;
 }
 
 html,
