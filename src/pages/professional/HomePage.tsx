@@ -9,6 +9,8 @@ import { EmptyState } from "@/components/common/EmptyState";
 import { Badge } from "@/components/common/Badge";
 import { NotificationsBell } from "@/components/common/NotificationsBell";
 import { UpcomingSessions } from "@/components/professional/UpcomingSessions";
+import { PendenciasCard } from "@/components/professional/PendenciasCard";
+import { BirthdaysCard } from "@/components/professional/BirthdaysCard";
 import { FEELING_OPTIONS } from "@/utils/constants";
 
 /** Os lugares do aplicativo, reunidos num só ponto de partida. */
@@ -79,6 +81,11 @@ export function HomePage() {
 
       <div className="flex flex-col gap-4 px-4 pb-4">
         {firebaseUser && <UpcomingSessions professionalId={firebaseUser.uid} max={5} />}
+
+        {/* Pendências antes dos atalhos: o que cobra vem antes do que navega. */}
+        <PendenciasCard />
+
+        <BirthdaysCard overview={overview} />
 
         <div>
           <p className="mb-2 text-sm font-bold text-brand-700">Ir para</p>
