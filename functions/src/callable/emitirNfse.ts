@@ -1,16 +1,29 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
-import { defineSecret } from "firebase-functions/params";
 import { FieldValue } from "firebase-admin/firestore";
 import { db } from "../admin";
 import { restProvider } from "../nfse/restProvider";
 import type { NfseProvider } from "../nfse/provider";
 
-const NFSE_BASE_URL = defineSecret("NFSE_BASE_URL");
-const NFSE_TOKEN = defineSecret("NFSE_TOKEN");
-
+/**
+ * As credenciais do emissor vêm do ambiente, e não de `defineSecret`.
+ *
+ * Não é preferência de estilo: `defineSecret` faz o firebase-tools exigir que o
+ * segredo exista no Secret Manager na hora de analisar o código — e isso trava o
+ * deploy de *todas* as funções, inclusive as que nada têm a ver com nota fiscal.
+ * Enquanto não houver emissor contratado, isso seria pedir para o projeto inteiro
+ * parar por causa de um pedaço que ainda nem está em uso.
+ *
+ * Ao contratar o emissor, volte a declarar:
+ *
+ *   const NFSE_BASE_URL = defineSecret("NFSE_BASE_URL");
+ *   const NFSE_TOKEN = defineSecret("NFSE_TOKEN");
+ *
+ * e acrescente `secrets: [NFSE_BASE_URL, NFSE_TOKEN]` às três funções abaixo. Aí
+ * o Firebase injeta os valores e o `process.env` continua sendo a leitura certa.
+ */
 function provedor(): NfseProvider {
-  const base = NFSE_BASE_URL.value();
-  const token = NFSE_TOKEN.value();
+  const base = process.env.NFSE_BASE_URL;
+  const token = process.env.NFSE_TOKEN;
   if (!base || !token) {
     throw new HttpsError(
       "failed-precondition",
@@ -40,7 +53,7 @@ async function garantirProfissional(uid: string | undefined) {
  * numa conexão ruim, é justamente o caso mais provável.
  */
 export const emitirNfse = onCall<{ invoiceId: string }>(
-  { secrets: [NFSE_BASE_URL, NFSE_TOKEN], region: "southamerica-east1" },
+  { region: "southamerica-east1" },
   async (request) => {
     await garantirProfissional(request.auth?.uid);
     const uid = request.auth!.uid;
@@ -140,7 +153,7 @@ export const emitirNfse = onCall<{ invoiceId: string }>(
 
 /** Consulta o emissor e atualiza a nota que ficou em processamento. */
 export const consultarNfse = onCall<{ invoiceId: string }>(
-  { secrets: [NFSE_BASE_URL, NFSE_TOKEN], region: "southamerica-east1" },
+  { region: "southamerica-east1" },
   async (request) => {
     await garantirProfissional(request.auth?.uid);
     const ref = db.collection("invoices").doc(request.data?.invoiceId ?? "");
@@ -166,7 +179,7 @@ export const consultarNfse = onCall<{ invoiceId: string }>(
 );
 
 export const cancelarNfse = onCall<{ invoiceId: string; motivo: string }>(
-  { secrets: [NFSE_BASE_URL, NFSE_TOKEN], region: "southamerica-east1" },
+  { region: "southamerica-east1" },
   async (request) => {
     await garantirProfissional(request.auth?.uid);
     const ref = db.collection("invoices").doc(request.data?.invoiceId ?? "");
