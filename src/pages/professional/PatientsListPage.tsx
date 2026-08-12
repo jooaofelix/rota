@@ -33,6 +33,7 @@ export function PatientsListPage() {
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
   const [excluindo, setExcluindo] = useState(false);
+  const [progresso, setProgresso] = useState<{ feitos: number; total: number } | null>(null);
 
   useEffect(() => {
     if (!firebaseUser) return;
@@ -109,9 +110,11 @@ export function PatientsListPage() {
   }
 
   async function excluirSelecionados() {
+    if (excluindo) return;
     setExcluindo(true);
+    setProgresso(null);
     try {
-      const r = await excluirPacientes([...selecionados]);
+      const r = await excluirPacientes([...selecionados], (feitos, total) => setProgresso({ feitos, total }));
       const partes = [];
       if (r.excluidos) partes.push(`${r.excluidos} ${r.excluidos === 1 ? "excluído" : "excluídos"}`);
       if (r.desvinculados)
@@ -119,10 +122,12 @@ export function PatientsListPage() {
       showToast(partes.join(" · ") || "Nada foi excluído.");
       setConfirmandoExclusao(false);
       sairDaSelecao();
-    } catch {
-      showToast("Não consegui excluir. Tente de novo.", "error");
+    } catch (erro) {
+      showToast(erro instanceof Error ? erro.message : "Não consegui excluir.", "error");
+      setConfirmandoExclusao(false);
     } finally {
       setExcluindo(false);
+      setProgresso(null);
     }
   }
 
@@ -288,9 +293,16 @@ export function PatientsListPage() {
       <ConfirmDialog
         open={confirmandoExclusao}
         danger
+        busy={excluindo}
         title={`Excluir ${selecionados.size} ${selecionados.size === 1 ? "cadastro" : "cadastros"}?`}
         description="Some tudo: sessões, prontuário, cobranças e testes dessas pessoas. Não dá para desfazer. Quem tiver conta própria só é desvinculado. Se o objetivo é tirar da lista quem teve alta, use 'Marcar inativo' — o histórico continua guardado."
-        confirmLabel={excluindo ? "Excluindo..." : "Excluir tudo"}
+        confirmLabel={
+          excluindo
+            ? progresso
+              ? `Excluindo ${progresso.feitos} de ${progresso.total}...`
+              : "Excluindo..."
+            : "Excluir tudo"
+        }
         onCancel={() => setConfirmandoExclusao(false)}
         onConfirm={excluirSelecionados}
       />

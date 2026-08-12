@@ -232,19 +232,72 @@ export interface ResultadoExclusao {
   erros: string[];
 }
 
+/** Quantos cabem numa chamada. O mesmo limite está declarado na função. */
+const POR_CHAMADA = 50;
+
+/**
+ * Traduz a falha da chamada para algo que dê para agir.
+ *
+ * "Tente de novo" é a pior resposta possível quando o motivo é que a função
+ * ainda não foi publicada: tentar de novo nunca vai funcionar, e a pessoa fica
+ * clicando.
+ */
+function erroDaChamada(erro: unknown): Error {
+  const codigo = (erro as { code?: string })?.code ?? "";
+  if (codigo === "functions/not-found") {
+    return new Error(
+      "A função de exclusão ainda não foi publicada no Firebase. Rode: firebase deploy --only functions:excluirPacientes"
+    );
+  }
+  if (codigo === "functions/unauthenticated" || codigo === "functions/permission-denied") {
+    return new Error("Sem permissão para excluir. Confira se você entrou com a conta da profissional.");
+  }
+  if (codigo === "functions/deadline-exceeded") {
+    return new Error("Demorou demais e parou no meio. Parte pode ter sido excluída — recarregue e veja o que sobrou.");
+  }
+  return new Error("Não consegui excluir agora. Confira a internet e tente de novo.");
+}
+
 /**
  * Exclui cadastros de paciente, de um ou de vários de uma vez.
  *
  * A varredura acontece na função: apagar um paciente é apagar o que ele tem em
- * doze coleções, e as regras do Firestore proíbem exclusão em quase todas —
+ * treze coleções, e as regras do Firestore proíbem exclusão em quase todas —
  * proibição que existe para que nada suma por acidente e que não deve cair só
  * porque agora existe um botão. Quem tem conta própria não é apagado: é
  * desvinculado, porque a conta é da pessoa.
+ *
+ * Vai em blocos porque uma limpeza de lista inteira não cabe no tempo de uma
+ * chamada só — e porque assim, se cair no meio, o que já foi feito está feito.
  */
-export async function excluirPacientes(patientIds: string[]): Promise<ResultadoExclusao> {
+export async function excluirPacientes(
+  patientIds: string[],
+  onProgresso?: (feitos: number, total: number) => void
+): Promise<ResultadoExclusao> {
   const call = httpsCallable<{ patientIds: string[] }, ResultadoExclusao>(functions, "excluirPacientes");
-  const resposta = await call({ patientIds });
-  return resposta.data;
+  const total = patientIds.length;
+  const acumulado: ResultadoExclusao = { excluidos: 0, desvinculados: 0, erros: [] };
+
+  for (let i = 0; i < total; i += POR_CHAMADA) {
+    const bloco = patientIds.slice(i, i + POR_CHAMADA);
+    try {
+      const { data } = await call({ patientIds: bloco });
+      acumulado.excluidos += data.excluidos;
+      acumulado.desvinculados += data.desvinculados;
+      acumulado.erros.push(...(data.erros ?? []));
+    } catch (erro) {
+      // Guarda o que já saiu antes de desistir: sem isto, uma falha no segundo
+      // bloco faria a tela dizer que nada aconteceu, com metade já apagada.
+      const falha = erroDaChamada(erro);
+      if (acumulado.excluidos + acumulado.desvinculados > 0) {
+        falha.message += ` (${acumulado.excluidos + acumulado.desvinculados} já foram processados)`;
+      }
+      throw falha;
+    }
+    onProgresso?.(Math.min(i + POR_CHAMADA, total), total);
+  }
+
+  return acumulado;
 }
 
 /** Gera (ou troca) o código de um cadastro que ainda não virou conta. */

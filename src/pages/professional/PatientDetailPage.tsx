@@ -185,18 +185,20 @@ export function PatientDetailPage() {
       <ConfirmDialog
         open={confirmandoExcluir}
         danger
+        busy={excluindo}
         title={`Excluir o cadastro de ${nome}?`}
         description="Some tudo: sessões, prontuário, cobranças e testes. Não dá para desfazer. Se ela tiver conta própria, o que acontece é o desvínculo — a conta é dela. Se o objetivo é só tirar da lista, use 'Marcar como inativo'."
         confirmLabel={excluindo ? "Excluindo..." : "Excluir tudo"}
         onCancel={() => setConfirmandoExcluir(false)}
         onConfirm={async () => {
+          if (excluindo) return;
           setExcluindo(true);
           try {
             const r = await excluirPacientes([patientId]);
             showToast(r.desvinculados ? "Paciente desvinculada." : "Cadastro excluído.");
             navigate("/pacientes");
-          } catch {
-            showToast("Não consegui excluir. Tente de novo.", "error");
+          } catch (erro) {
+            showToast(erro instanceof Error ? erro.message : "Não consegui excluir.", "error");
             setExcluindo(false);
             setConfirmandoExcluir(false);
           }
