@@ -36,9 +36,15 @@ export function PatientImportSheet({
   function carregar(texto: string) {
     const r = lerCsvDePacientes(texto);
     setResultado(r);
-    // Já vem marcado quem ainda não existe; repetido fica de fora por padrão.
+    // Vem marcado só quem ainda não existe e não está encerrado. Numa lista de
+    // oitenta e sete, deixar "alta" e "desistência" marcados por padrão obrigaria
+    // ela a reconhecer nome por nome para desmarcar.
     setSelecionados(
-      new Set(r.pacientes.filter((p) => !jaExiste(p.nome, nomesExistentes)).map((p) => p.linha))
+      new Set(
+        r.pacientes
+          .filter((p) => !jaExiste(p.nome, nomesExistentes) && p.situacao !== "encerrado")
+          .map((p) => p.linha)
+      )
     );
   }
 
@@ -73,6 +79,7 @@ export function PatientImportSheet({
           cpf: p.cpf,
           birthDate: p.nascimento,
           defaultPrice: p.valorSessao,
+          ativo: p.situacao !== "encerrado",
         });
         ok++;
       } catch {
@@ -170,6 +177,18 @@ export function PatientImportSheet({
         </div>
       ) : (
         <div className="flex flex-col gap-3">
+          {(() => {
+            const encerrados = resultado.pacientes.filter((p) => p.situacao === "encerrado").length;
+            return encerrados > 0 ? (
+              <p className="rounded-xl bg-cream-100 p-2.5 text-xs leading-snug text-brand-600">
+                {encerrados} {encerrados === 1 ? "pessoa está" : "pessoas estão"} com acompanhamento
+                encerrado na planilha (alta, desistência ou desativado). Deixei{" "}
+                {encerrados === 1 ? "desmarcada" : "desmarcadas"} — marque se quiser guardar o
+                histórico delas.
+              </p>
+            ) : null;
+          })()}
+
           <div className="flex items-baseline justify-between gap-2">
             <p className="text-sm font-bold text-brand-700">
               {resultado.pacientes.length} {resultado.pacientes.length === 1 ? "linha lida" : "linhas lidas"}
@@ -235,6 +254,7 @@ function Linha({
     paciente.cpf,
     paciente.valorSessao ? formatMoney(paciente.valorSessao) : undefined,
   ].filter(Boolean);
+  const encerrado = paciente.situacao === "encerrado";
 
   return (
     <button onClick={onToggle} className="flex items-start gap-2.5 border-b border-brand-50 py-2 text-left last:border-b-0">
@@ -252,11 +272,15 @@ function Linha({
           <span className="block truncate text-xs text-brand-400">{detalhes.join(" · ")}</span>
         )}
       </span>
-      {repetido && (
+      {repetido ? (
         <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">
           já existe
         </span>
-      )}
+      ) : encerrado ? (
+        <span className="shrink-0 rounded-full bg-cream-200 px-2 py-0.5 text-[10px] font-bold text-brand-500">
+          {paciente.situacaoTexto?.toLowerCase() ?? "encerrado"}
+        </span>
+      ) : null}
     </button>
   );
 }

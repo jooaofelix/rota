@@ -7,8 +7,14 @@
  * Excel e não custa nada a ninguém.
  */
 
+/** Como o outro sistema classificava o paciente no momento da exportação. */
+export type SituacaoImportada = "ativo" | "encerrado" | "desconhecido";
+
 export interface PacienteImportado {
   nome: string;
+  situacao: SituacaoImportada;
+  /** Texto original do status, para ela reconhecer o que veio da planilha. */
+  situacaoTexto?: string;
   email?: string;
   telefone?: string;
   cpf?: string;
@@ -19,14 +25,29 @@ export interface PacienteImportado {
 }
 
 /** Cabeçalhos aceitos por campo. Comparação sem acento, sem caixa e sem pontuação. */
-const COLUNAS: Record<keyof Omit<PacienteImportado, "linha">, string[]> = {
+const COLUNAS: Record<CampoLido, string[]> = {
   nome: ["nome completo", "nome", "paciente", "cliente", "nome do paciente"],
   email: ["e mail", "email", "e-mail"],
   telefone: ["telefone celular", "celular", "telefone", "whatsapp", "telefone fixo"],
   cpf: ["cpf", "documento"],
   nascimento: ["data de nascimento", "nascimento", "data nascimento", "aniversario"],
   valorSessao: ["valor da sessao mensalidade", "valor da sessao", "valor", "valor sessao"],
+  situacaoTexto: ["status", "situacao"],
 };
+
+type CampoLido = "nome" | "email" | "telefone" | "cpf" | "nascimento" | "valorSessao" | "situacaoTexto";
+
+/**
+ * "Alta" e "Desistência" não são erro nem sucesso — são fim de acompanhamento.
+ * Entram como encerrados para ela poder deixar de fora sem precisar reconhecer
+ * cada nome, que é o que aconteceria numa lista de oitenta e sete.
+ */
+function lerSituacao(valor: string | undefined): SituacaoImportada {
+  const v = normalizar(valor ?? "");
+  if (!v || v === "-") return "desconhecido";
+  if (v === "ativo" || v === "ativa" || v === "em atendimento") return "ativo";
+  return "encerrado";
+}
 
 function normalizar(texto: string): string {
   return texto
@@ -119,7 +140,7 @@ export function lerCsvDePacientes(conteudo: string): ResultadoLeitura {
   const separador = detectarSeparador(linhas[0]);
   const cabecalhos = dividirLinha(linhas[0], separador).map(normalizar);
 
-  const indices: Partial<Record<keyof Omit<PacienteImportado, "linha">, number>> = {};
+  const indices: Partial<Record<CampoLido, number>> = {};
   const usados = new Set<number>();
   (Object.keys(COLUNAS) as Array<keyof typeof COLUNAS>).forEach((campo) => {
     for (const aceito of COLUNAS[campo]) {
@@ -151,8 +172,11 @@ export function lerCsvDePacientes(conteudo: string): ResultadoLeitura {
       linhasSemNome.push(i + 1);
       continue;
     }
+    const situacaoTexto = indices.situacaoTexto !== undefined ? limpar(campos[indices.situacaoTexto]) : undefined;
     pacientes.push({
       nome,
+      situacao: lerSituacao(situacaoTexto),
+      situacaoTexto,
       email: indices.email !== undefined ? limpar(campos[indices.email]) : undefined,
       telefone: indices.telefone !== undefined ? limpar(campos[indices.telefone]) : undefined,
       cpf: indices.cpf !== undefined ? limpar(campos[indices.cpf]) : undefined,

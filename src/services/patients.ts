@@ -114,7 +114,16 @@ export async function linkPatientByCode(professionalId: string, patientCode: str
  */
 export async function createContactPatient(
   professionalId: string,
-  data: { name: string; email?: string; phone?: string; cpf?: string; birthDate?: Date; defaultPrice?: number }
+  data: {
+    name: string;
+    email?: string;
+    phone?: string;
+    cpf?: string;
+    birthDate?: Date;
+    defaultPrice?: number;
+    /** false para quem veio da planilha já com alta, desistência ou desativado. */
+    ativo?: boolean;
+  }
 ): Promise<string> {
   const patientId = `c_${crypto.randomUUID().replace(/-/g, "").slice(0, 20)}`;
   const accessCode = novoCodigoDeAcesso();
@@ -140,7 +149,7 @@ export async function createContactPatient(
     level: 1,
     currentStreak: 0,
     longestStreak: 0,
-    active: true,
+    active: data.ativo ?? true,
     createdAt: serverTimestamp(),
   });
 
