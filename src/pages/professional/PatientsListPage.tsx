@@ -119,7 +119,10 @@ export function PatientsListPage() {
       if (r.excluidos) partes.push(`${r.excluidos} ${r.excluidos === 1 ? "excluído" : "excluídos"}`);
       if (r.desvinculados)
         partes.push(`${r.desvinculados} ${r.desvinculados === 1 ? "desvinculado" : "desvinculados"} (tem conta própria)`);
-      showToast(partes.join(" · ") || "Nada foi excluído.");
+      // Quando a função responde mas não apaga nada, o motivo é sempre o mesmo:
+      // ela não achou o vínculo ativo. Dizer isso é melhor que "nada aconteceu".
+      if (r.erros.length) partes.push(`${r.erros.length} sem vínculo ativo (não excluído)`);
+      showToast(partes.join(" · ") || "A função respondeu, mas não excluiu nada.");
       setConfirmandoExclusao(false);
       sairDaSelecao();
     } catch (erro) {

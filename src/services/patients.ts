@@ -255,7 +255,11 @@ function erroDaChamada(erro: unknown): Error {
   if (codigo === "functions/deadline-exceeded") {
     return new Error("Demorou demais e parou no meio. Parte pode ter sido excluída — recarregue e veja o que sobrou.");
   }
-  return new Error("Não consegui excluir agora. Confira a internet e tente de novo.");
+  // O código vai junto de propósito: sem ele, "tente de novo" é a mesma frase
+  // para rede caída, função ausente e erro dentro da função — três problemas
+  // com três soluções diferentes.
+  const detalhe = (erro as { message?: string })?.message ?? "";
+  return new Error(`Não consegui excluir. [${codigo || "sem código"}] ${detalhe}`.trim());
 }
 
 /**
