@@ -123,6 +123,11 @@ export interface PatientDoc {
   /** Valor combinado da sessão, usado como padrão ao agendar. */
   defaultPrice?: number;
   /**
+   * Código que a profissional entrega à pessoa para ela criar a conta e assumir
+   * este cadastro. Some depois de usado.
+   */
+  accessCode?: string;
+  /**
    * false quando o paciente existe só como cadastro da profissional, sem login.
    * A maioria dos pacientes de um consultório nunca vai abrir o aplicativo, e a
    * agenda, o prontuário e a nota não dependem disso.

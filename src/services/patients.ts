@@ -1,6 +1,8 @@
 import { Timestamp, collection, doc, getDoc, getDocs, onSnapshot, query, serverTimestamp, setDoc, updateDoc, where } from "firebase/firestore";
-import { db } from "@/firebase/config";
+import { db, functions } from "@/firebase/config";
+import { httpsCallable } from "firebase/functions";
 import type { PatientDoc, ProfessionalPatientLink, UserDoc } from "@/types";
+import { novoCodigoDeAcesso } from "@/utils/accessCode";
 
 /** Lista os vínculos ativos de uma profissional (base para a lista de pacientes). */
 export function subscribeToLinkedPatients(
@@ -115,6 +117,7 @@ export async function createContactPatient(
   data: { name: string; email?: string; phone?: string; cpf?: string; birthDate?: Date; defaultPrice?: number }
 ): Promise<string> {
   const patientId = `c_${crypto.randomUUID().replace(/-/g, "").slice(0, 20)}`;
+  const accessCode = novoCodigoDeAcesso();
 
   await setDoc(doc(db, "professionalPatientLinks", `${professionalId}_${patientId}`), {
     professionalId,
@@ -132,6 +135,7 @@ export async function createContactPatient(
     ...(data.birthDate ? { birthDate: Timestamp.fromDate(data.birthDate) } : {}),
     ...(data.defaultPrice ? { defaultPrice: data.defaultPrice } : {}),
     hasAccount: false,
+    accessCode,
     points: 0,
     level: 1,
     currentStreak: 0,
@@ -161,6 +165,26 @@ export async function updatePatientProfile(
   if (data.cpf !== undefined) payload.cpf = data.cpf.trim();
   if (data.phone !== undefined) payload.phone = data.phone.trim();
   await updateDoc(doc(db, "patients", patientId), payload);
+}
+
+/**
+ * O paciente assume o cadastro que a profissional já tinha feito para ele.
+ *
+ * A migração acontece na função: procurar cadastro por código exigiria ler a
+ * coleção inteira, e mover o histórico entre ids precisa de uma escrita que as
+ * regras não podem permitir ao aplicativo.
+ */
+export async function assumirCadastroPorCodigo(codigo: string): Promise<{ ok: boolean; erro?: string }> {
+  const call = httpsCallable<{ codigo: string }, { ok: boolean; erro?: string }>(functions, "assumirCadastro");
+  const resposta = await call({ codigo });
+  return resposta.data;
+}
+
+/** Gera (ou troca) o código de um cadastro que ainda não virou conta. */
+export async function gerarCodigoDeAcesso(patientId: string): Promise<string> {
+  const codigo = novoCodigoDeAcesso();
+  await updateDoc(doc(db, "patients", patientId), { accessCode: codigo });
+  return codigo;
 }
 
 export async function updatePatientPrivateNotes(patientId: string, notes: string) {

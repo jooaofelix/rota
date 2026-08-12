@@ -104,6 +104,11 @@ export function PatientImportSheet({
           <p className="mt-2 text-sm leading-relaxed text-brand-500">
             Eles já aparecem na lista, na agenda e nas finanças. Ninguém recebeu convite nem
             e-mail — são cadastros seus, não contas.
+            <br />
+            <br />
+            Cada um ganhou um <span className="font-bold text-brand-700">código de acesso</span>. Se
+            algum dia você quiser convidar alguém para usar o aplicativo, o código está na página do
+            paciente: com ele a pessoa cria a conta e o acompanhamento já aparece pronto.
           </p>
         </div>
       </BottomSheet>

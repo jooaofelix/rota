@@ -12,6 +12,7 @@ import { PatientHistoryTab } from "@/components/professional/PatientHistoryTab";
 import { PatientRewardsTab } from "@/components/professional/PatientRewardsTab";
 import { PatientNotesTab } from "@/components/professional/PatientNotesTab";
 import { ReferralTab } from "@/components/professional/ReferralTab";
+import { AccessCodeCard } from "@/components/professional/AccessCodeCard";
 import { useToast } from "@/contexts/ToastContext";
 import clsx from "clsx";
 
@@ -95,6 +96,11 @@ export function PatientDetailPage() {
       </div>
 
       <div className="px-4 pb-4">
+        {tab === "overview" && patient && !patient.hasAccount && (
+          <div className="mb-4">
+            <AccessCodeCard patient={patient} patientName={nome} />
+          </div>
+        )}
         {tab === "overview" && (
           <Suspense fallback={<LoadingSpinner label="Carregando indicadores..." />}>
             <PatientOverviewTab patientId={patientId} />
