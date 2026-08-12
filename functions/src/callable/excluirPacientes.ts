@@ -19,7 +19,6 @@ const COLECOES_COM_PACIENTE = [
   "emotionRecords",
   "reports",
   "messages",
-  "assessments",
 ];
 
 const LIMITE_POR_CHAMADA = 50;
@@ -53,7 +52,7 @@ async function apagarPorPaciente(colecao: string, patientId: string): Promise<nu
  *   paciente e os dados dele continuam existindo.
  */
 export const excluirPacientes = onCall<{ patientIds: string[] }>(
-  // Uma limpeza de lista inteira são dezenas de pacientes vezes treze coleções.
+  // Uma limpeza de lista inteira são dezenas de pacientes vezes doze coleções.
   // No minuto padrão isso não cabe: o tempo vai para a ida e volta de cada
   // consulta, não para o processamento.
   { region: "southamerica-east1", timeoutSeconds: 540 },
@@ -96,8 +95,8 @@ export const excluirPacientes = onCall<{ patientIds: string[] }>(
         continue;
       }
 
-      // As treze coleções em paralelo: são independentes entre si, e em série o
-      // custo é treze idas ao banco por paciente só para descobrir que a maioria
+      // As doze coleções em paralelo: são independentes entre si, e em série o
+      // custo é doze idas ao banco por paciente só para descobrir que a maioria
       // está vazia — que é o caso de quem veio de importação.
       await Promise.all(COLECOES_COM_PACIENTE.map((colecao) => apagarPorPaciente(colecao, patientId)));
       await pacienteRef.delete();

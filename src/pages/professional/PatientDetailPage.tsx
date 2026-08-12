@@ -13,7 +13,6 @@ import { PatientHistoryTab } from "@/components/professional/PatientHistoryTab";
 import { PatientRewardsTab } from "@/components/professional/PatientRewardsTab";
 import { PatientNotesTab } from "@/components/professional/PatientNotesTab";
 import { ReferralTab } from "@/components/professional/ReferralTab";
-import { AssessmentsTab } from "@/components/professional/AssessmentsTab";
 import { AccessCodeCard } from "@/components/professional/AccessCodeCard";
 import { useToast } from "@/contexts/ToastContext";
 import clsx from "clsx";
@@ -21,13 +20,12 @@ import clsx from "clsx";
 // Carregada sob demanda: usa recharts, que não deve entrar no bundle inicial do app.
 const PatientOverviewTab = lazy(() => import("@/components/professional/PatientOverviewTab").then((m) => ({ default: m.PatientOverviewTab })));
 
-type Tab = "overview" | "routine" | "history" | "tests" | "rewards" | "notes" | "referral";
+type Tab = "overview" | "routine" | "history" | "rewards" | "notes" | "referral";
 
 const TABS: Array<{ key: Tab; label: string }> = [
   { key: "overview", label: "Visão geral" },
   { key: "routine", label: "Rotina" },
   { key: "history", label: "Histórico" },
-  { key: "tests", label: "Testes" },
   { key: "rewards", label: "Recompensas" },
   { key: "notes", label: "Observações" },
   { key: "referral", label: "Encaminhar" },
@@ -35,7 +33,7 @@ const TABS: Array<{ key: Tab; label: string }> = [
 
 export function PatientDetailPage() {
   const { patientId = "" } = useParams();
-  const { firebaseUser, userDoc } = useAuth();
+  const { firebaseUser } = useAuth();
   const { showToast } = useToast();
   const [patient, setPatient] = useState<PatientDoc | null>(null);
   const [user, setUser] = useState<UserDoc | null>(null);
@@ -133,14 +131,6 @@ export function PatientDetailPage() {
         )}
         {tab === "routine" && <PatientRoutineTab patientId={patientId} professionalId={firebaseUser.uid} />}
         {tab === "history" && <PatientHistoryTab patientId={patientId} />}
-        {tab === "tests" && (
-          <AssessmentsTab
-            professionalId={firebaseUser.uid}
-            professionalName={userDoc?.name ?? "Sua psicóloga"}
-            patientId={patientId}
-            patientName={nome}
-          />
-        )}
         {tab === "rewards" && <PatientRewardsTab patientId={patientId} professionalId={firebaseUser.uid} />}
         {tab === "notes" && <PatientNotesTab patientId={patientId} initialNotes={patient?.privateNotes ?? ""} />}
         {tab === "referral" && <ReferralTab patientId={patientId} patientName={nome} />}
@@ -168,7 +158,7 @@ export function PatientDetailPage() {
       <ConfirmDialog
         open={confirmandoInativar}
         title={`Marcar ${nome} como inativa?`}
-        description="Ela sai da lista de pacientes ativos, mas o histórico continua inteiro — sessões, prontuário, cobranças e testes. Dá para reativar a qualquer momento."
+        description="Ela sai da lista de pacientes ativos, mas o histórico continua inteiro — sessões, prontuário e cobranças. Dá para reativar a qualquer momento."
         confirmLabel="Marcar como inativa"
         onCancel={() => setConfirmandoInativar(false)}
         onConfirm={async () => {
@@ -187,7 +177,7 @@ export function PatientDetailPage() {
         danger
         busy={excluindo}
         title={`Excluir o cadastro de ${nome}?`}
-        description="Some tudo: sessões, prontuário, cobranças e testes. Não dá para desfazer. Se ela tiver conta própria, o que acontece é o desvínculo — a conta é dela. Se o objetivo é só tirar da lista, use 'Marcar como inativo'."
+        description="Some tudo: sessões, prontuário e cobranças. Não dá para desfazer. Se ela tiver conta própria, o que acontece é o desvínculo — a conta é dela. Se o objetivo é só tirar da lista, use 'Marcar como inativo'."
         confirmLabel={excluindo ? "Excluindo..." : "Excluir tudo"}
         onCancel={() => setConfirmandoExcluir(false)}
         onConfirm={async () => {

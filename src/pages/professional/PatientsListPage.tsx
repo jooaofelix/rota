@@ -295,7 +295,7 @@ export function PatientsListPage() {
         danger
         busy={excluindo}
         title={`Excluir ${selecionados.size} ${selecionados.size === 1 ? "cadastro" : "cadastros"}?`}
-        description="Some tudo: sessões, prontuário, cobranças e testes dessas pessoas. Não dá para desfazer. Quem tiver conta própria só é desvinculado. Se o objetivo é tirar da lista quem teve alta, use 'Marcar inativo' — o histórico continua guardado."
+        description="Some tudo: sessões, prontuário e cobranças dessas pessoas. Não dá para desfazer. Quem tiver conta própria só é desvinculado. Se o objetivo é tirar da lista quem teve alta, use 'Marcar inativo' — o histórico continua guardado."
         confirmLabel={
           excluindo
             ? progresso
