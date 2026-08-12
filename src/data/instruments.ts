@@ -279,8 +279,8 @@ export const INSTRUMENTOS: Instrumento[] = [
     icone: "📘",
     resumo: "Registrar o resultado de uma aplicação feita com o material oficial.",
     sobre:
-      "A BFP é instrumento de uso restrito a psicólogos, com itens protegidos por direito autoral e aplicação vinculada ao material da editora — não pode ser reproduzida aqui nem em nenhum outro aplicativo. Aplique pelo caderno ou pela plataforma da editora e registre os percentis abaixo: o perfil passa a viver no prontuário, aparece na evolução e entra no relatório junto com o resto.",
-    fonte: "Nunes, Hutz & Nunes — Vetor Editora. Instrumento com parecer favorável no SATEPSI.",
+      "A BFP é de uso restrito a psicólogos: os 126 itens são obra protegida, e o parecer favorável do SATEPSI vale para a versão da editora — reimplementada aqui, ela deixaria de ser a BFP aprovada, mesmo com as mesmas perguntas. Aplique pelo caderno ou pela aplicação online licenciada e registre os percentis abaixo: o perfil passa a viver no prontuário, aparece na evolução e entra no relatório junto com o resto.",
+    fonte: "Nunes, Hutz & Nunes (2010) — Casa do Psicólogo. Uso restrito, com parecer favorável no SATEPSI.",
     minutos: 2,
     somenteRegistro: true,
     campos: [
