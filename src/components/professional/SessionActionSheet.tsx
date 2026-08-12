@@ -3,6 +3,7 @@ import clsx from "clsx";
 import { BottomSheet } from "@/components/common/BottomSheet";
 import { useToast } from "@/contexts/ToastContext";
 import { setPaymentStatus, updateSession } from "@/services/sessions";
+import { draftFromSession } from "@/services/invoices";
 import type { PaymentMethod, PaymentStatus, SessionDoc, SessionStatus } from "@/types";
 import { PAYMENT_LABELS, PAYMENT_STYLES, STATUS_LABELS, formatMoney } from "@/utils/agenda";
 import { formatShortDate } from "@/utils/date";
@@ -31,6 +32,7 @@ export function SessionActionSheet({
 }) {
   const { showToast } = useToast();
   const [openingRecord, setOpeningRecord] = useState(false);
+  const [gerandoNota, setGerandoNota] = useState(false);
 
   /**
    * A folha recebe o retrato da sessão de quando a linha foi tocada. Sem cópia
@@ -40,6 +42,23 @@ export function SessionActionSheet({
    */
   const [view, setView] = useState(session);
   useEffect(() => setView(session), [session]);
+
+  /**
+   * Cria o rascunho e para aí. Transmitir daqui seria um toque de distância de
+   * um documento fiscal — a confirmação fica em Finanças, com o cadastro à vista.
+   */
+  async function gerarNota() {
+    if (gerandoNota) return;
+    setGerandoNota(true);
+    try {
+      await draftFromSession(view, `Atendimento psicológico — ${view.patientName}`);
+      showToast("Rascunho criado. Confira e emita em Finanças › Notas fiscais.");
+    } catch {
+      showToast("Não deu para criar o rascunho agora.");
+    } finally {
+      setGerandoNota(false);
+    }
+  }
 
   async function changeStatus(status: SessionStatus) {
     setView((v) => ({ ...v, status }));
@@ -80,6 +99,11 @@ export function SessionActionSheet({
           <button className="btn-secondary" onClick={onEdit}>
             Editar horário e valor
           </button>
+          {view.price ? (
+            <button className="btn-secondary" onClick={gerarNota}>
+              🧾 Emitir nota
+            </button>
+          ) : null}
         </div>
       }
     >

@@ -475,6 +475,43 @@ export interface RoomRequestDoc {
   respondedAt?: Timestamp;
 }
 
+/**
+ * Estado de uma nota.
+ *
+ * "enviando" existe porque a emissão é assíncrona do lado de lá: o emissor
+ * aceita o pedido e a prefeitura responde depois. Sem esse estado, uma nota em
+ * processamento parecia erro e ela emitia de novo — nota duplicada é problema
+ * fiscal, não de tela.
+ */
+export type InvoiceStatus = "rascunho" | "enviando" | "emitida" | "erro" | "cancelada";
+
+/** documento em /invoices/{id} — uma NFS-e pedida a partir do que foi atendido. */
+export interface InvoiceDoc {
+  id: string;
+  professionalId: string;
+  sessionId?: string;
+  patientId?: string;
+  patientName: string;
+  /** Tomador do serviço: a nota precisa do CPF de quem pagou. */
+  patientCpf?: string;
+  patientEmail?: string;
+  description: string;
+  value: number;
+  /** Mês de competência, YYYY-MM-DD (dia 1 basta). */
+  competencia: string;
+  status: InvoiceStatus;
+  /** Devolvidos pelo emissor quando a nota sai. */
+  numero?: string;
+  chaveAcesso?: string;
+  linkPdf?: string;
+  linkXml?: string;
+  /** Referência do pedido no emissor, para consultar depois sem duplicar. */
+  providerRef?: string;
+  erro?: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
 /** Como ela está cadastrada perante o fisco. Muda prazo, acesso e o que é exigido. */
 export type FiscalRegime = "pj_simples" | "pj_outro" | "mei" | "autonomo" | "indefinido";
 

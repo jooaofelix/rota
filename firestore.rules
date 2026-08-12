@@ -249,6 +249,25 @@ service cloud.firestore {
       allow delete: if isSignedIn() && resource.data.professionalId == request.auth.uid;
     }
 
+    // ---------- invoices (NFS-e) ----------
+    // O cliente cria o rascunho e edita enquanto não saiu. O que a prefeitura
+    // devolve — número, chave, links — só a função escreve, com o Admin SDK, que
+    // passa por cima destas regras. Nota emitida não se edita pelo aplicativo:
+    // isso é documento fiscal, e corrigir é cancelar e emitir outra.
+    match /invoices/{id} {
+      allow read, list: if isProfessional() && resource.data.professionalId == request.auth.uid;
+      allow create: if isProfessional()
+        && request.resource.data.professionalId == request.auth.uid
+        && request.resource.data.status == 'rascunho';
+      allow update: if isProfessional()
+        && resource.data.professionalId == request.auth.uid
+        && resource.data.status == 'rascunho'
+        && request.resource.data.status == 'rascunho';
+      allow delete: if isProfessional()
+        && resource.data.professionalId == request.auth.uid
+        && resource.data.status == 'rascunho';
+    }
+
     // ---------- fiscalProfiles (dados fiscais da profissional) ----------
     // Coleção separada de /professionals porque aquela é legível por qualquer
     // usuário logado — o paciente precisa ver nome e profissão de quem o atende.
