@@ -475,6 +475,44 @@ export interface RoomRequestDoc {
   respondedAt?: Timestamp;
 }
 
+/** Como ela está cadastrada perante o fisco. Muda prazo, acesso e o que é exigido. */
+export type FiscalRegime = "pj_simples" | "pj_outro" | "mei" | "autonomo" | "indefinido";
+
+/**
+ * documento em /fiscalProfiles/{uid} — dados fiscais da profissional.
+ *
+ * Coleção à parte de propósito: `professionals/{uid}` é legível por qualquer
+ * usuário logado, porque o paciente precisa ver nome e profissão de quem o
+ * atende. CNPJ, CPF e endereço não são dado de vitrine — ficam aqui, onde só a
+ * dona lê.
+ *
+ * É o cadastro que a emissão de NFS-e vai exigir, e que o recibo já usa.
+ */
+export interface FiscalProfileDoc {
+  uid: string;
+  regime: FiscalRegime;
+  /** Razão social (PJ) ou nome civil completo (autônoma). */
+  legalName?: string;
+  cnpj?: string;
+  cpf?: string;
+  /** Inscrição municipal / CCM — sem ela não há emissão em nenhum município. */
+  inscricaoMunicipal?: string;
+  municipio?: string;
+  uf?: string;
+  /** Código do serviço na lista da LC 116, ex.: "4.16" para psicologia. */
+  codigoServico?: string;
+  cnae?: string;
+  /** Alíquota de ISS em porcentagem, ex.: 2 para 2%. */
+  issAliquota?: number;
+  enderecoLinha1?: string;
+  cep?: string;
+  /** Texto padrão da descrição do serviço na nota e no recibo. */
+  descricaoPadrao?: string;
+  /** Próximo número do recibo. A numeração é dela, não do sistema. */
+  proximoRecibo?: number;
+  updatedAt: Timestamp;
+}
+
 /**
  * documento em /referrals/{id} — registro de um encaminhamento feito.
  *

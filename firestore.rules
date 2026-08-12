@@ -249,6 +249,14 @@ service cloud.firestore {
       allow delete: if isSignedIn() && resource.data.professionalId == request.auth.uid;
     }
 
+    // ---------- fiscalProfiles (dados fiscais da profissional) ----------
+    // Coleção separada de /professionals porque aquela é legível por qualquer
+    // usuário logado — o paciente precisa ver nome e profissão de quem o atende.
+    // CNPJ, CPF e endereço não são dado de vitrine: aqui só a dona lê e escreve.
+    match /fiscalProfiles/{uid} {
+      allow read, write: if isSelf(uid);
+    }
+
     // ---------- referrals (para quem a paciente já foi encaminhada) ----------
     // Só a profissional que encaminhou. O paciente não lê pelo app: encaminhamento
     // é conversa que se tem em sessão, não notificação que se descobre na tela.

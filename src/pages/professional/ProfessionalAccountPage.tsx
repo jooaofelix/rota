@@ -7,6 +7,7 @@ import { logout } from "@/firebase/auth";
 import { TopBar } from "@/components/common/TopBar";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { NotificationPrimer } from "@/components/common/NotificationPrimer";
+import { FiscalProfileSheet } from "@/components/professional/FiscalProfileSheet";
 import { currentNotificationPermission } from "@/firebase/messaging";
 import { requestAccountDeletion } from "@/services/privacy";
 import { useToast } from "@/contexts/ToastContext";
@@ -16,6 +17,7 @@ export function ProfessionalAccountPage() {
   const { showToast } = useToast();
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [profession, setProfession] = useState("");
+  const [fiscalAberto, setFiscalAberto] = useState(false);
   const permission = currentNotificationPermission();
 
   async function handleSaveProfession() {
@@ -59,6 +61,17 @@ export function ProfessionalAccountPage() {
         </div>
 
         <div className="card flex flex-col gap-2">
+          <p className="font-bold text-brand-800">Dados fiscais</p>
+          <p className="text-sm leading-snug text-brand-400">
+            CNPJ ou CPF, inscrição municipal e código do serviço. É o que a emissão de nota e o
+            recibo exigem — e fica só com você.
+          </p>
+          <button className="btn-secondary" onClick={() => setFiscalAberto(true)}>
+            Preencher
+          </button>
+        </div>
+
+        <div className="card flex flex-col gap-2">
           <p className="font-bold text-brand-800">Privacidade e dados</p>
           <Link to="/privacidade" className="text-sm font-semibold text-brand-600">
             Política de Privacidade
@@ -75,6 +88,10 @@ export function ProfessionalAccountPage() {
           Sair da conta
         </button>
       </div>
+
+      {fiscalAberto && firebaseUser && (
+        <FiscalProfileSheet uid={firebaseUser.uid} onClose={() => setFiscalAberto(false)} />
+      )}
 
       <ConfirmDialog
         open={confirmingDelete}
