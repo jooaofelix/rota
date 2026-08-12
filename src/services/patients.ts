@@ -157,6 +157,31 @@ export async function createContactPatient(
 }
 
 /**
+ * Nomes que já estão na lista dela, lidos na hora.
+ *
+ * A importação confere contra isto, e não contra o que a tela tinha carregado:
+ * a lista da tela é um retrato de quando ela entrou, e importar duas vezes o
+ * mesmo arquivo dependia justamente desse retrato estar velho.
+ */
+export async function getExistingPatientNames(professionalId: string): Promise<string[]> {
+  const links = await getDocs(
+    query(
+      collection(db, "professionalPatientLinks"),
+      where("professionalId", "==", professionalId),
+      where("status", "==", "active")
+    )
+  );
+  const nomes = await Promise.all(
+    links.docs.map(async (link) => {
+      const id = (link.data() as ProfessionalPatientLink).patientId;
+      const snap = await getDoc(doc(db, "patients", id));
+      return (snap.data()?.name as string | undefined) ?? "";
+    })
+  );
+  return nomes.filter(Boolean);
+}
+
+/**
  * Dados de cadastro que a profissional mantém sobre o paciente.
  *
  * Ficam em /patients e não em /users porque são dela: o paciente não digita o
@@ -190,15 +215,36 @@ export async function assumirCadastroPorCodigo(codigo: string): Promise<{ ok: bo
 }
 
 /**
- * Arquiva ou reativa um paciente.
+ * Marca um paciente como inativo, ou o reativa.
  *
- * Arquivar não apaga nada: o histórico continua inteiro, e é justamente por isso
+ * Inativar não apaga nada: o histórico continua inteiro, e é justamente por isso
  * que existe. Alta e desistência não são erro a esconder — são o fim de um
  * acompanhamento, e o registro do que aconteceu segue valendo para relatório,
  * para o imposto de renda e para o dia em que a pessoa voltar.
  */
 export async function setPatientActive(patientId: string, active: boolean) {
   await updateDoc(doc(db, "patients", patientId), { active });
+}
+
+export interface ResultadoExclusao {
+  excluidos: number;
+  desvinculados: number;
+  erros: string[];
+}
+
+/**
+ * Exclui cadastros de paciente, de um ou de vários de uma vez.
+ *
+ * A varredura acontece na função: apagar um paciente é apagar o que ele tem em
+ * doze coleções, e as regras do Firestore proíbem exclusão em quase todas —
+ * proibição que existe para que nada suma por acidente e que não deve cair só
+ * porque agora existe um botão. Quem tem conta própria não é apagado: é
+ * desvinculado, porque a conta é da pessoa.
+ */
+export async function excluirPacientes(patientIds: string[]): Promise<ResultadoExclusao> {
+  const call = httpsCallable<{ patientIds: string[] }, ResultadoExclusao>(functions, "excluirPacientes");
+  const resposta = await call({ patientIds });
+  return resposta.data;
 }
 
 /** Gera (ou troca) o código de um cadastro que ainda não virou conta. */

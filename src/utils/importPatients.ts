@@ -22,6 +22,8 @@ export interface PacienteImportado {
   valorSessao?: number;
   /** Linha original, para ela conferir o que veio quando algo parecer errado. */
   linha: number;
+  /** O mesmo nome já apareceu numa linha anterior deste arquivo. */
+  repetidoNoArquivo?: boolean;
 }
 
 /** Cabeçalhos aceitos por campo. Comparação sem acento, sem caixa e sem pontuação. */
@@ -164,6 +166,9 @@ export function lerCsvDePacientes(conteudo: string): ResultadoLeitura {
 
   const pacientes: PacienteImportado[] = [];
   const linhasSemNome: number[] = [];
+  // Exportação de outro sistema repete gente: a mesma pessoa em duas unidades, ou
+  // duas linhas porque mudou de plano. Marcar aqui evita cadastrar duas vezes.
+  const nomesVistos = new Set<string>();
 
   for (let i = 1; i < linhas.length; i++) {
     const campos = dividirLinha(linhas[i], separador);
@@ -172,9 +177,13 @@ export function lerCsvDePacientes(conteudo: string): ResultadoLeitura {
       linhasSemNome.push(i + 1);
       continue;
     }
+    const chave = normalizar(nome);
+    const repetidoNoArquivo = nomesVistos.has(chave);
+    nomesVistos.add(chave);
     const situacaoTexto = indices.situacaoTexto !== undefined ? limpar(campos[indices.situacaoTexto]) : undefined;
     pacientes.push({
       nome,
+      repetidoNoArquivo,
       situacao: lerSituacao(situacaoTexto),
       situacaoTexto,
       email: indices.email !== undefined ? limpar(campos[indices.email]) : undefined,

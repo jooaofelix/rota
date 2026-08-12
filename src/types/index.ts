@@ -731,6 +731,43 @@ export interface RoutineTemplateItem {
   points: number;
 }
 
+/**
+ * documento em /assessments/{token} — uma aplicação de teste.
+ *
+ * O id é o código do link, como na proposta: assim o paciente responde do
+ * celular dele sem precisar de conta. Enquanto está pendente, quem tem o link
+ * lê; depois de respondido, só a profissional e o próprio paciente — as
+ * respostas viram dado de saúde e param de circular.
+ */
+export interface AssessmentDoc {
+  id: string;
+  professionalId: string;
+  professionalName: string;
+  patientId: string;
+  patientName: string;
+  instrumentId: string;
+  instrumentName: string;
+  /** aplicado = respondido na hora, com ela junto; enviado = link; registrado = veio de fora. */
+  origem: "aplicado" | "enviado" | "registrado";
+  status: "pendente" | "respondido";
+  /** Uma posição por item, na ordem do instrumento. */
+  respostas?: number[];
+  /** Escore bruto, quando a escala é única. */
+  total?: number;
+  /** Escore por fator, de 0 a 100. */
+  fatores?: Record<string, number>;
+  faixa?: string;
+  tom?: "ok" | "atencao" | "alerta";
+  /** Respondeu acima de zero no item de risco (ideação suicida no PHQ-9). */
+  risco?: boolean;
+  /** Nome do instrumento aplicado fora, quando é registro livre. */
+  instrumentoLivre?: string;
+  /** Leitura clínica dela sobre o resultado. */
+  observacao?: string;
+  createdAt: Timestamp;
+  answeredAt?: Timestamp;
+}
+
 /** documento em /auditLogs/{id} — trilha de alterações relevantes */
 export interface AuditLogDoc {
   id: string;

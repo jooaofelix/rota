@@ -1,17 +1,19 @@
 import { Suspense, lazy, useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { setPatientActive, subscribeToPatient, subscribeToUser } from "@/services/patients";
+import { excluirPacientes, setPatientActive, subscribeToPatient, subscribeToUser } from "@/services/patients";
 import { sendMessageToPatient } from "@/services/messages";
 import type { PatientDoc, UserDoc } from "@/types";
 import { TopBar } from "@/components/common/TopBar";
 import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { BottomSheet } from "@/components/common/BottomSheet";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { PatientRoutineTab } from "@/components/professional/PatientRoutineTab";
 import { PatientHistoryTab } from "@/components/professional/PatientHistoryTab";
 import { PatientRewardsTab } from "@/components/professional/PatientRewardsTab";
 import { PatientNotesTab } from "@/components/professional/PatientNotesTab";
 import { ReferralTab } from "@/components/professional/ReferralTab";
+import { AssessmentsTab } from "@/components/professional/AssessmentsTab";
 import { AccessCodeCard } from "@/components/professional/AccessCodeCard";
 import { useToast } from "@/contexts/ToastContext";
 import clsx from "clsx";
@@ -19,12 +21,13 @@ import clsx from "clsx";
 // Carregada sob demanda: usa recharts, que não deve entrar no bundle inicial do app.
 const PatientOverviewTab = lazy(() => import("@/components/professional/PatientOverviewTab").then((m) => ({ default: m.PatientOverviewTab })));
 
-type Tab = "overview" | "routine" | "history" | "rewards" | "notes" | "referral";
+type Tab = "overview" | "routine" | "history" | "tests" | "rewards" | "notes" | "referral";
 
 const TABS: Array<{ key: Tab; label: string }> = [
   { key: "overview", label: "Visão geral" },
   { key: "routine", label: "Rotina" },
   { key: "history", label: "Histórico" },
+  { key: "tests", label: "Testes" },
   { key: "rewards", label: "Recompensas" },
   { key: "notes", label: "Observações" },
   { key: "referral", label: "Encaminhar" },
@@ -32,7 +35,7 @@ const TABS: Array<{ key: Tab; label: string }> = [
 
 export function PatientDetailPage() {
   const { patientId = "" } = useParams();
-  const { firebaseUser } = useAuth();
+  const { firebaseUser, userDoc } = useAuth();
   const { showToast } = useToast();
   const [patient, setPatient] = useState<PatientDoc | null>(null);
   const [user, setUser] = useState<UserDoc | null>(null);
@@ -40,7 +43,10 @@ export function PatientDetailPage() {
   const [messageSheetOpen, setMessageSheetOpen] = useState(false);
   const [messageText, setMessageText] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
-  const [confirmandoArquivar, setConfirmandoArquivar] = useState(false);
+  const [confirmandoInativar, setConfirmandoInativar] = useState(false);
+  const [confirmandoExcluir, setConfirmandoExcluir] = useState(false);
+  const [excluindo, setExcluindo] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const unsub = [subscribeToPatient(patientId, setPatient), subscribeToUser(patientId, setUser)];
@@ -97,13 +103,13 @@ export function PatientDetailPage() {
       </div>
 
       <div className="px-4 pb-4">
-        {/* Arquivado continua com tudo: a tarja avisa por que a pessoa não aparece
+        {/* Inativo continua com tudo: a tarja avisa por que a pessoa não aparece
             mais na lista, sem esconder o histórico dela. */}
         {patient?.active === false && (
           <div className="mb-4 flex items-center gap-2 rounded-2xl bg-cream-200 p-3">
             <span className="text-lg">📁</span>
             <p className="min-w-0 flex-1 text-xs leading-snug text-brand-600">
-              Acompanhamento arquivado. O histórico continua inteiro; ela só não aparece na lista de
+              Acompanhamento inativo. O histórico continua inteiro; ela só não aparece na lista de
               pacientes ativos.
             </p>
             <button
@@ -127,19 +133,75 @@ export function PatientDetailPage() {
         )}
         {tab === "routine" && <PatientRoutineTab patientId={patientId} professionalId={firebaseUser.uid} />}
         {tab === "history" && <PatientHistoryTab patientId={patientId} />}
+        {tab === "tests" && (
+          <AssessmentsTab
+            professionalId={firebaseUser.uid}
+            professionalName={userDoc?.name ?? "Sua psicóloga"}
+            patientId={patientId}
+            patientName={nome}
+          />
+        )}
         {tab === "rewards" && <PatientRewardsTab patientId={patientId} professionalId={firebaseUser.uid} />}
         {tab === "notes" && <PatientNotesTab patientId={patientId} initialNotes={patient?.privateNotes ?? ""} />}
         {tab === "referral" && <ReferralTab patientId={patientId} patientName={nome} />}
 
-        {tab === "overview" && patient?.active !== false && (
-          <button
-            onClick={() => setConfirmandoArquivar(true)}
-            className="mt-4 w-full text-center text-sm font-bold text-brand-400"
-          >
-            Arquivar acompanhamento
-          </button>
+        {tab === "overview" && (
+          <div className="mt-4 flex flex-col gap-3">
+            {patient?.active !== false && (
+              <button
+                onClick={() => setConfirmandoInativar(true)}
+                className="w-full text-center text-sm font-bold text-brand-400"
+              >
+                Marcar como inativo
+              </button>
+            )}
+            <button
+              onClick={() => setConfirmandoExcluir(true)}
+              className="w-full text-center text-sm font-bold text-rose-400"
+            >
+              Excluir cadastro
+            </button>
+          </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={confirmandoInativar}
+        title={`Marcar ${nome} como inativa?`}
+        description="Ela sai da lista de pacientes ativos, mas o histórico continua inteiro — sessões, prontuário, cobranças e testes. Dá para reativar a qualquer momento."
+        confirmLabel="Marcar como inativa"
+        onCancel={() => setConfirmandoInativar(false)}
+        onConfirm={async () => {
+          setConfirmandoInativar(false);
+          try {
+            await setPatientActive(patientId, false);
+            showToast("Paciente marcada como inativa.");
+          } catch {
+            showToast("Não consegui salvar. Tente de novo.", "error");
+          }
+        }}
+      />
+
+      <ConfirmDialog
+        open={confirmandoExcluir}
+        danger
+        title={`Excluir o cadastro de ${nome}?`}
+        description="Some tudo: sessões, prontuário, cobranças e testes. Não dá para desfazer. Se ela tiver conta própria, o que acontece é o desvínculo — a conta é dela. Se o objetivo é só tirar da lista, use 'Marcar como inativo'."
+        confirmLabel={excluindo ? "Excluindo..." : "Excluir tudo"}
+        onCancel={() => setConfirmandoExcluir(false)}
+        onConfirm={async () => {
+          setExcluindo(true);
+          try {
+            const r = await excluirPacientes([patientId]);
+            showToast(r.desvinculados ? "Paciente desvinculada." : "Cadastro excluído.");
+            navigate("/pacientes");
+          } catch {
+            showToast("Não consegui excluir. Tente de novo.", "error");
+            setExcluindo(false);
+            setConfirmandoExcluir(false);
+          }
+        }}
+      />
 
       <BottomSheet open={messageSheetOpen} onClose={() => setMessageSheetOpen(false)} title={`Mensagem para ${nome}`}>
         <div className="flex flex-col gap-3">

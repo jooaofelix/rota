@@ -16,6 +16,7 @@ import { PrivacyPolicyPage } from "@/pages/legal/PrivacyPolicyPage";
 import { TermsPage } from "@/pages/legal/TermsPage";
 import { RoomRequestReplyPage } from "@/pages/legal/RoomRequestReplyPage";
 import { ProposalPage } from "@/pages/legal/ProposalPage";
+import { AssessmentPage } from "@/pages/legal/AssessmentPage";
 
 import { PatientLayout } from "@/layouts/PatientLayout";
 import { TodayPage } from "@/pages/patient/TodayPage";
@@ -59,6 +60,9 @@ export default function App() {
             <Route path="/sala/resposta/:token" element={<RoomRequestReplyPage />} />
             {/* Aberta pelo link da proposta, sem login: o paciente pode nem ter conta. */}
             <Route path="/proposta/:token" element={<ProposalPage />} />
+            {/* Teste aplicado: serve tanto para o link enviado quanto para a própria
+                profissional aplicar na hora, passando o aparelho na sessão. */}
+            <Route path="/teste/:token" element={<AssessmentPage />} />
 
             <Route element={<RequireAuth role="patient" />}>
               <Route element={<PatientLayout />}>

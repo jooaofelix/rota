@@ -25,7 +25,7 @@ export function BirthdaysCard({ overview }: { overview: PatientOverview[] }) {
   const aniversariantes = useMemo(
     () =>
       overview
-        // Arquivado fica de fora: parabenizar quem teve alta há dois anos não é
+        // Inativo fica de fora: parabenizar quem teve alta há dois anos não é
         // cuidado, é constrangimento.
         .filter((o) => o.active && o.birthDate && o.birthDate.getMonth() === mesAtual)
         .map((o) => ({
