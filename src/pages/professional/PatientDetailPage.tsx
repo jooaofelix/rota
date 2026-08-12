@@ -45,7 +45,11 @@ export function PatientDetailPage() {
     return () => unsub.forEach((u) => u());
   }, [patientId]);
 
-  if (!user || !firebaseUser) return <LoadingSpinner label="Carregando paciente..." />;
+  // Paciente sem conta não tem documento em /users — o nome vem do cadastro que
+  // a profissional fez. Esperar pelo usuário aqui deixava a tela girando para
+  // sempre em todo mundo que veio da importação.
+  const nome = user?.name ?? patient?.name;
+  if (!nome || !firebaseUser) return <LoadingSpinner label="Carregando paciente..." />;
 
   async function handleSendMessage() {
     if (!messageText.trim() || !firebaseUser) return;
@@ -63,13 +67,15 @@ export function PatientDetailPage() {
   return (
     <div>
       <TopBar
-        title={user.name}
+        title={nome}
         subtitle={`⭐ ${patient?.points ?? 0} pontos · 🔥 ${patient?.currentStreak ?? 0} dias`}
         back
         action={
-          <button onClick={() => setMessageSheetOpen(true)} className="rounded-full bg-brand-500 px-3 py-1.5 text-xs font-bold text-white">
-            💬 Mensagem
-          </button>
+          user ? (
+            <button onClick={() => setMessageSheetOpen(true)} className="rounded-full bg-brand-500 px-3 py-1.5 text-xs font-bold text-white">
+              💬 Mensagem
+            </button>
+          ) : undefined
         }
       />
 
@@ -98,10 +104,10 @@ export function PatientDetailPage() {
         {tab === "history" && <PatientHistoryTab patientId={patientId} />}
         {tab === "rewards" && <PatientRewardsTab patientId={patientId} professionalId={firebaseUser.uid} />}
         {tab === "notes" && <PatientNotesTab patientId={patientId} initialNotes={patient?.privateNotes ?? ""} />}
-        {tab === "referral" && <ReferralTab patientId={patientId} patientName={user.name} />}
+        {tab === "referral" && <ReferralTab patientId={patientId} patientName={nome} />}
       </div>
 
-      <BottomSheet open={messageSheetOpen} onClose={() => setMessageSheetOpen(false)} title={`Mensagem para ${user.name}`}>
+      <BottomSheet open={messageSheetOpen} onClose={() => setMessageSheetOpen(false)} title={`Mensagem para ${nome}`}>
         <div className="flex flex-col gap-3">
           <textarea
             value={messageText}

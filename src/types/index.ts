@@ -116,6 +116,18 @@ export interface PatientDoc {
   uid: string;
   name: string;
   birthDate?: Timestamp;
+  /** Só a profissional preenche e lê. O CPF é exigido pela nota fiscal. */
+  cpf?: string;
+  phone?: string;
+  email?: string;
+  /** Valor combinado da sessão, usado como padrão ao agendar. */
+  defaultPrice?: number;
+  /**
+   * false quando o paciente existe só como cadastro da profissional, sem login.
+   * A maioria dos pacientes de um consultório nunca vai abrir o aplicativo, e a
+   * agenda, o prontuário e a nota não dependem disso.
+   */
+  hasAccount?: boolean;
   photoURL?: string;
   points: number;
   level: number;

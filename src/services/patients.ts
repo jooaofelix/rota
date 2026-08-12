@@ -1,4 +1,4 @@
-import { collection, doc, getDoc, getDocs, onSnapshot, query, serverTimestamp, setDoc, updateDoc, where } from "firebase/firestore";
+import { Timestamp, collection, doc, getDoc, getDocs, onSnapshot, query, serverTimestamp, setDoc, updateDoc, where } from "firebase/firestore";
 import { db } from "@/firebase/config";
 import type { PatientDoc, ProfessionalPatientLink, UserDoc } from "@/types";
 
@@ -97,6 +97,70 @@ export async function linkPatientByCode(professionalId: string, patientCode: str
   }
 
   return "linked";
+}
+
+/**
+ * Cria um paciente que existe só como cadastro, sem conta no aplicativo.
+ *
+ * É o caso da maioria: a pessoa é atendida, entra na agenda, gera prontuário e
+ * nota, e nunca abre o app. Criar login para ela sem que tenha pedido seria
+ * inventar uma conta em nome de outra pessoa — se um dia quiser usar o ROTA, ela
+ * se cadastra e o vínculo passa a apontar para a conta dela.
+ *
+ * O vínculo é gravado antes do cadastro porque é ele que dá permissão para o
+ * resto: as regras conferem o vínculo, não quem está escrevendo.
+ */
+export async function createContactPatient(
+  professionalId: string,
+  data: { name: string; email?: string; phone?: string; cpf?: string; birthDate?: Date; defaultPrice?: number }
+): Promise<string> {
+  const patientId = `c_${crypto.randomUUID().replace(/-/g, "").slice(0, 20)}`;
+
+  await setDoc(doc(db, "professionalPatientLinks", `${professionalId}_${patientId}`), {
+    professionalId,
+    patientId,
+    status: "active",
+    createdAt: serverTimestamp(),
+  });
+
+  await setDoc(doc(db, "patients", patientId), {
+    uid: patientId,
+    name: data.name.trim(),
+    email: data.email?.trim() ?? "",
+    phone: data.phone?.trim() ?? "",
+    cpf: data.cpf?.trim() ?? "",
+    ...(data.birthDate ? { birthDate: Timestamp.fromDate(data.birthDate) } : {}),
+    ...(data.defaultPrice ? { defaultPrice: data.defaultPrice } : {}),
+    hasAccount: false,
+    points: 0,
+    level: 1,
+    currentStreak: 0,
+    longestStreak: 0,
+    active: true,
+    createdAt: serverTimestamp(),
+  });
+
+  return patientId;
+}
+
+/**
+ * Dados de cadastro que a profissional mantém sobre o paciente.
+ *
+ * Ficam em /patients e não em /users porque são dela: o paciente não digita o
+ * próprio CPF no app, e a data de nascimento serve ao acompanhamento, não ao
+ * login.
+ */
+export async function updatePatientProfile(
+  patientId: string,
+  data: { birthDate?: Date | null; cpf?: string; phone?: string }
+) {
+  const payload: Record<string, unknown> = {};
+  if (data.birthDate !== undefined) {
+    payload.birthDate = data.birthDate ? Timestamp.fromDate(data.birthDate) : null;
+  }
+  if (data.cpf !== undefined) payload.cpf = data.cpf.trim();
+  if (data.phone !== undefined) payload.phone = data.phone.trim();
+  await updateDoc(doc(db, "patients", patientId), payload);
 }
 
 export async function updatePatientPrivateNotes(patientId: string, notes: string) {

@@ -8,6 +8,7 @@ import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { EmptyState } from "@/components/common/EmptyState";
 import { Badge } from "@/components/common/Badge";
 import { BottomSheet } from "@/components/common/BottomSheet";
+import { PatientImportSheet } from "@/components/professional/PatientImportSheet";
 import { useToast } from "@/contexts/ToastContext";
 import { FEELING_OPTIONS } from "@/utils/constants";
 import clsx from "clsx";
@@ -24,6 +25,7 @@ export function PatientsListPage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [linkSheetOpen, setLinkSheetOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [linkCode, setLinkCode] = useState("");
   const [linking, setLinking] = useState(false);
 
@@ -75,9 +77,20 @@ export function PatientsListPage() {
       <TopBar
         title="Pacientes"
         action={
-          <button onClick={() => setLinkSheetOpen(true)} className="rounded-full bg-brand-500 px-3 py-1.5 text-xs font-bold text-white">
-            + Vincular
-          </button>
+          <div className="flex gap-1.5">
+            <button
+              onClick={() => setImportOpen(true)}
+              className="rounded-full bg-brand-50 px-3 py-1.5 text-xs font-bold text-brand-600"
+            >
+              Importar
+            </button>
+            <button
+              onClick={() => setLinkSheetOpen(true)}
+              className="rounded-full bg-brand-500 px-3 py-1.5 text-xs font-bold text-white"
+            >
+              + Vincular
+            </button>
+          </div>
         }
       />
 
@@ -147,6 +160,14 @@ export function PatientsListPage() {
           </div>
         )}
       </div>
+
+      {importOpen && firebaseUser && (
+        <PatientImportSheet
+          professionalId={firebaseUser.uid}
+          nomesExistentes={overview.map((o) => o.name)}
+          onClose={() => setImportOpen(false)}
+        />
+      )}
 
       <BottomSheet open={linkSheetOpen} onClose={() => setLinkSheetOpen(false)} title="Vincular paciente">
         <form onSubmit={handleLink} className="flex flex-col gap-3">
