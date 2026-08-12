@@ -189,6 +189,18 @@ export async function assumirCadastroPorCodigo(codigo: string): Promise<{ ok: bo
   return resposta.data;
 }
 
+/**
+ * Arquiva ou reativa um paciente.
+ *
+ * Arquivar não apaga nada: o histórico continua inteiro, e é justamente por isso
+ * que existe. Alta e desistência não são erro a esconder — são o fim de um
+ * acompanhamento, e o registro do que aconteceu segue valendo para relatório,
+ * para o imposto de renda e para o dia em que a pessoa voltar.
+ */
+export async function setPatientActive(patientId: string, active: boolean) {
+  await updateDoc(doc(db, "patients", patientId), { active });
+}
+
 /** Gera (ou troca) o código de um cadastro que ainda não virou conta. */
 export async function gerarCodigoDeAcesso(patientId: string): Promise<string> {
   const codigo = novoCodigoDeAcesso();

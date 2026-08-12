@@ -27,7 +27,10 @@ export function HomePage() {
   const { firebaseUser, userDoc } = useAuth();
   const navigate = useNavigate();
   const [patientIds, setPatientIds] = useState<string[] | null>(null);
-  const [overview, setOverview] = useState<PatientOverview[]>([]);
+  const [todos, setTodos] = useState<PatientOverview[]>([]);
+  // Arquivado não entra em contagem de "pacientes ativos" nem em alerta: ninguém
+  // precisa ser cobrado por quem já teve alta.
+  const overview = useMemo(() => todos.filter((o) => o.active), [todos]);
   const [loadingOverview, setLoadingOverview] = useState(true);
 
   useEffect(() => {
@@ -39,11 +42,12 @@ export function HomePage() {
     if (!patientIds) return;
     setLoadingOverview(true);
     getPatientsOverview(patientIds)
-      .then(setOverview)
+      .then(setTodos)
       .finally(() => setLoadingOverview(false));
   }, [patientIds]);
 
   const stats = useMemo(() => {
+    const overview = todos.filter((o) => o.active);
     const withPending = overview.filter((o) => o.todayPending > 0).length;
     const withLate = overview.filter((o) => o.todayLate > 0).length;
     const inactive = overview.filter((o) => {

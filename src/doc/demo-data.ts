@@ -126,6 +126,7 @@ export const DEMO_OVERVIEW: PatientOverview[] = [
     weekCompletionRate: 78,
     hasAttentionAlert: false,
     alerts: [],
+    active: true,
   },
   {
     patientId: "demo-pedro",
@@ -141,6 +142,7 @@ export const DEMO_OVERVIEW: PatientOverview[] = [
     weekCompletionRate: 32,
     hasAttentionAlert: true,
     alerts: ["Sem acessar o app há 4 dias"],
+    active: true,
   },
   {
     patientId: "demo-larissa",
@@ -157,6 +159,7 @@ export const DEMO_OVERVIEW: PatientOverview[] = [
     weekCompletionRate: 92,
     hasAttentionAlert: false,
     alerts: [],
+    active: true,
   },
 ];
 

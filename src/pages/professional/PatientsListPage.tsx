@@ -13,7 +13,7 @@ import { useToast } from "@/contexts/ToastContext";
 import { FEELING_OPTIONS } from "@/utils/constants";
 import clsx from "clsx";
 
-type Filter = "all" | "active" | "pending" | "late" | "no_access" | "alert";
+type Filter = "all" | "pending" | "late" | "no_access" | "alert" | "arquivados";
 
 export function PatientsListPage() {
   const { firebaseUser } = useAuth();
@@ -42,9 +42,14 @@ export function PatientsListPage() {
       .finally(() => setLoading(false));
   }, [patientIds]);
 
+  const arquivados = useMemo(() => overview.filter((o) => !o.active).length, [overview]);
+
   const filtered = useMemo(() => {
     return overview
       .filter((o) => o.name.toLowerCase().includes(search.toLowerCase()))
+      // Arquivado só aparece quando ela pede: quem teve alta não deveria continuar
+      // ocupando a lista de quem está em acompanhamento.
+      .filter((o) => (filter === "arquivados" ? !o.active : o.active))
       .filter((o) => {
         if (filter === "pending") return o.todayPending > 0;
         if (filter === "late") return o.todayLate > 0;
@@ -109,6 +114,9 @@ export function PatientsListPage() {
               { key: "late", label: "Atrasados" },
               { key: "no_access", label: "Sem acesso recente" },
               { key: "alert", label: "Com alerta" },
+              ...(arquivados > 0
+                ? [{ key: "arquivados" as Filter, label: `Arquivados (${arquivados})` }]
+                : []),
             ] as Array<{ key: Filter; label: string }>
           ).map((f) => (
             <button

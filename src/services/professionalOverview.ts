@@ -13,6 +13,8 @@ export interface PatientOverview {
   lastAccessAt?: Date;
   /** Para o cartão de aniversariantes do mês. */
   birthDate?: Date;
+  /** false para quem foi arquivado: alta, desistência ou fim de acompanhamento. */
+  active: boolean;
   todayCompleted: number;
   todayTotal: number;
   todayPending: number;
@@ -80,6 +82,7 @@ export async function getPatientOverview(patientId: string): Promise<PatientOver
     patientId,
     name: user?.name ?? patient?.name ?? "Paciente",
     birthDate: patient?.birthDate?.toDate?.(),
+    active: patient?.active !== false,
     photoURL: user?.photoURL ?? patient?.photoURL,
     points: patient?.points ?? 0,
     currentStreak: patient?.currentStreak ?? 0,

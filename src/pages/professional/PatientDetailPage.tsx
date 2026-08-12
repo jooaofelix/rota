@@ -1,7 +1,7 @@
 import { Suspense, lazy, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { subscribeToPatient, subscribeToUser } from "@/services/patients";
+import { setPatientActive, subscribeToPatient, subscribeToUser } from "@/services/patients";
 import { sendMessageToPatient } from "@/services/messages";
 import type { PatientDoc, UserDoc } from "@/types";
 import { TopBar } from "@/components/common/TopBar";
@@ -40,6 +40,7 @@ export function PatientDetailPage() {
   const [messageSheetOpen, setMessageSheetOpen] = useState(false);
   const [messageText, setMessageText] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [confirmandoArquivar, setConfirmandoArquivar] = useState(false);
 
   useEffect(() => {
     const unsub = [subscribeToPatient(patientId, setPatient), subscribeToUser(patientId, setUser)];
@@ -96,6 +97,24 @@ export function PatientDetailPage() {
       </div>
 
       <div className="px-4 pb-4">
+        {/* Arquivado continua com tudo: a tarja avisa por que a pessoa não aparece
+            mais na lista, sem esconder o histórico dela. */}
+        {patient?.active === false && (
+          <div className="mb-4 flex items-center gap-2 rounded-2xl bg-cream-200 p-3">
+            <span className="text-lg">📁</span>
+            <p className="min-w-0 flex-1 text-xs leading-snug text-brand-600">
+              Acompanhamento arquivado. O histórico continua inteiro; ela só não aparece na lista de
+              pacientes ativos.
+            </p>
+            <button
+              onClick={() => setPatientActive(patientId, true)}
+              className="shrink-0 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-brand-600"
+            >
+              Reativar
+            </button>
+          </div>
+        )}
+
         {tab === "overview" && patient && !patient.hasAccount && (
           <div className="mb-4">
             <AccessCodeCard patient={patient} patientName={nome} />
@@ -111,6 +130,15 @@ export function PatientDetailPage() {
         {tab === "rewards" && <PatientRewardsTab patientId={patientId} professionalId={firebaseUser.uid} />}
         {tab === "notes" && <PatientNotesTab patientId={patientId} initialNotes={patient?.privateNotes ?? ""} />}
         {tab === "referral" && <ReferralTab patientId={patientId} patientName={nome} />}
+
+        {tab === "overview" && patient?.active !== false && (
+          <button
+            onClick={() => setConfirmandoArquivar(true)}
+            className="mt-4 w-full text-center text-sm font-bold text-brand-400"
+          >
+            Arquivar acompanhamento
+          </button>
+        )}
       </div>
 
       <BottomSheet open={messageSheetOpen} onClose={() => setMessageSheetOpen(false)} title={`Mensagem para ${nome}`}>

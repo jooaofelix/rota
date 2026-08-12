@@ -25,7 +25,9 @@ export function BirthdaysCard({ overview }: { overview: PatientOverview[] }) {
   const aniversariantes = useMemo(
     () =>
       overview
-        .filter((o) => o.birthDate && o.birthDate.getMonth() === mesAtual)
+        // Arquivado fica de fora: parabenizar quem teve alta há dois anos não é
+        // cuidado, é constrangimento.
+        .filter((o) => o.active && o.birthDate && o.birthDate.getMonth() === mesAtual)
         .map((o) => ({
           patientId: o.patientId,
           nome: o.name,
