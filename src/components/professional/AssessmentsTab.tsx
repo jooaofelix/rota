@@ -58,8 +58,16 @@ export function AssessmentsTab({
         showToast("Link criado. Fica pendente até a pessoa responder.");
       }
       setEscolhendo(false);
-    } catch {
-      showToast("Não consegui criar o questionário. Tente de novo.", "error");
+    } catch (erro) {
+      // "Tente de novo" é a pior resposta possível quando a causa é regra não
+      // publicada: tentar de novo nunca vai funcionar, e a pessoa fica clicando.
+      const codigo = (erro as { code?: string })?.code ?? "";
+      showToast(
+        codigo === "permission-denied"
+          ? "As regras do Firestore ainda não foram publicadas. Rode: firebase deploy --only firestore:rules"
+          : `Não consegui criar o questionário. [${codigo || "sem código"}]`,
+        "error"
+      );
     } finally {
       setCriando(false);
     }
