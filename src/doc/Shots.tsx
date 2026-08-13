@@ -23,6 +23,8 @@ import { RoomRequestReplyPage } from "@/pages/legal/RoomRequestReplyPage";
 import { FinancePage } from "@/pages/professional/FinancePage";
 import { ProposalPage } from "@/pages/legal/ProposalPage";
 import { ReferralTab } from "@/components/professional/ReferralTab";
+import { AssessmentsTab } from "@/components/professional/AssessmentsTab";
+import { QuestionnairePage } from "@/pages/legal/QuestionnairePage";
 import { RoutinesPage } from "@/pages/professional/RoutinesPage";
 import "@/styles/index.css";
 
@@ -62,6 +64,38 @@ function App() {
               element={
                 <div className="px-4 py-4">
                   <ReferralTab patientId="demo-ana" patientName="Ana Beatriz Souza" />
+                </div>
+              }
+            />
+          </Route>
+        </Routes>
+      </MemoryRouter>
+    );
+  }
+  if (screen === "questionario") {
+    return (
+      <MemoryRouter initialEntries={["/questionario/t1"]}>
+        <Routes>
+          <Route path="/questionario/:token" element={<QuestionnairePage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+  }
+  if (screen === "resultados") {
+    return (
+      <MemoryRouter initialEntries={["/x"]}>
+        <Routes>
+          <Route element={<ProfessionalLayout />}>
+            <Route
+              path="/x"
+              element={
+                <div className="px-4 py-4">
+                  <AssessmentsTab
+                    professionalId="pro"
+                    professionalName="Dra. Sinara"
+                    patientId="demo-ana"
+                    patientName="Ana Beatriz Souza"
+                  />
                 </div>
               }
             />

@@ -320,6 +320,30 @@ service cloud.firestore {
       allow delete: if isSignedIn() && resource.data.professionalId == request.auth.uid;
     }
 
+    // ---------- assessments (questionário aplicado a um paciente) ----------
+    // O id do documento é o código do link, como na proposta — é assim que alguém
+    // sem conta consegue responder. Mas aqui a leitura aberta tem prazo: vale
+    // enquanto está pendente e fecha no instante em que é respondida. Resposta de
+    // questionário de esquemas é dado clínico; o link serve para responder, não
+    // para ficar guardando o resultado ao alcance de quem receber o endereço.
+    match /assessments/{token} {
+      allow get: if resource == null
+        || resource.data.status == 'pendente'
+        || (isSignedIn() && (resource.data.professionalId == request.auth.uid || isSelf(resource.data.patientId)));
+      allow list: if isSignedIn()
+        && (resource.data.professionalId == request.auth.uid || isSelf(resource.data.patientId));
+      allow create: if isLinkedProfessional(request.resource.data.patientId)
+        && request.resource.data.professionalId == request.auth.uid;
+      // Duas escritas possíveis, e só duas: quem respondeu grava uma vez, e a
+      // profissional anota a leitura clínica dela.
+      allow update: if (resource.data.status == 'pendente'
+          && request.resource.data.status == 'respondido'
+          && onlyFieldsChanged(['status', 'respostas', 'respostasPai', 'fatores', 'fatoresPai', 'media', 'answeredAt']))
+        || (isSignedIn() && resource.data.professionalId == request.auth.uid
+          && onlyFieldsChanged(['observacao']));
+      allow delete: if isSignedIn() && resource.data.professionalId == request.auth.uid;
+    }
+
     // ---------- routineTemplates (modelos personalizados da profissional) ----------
     match /routineTemplates/{id} {
       // A própria profissional sempre lê os modelos dela; o paciente lê os modelos da

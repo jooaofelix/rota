@@ -266,7 +266,7 @@ function erroDaChamada(erro: unknown): Error {
  * Exclui cadastros de paciente, de um ou de vários de uma vez.
  *
  * A varredura acontece na função: apagar um paciente é apagar o que ele tem em
- * doze coleções, e as regras do Firestore proíbem exclusão em quase todas —
+ * treze coleções, e as regras do Firestore proíbem exclusão em quase todas —
  * proibição que existe para que nada suma por acidente e que não deve cair só
  * porque agora existe um botão. Quem tem conta própria não é apagado: é
  * desvinculado, porque a conta é da pessoa.

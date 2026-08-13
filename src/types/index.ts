@@ -731,6 +731,40 @@ export interface RoutineTemplateItem {
   points: number;
 }
 
+/**
+ * documento em /assessments/{token} — uma aplicação de questionário.
+ *
+ * O id é o código do link, como na proposta: o paciente responde do celular
+ * dele sem precisar ter conta. Enquanto está pendente, quem tem o link lê;
+ * respondido, só a profissional e o próprio paciente — resposta de
+ * questionário de esquemas é dado clínico e para de circular.
+ */
+export interface AssessmentDoc {
+  id: string;
+  professionalId: string;
+  professionalName: string;
+  patientId: string;
+  patientName: string;
+  questionarioId: string;
+  questionarioNome: string;
+  status: "pendente" | "respondido";
+  /**
+   * Uma posição por item. Nos questionários de duas colunas (mãe/pai) cada
+   * posição é um par; o item não respondido em uma das colunas fica em 0.
+   */
+  respostas?: number[];
+  respostasPai?: number[];
+  /** Média por fator, já apurada, na chave do fator. */
+  fatores?: Record<string, number>;
+  fatoresPai?: Record<string, number>;
+  /** Média geral, para os questionários sem fator (YCI, YRAI). */
+  media?: number;
+  /** Leitura clínica dela sobre o resultado. */
+  observacao?: string;
+  createdAt: Timestamp;
+  answeredAt?: Timestamp;
+}
+
 /** documento em /auditLogs/{id} — trilha de alterações relevantes */
 export interface AuditLogDoc {
   id: string;

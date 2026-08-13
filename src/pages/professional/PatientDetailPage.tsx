@@ -19,13 +19,17 @@ import clsx from "clsx";
 
 // Carregada sob demanda: usa recharts, que não deve entrar no bundle inicial do app.
 const PatientOverviewTab = lazy(() => import("@/components/professional/PatientOverviewTab").then((m) => ({ default: m.PatientOverviewTab })));
+// Idem para os questionários: a bateria de esquemas é texto demais para entrar
+// no pacote que todo mundo baixa.
+const AssessmentsTab = lazy(() => import("@/components/professional/AssessmentsTab").then((m) => ({ default: m.AssessmentsTab })));
 
-type Tab = "overview" | "routine" | "history" | "rewards" | "notes" | "referral";
+type Tab = "overview" | "routine" | "history" | "questionarios" | "rewards" | "notes" | "referral";
 
 const TABS: Array<{ key: Tab; label: string }> = [
   { key: "overview", label: "Visão geral" },
   { key: "routine", label: "Rotina" },
   { key: "history", label: "Histórico" },
+  { key: "questionarios", label: "Questionários" },
   { key: "rewards", label: "Recompensas" },
   { key: "notes", label: "Observações" },
   { key: "referral", label: "Encaminhar" },
@@ -33,7 +37,7 @@ const TABS: Array<{ key: Tab; label: string }> = [
 
 export function PatientDetailPage() {
   const { patientId = "" } = useParams();
-  const { firebaseUser } = useAuth();
+  const { firebaseUser, userDoc } = useAuth();
   const { showToast } = useToast();
   const [patient, setPatient] = useState<PatientDoc | null>(null);
   const [user, setUser] = useState<UserDoc | null>(null);
@@ -131,6 +135,16 @@ export function PatientDetailPage() {
         )}
         {tab === "routine" && <PatientRoutineTab patientId={patientId} professionalId={firebaseUser.uid} />}
         {tab === "history" && <PatientHistoryTab patientId={patientId} />}
+        {tab === "questionarios" && (
+          <Suspense fallback={<LoadingSpinner label="Carregando questionários..." />}>
+            <AssessmentsTab
+              professionalId={firebaseUser.uid}
+              professionalName={userDoc?.name ?? "Sua psicóloga"}
+              patientId={patientId}
+              patientName={nome}
+            />
+          </Suspense>
+        )}
         {tab === "rewards" && <PatientRewardsTab patientId={patientId} professionalId={firebaseUser.uid} />}
         {tab === "notes" && <PatientNotesTab patientId={patientId} initialNotes={patient?.privateNotes ?? ""} />}
         {tab === "referral" && <ReferralTab patientId={patientId} patientName={nome} />}

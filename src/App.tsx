@@ -37,6 +37,8 @@ import { ProfessionalAccountPage } from "@/pages/professional/ProfessionalAccoun
 // que não devem entrar no bundle inicial de um app mobile-first.
 const ReportsPage = lazy(() => import("@/pages/professional/ReportsPage").then((m) => ({ default: m.ReportsPage })));
 const FinancePage = lazy(() => import("@/pages/professional/FinancePage").then((m) => ({ default: m.FinancePage })));
+// Carrega os 436 itens da bateria de esquemas só para quem abre o questionário.
+const QuestionnairePage = lazy(() => import("@/pages/legal/QuestionnairePage").then((m) => ({ default: m.QuestionnairePage })));
 
 export default function App() {
   return (
@@ -59,6 +61,16 @@ export default function App() {
             <Route path="/sala/resposta/:token" element={<RoomRequestReplyPage />} />
             {/* Aberta pelo link da proposta, sem login: o paciente pode nem ter conta. */}
             <Route path="/proposta/:token" element={<ProposalPage />} />
+            {/* Questionário respondido pelo link, sem login — ou aberto por ela na
+                sessão, para entregar o aparelho ao paciente. */}
+            <Route
+              path="/questionario/:token"
+              element={
+                <Suspense fallback={<LoadingSpinner brand />}>
+                  <QuestionnairePage />
+                </Suspense>
+              }
+            />
 
             <Route element={<RequireAuth role="patient" />}>
               <Route element={<PatientLayout />}>
