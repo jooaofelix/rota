@@ -66,3 +66,35 @@ export function avisosNaData(metas: GoalDoc[], data: string): GoalDoc[] {
     (m) => m.tipo === "agenda" && !m.concluida && (m.inicio ?? "") <= data && data <= (m.fim ?? m.inicio ?? "")
   );
 }
+
+/** Quantos dias depois do período uma meta ainda conta como atropelada por ele. */
+const FOLGA_DIAS = 21;
+
+function somarDias(iso: string, dias: number): string {
+  const d = new Date(`${iso}T00:00:00`);
+  d.setDate(d.getDate() + dias);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Metas que este período de ausência atropela.
+ *
+ * Não é só a meta que vence no meio do congresso: é também a que vence logo
+ * depois, porque as três semanas de trabalho que ela contava ter antes do prazo
+ * são justamente as que vão embora. O aviso serve para ela remarcar o prazo
+ * enquanto ainda dá tempo, e não para descobrir em dezembro por que não deu.
+ */
+export function metasAtropeladas(metas: GoalDoc[], aviso: { inicio?: string; fim?: string; id?: string }): GoalDoc[] {
+  const inicio = aviso.inicio;
+  if (!inicio) return [];
+  const limite = somarDias(aviso.fim ?? inicio, FOLGA_DIAS);
+  return metas.filter(
+    (m) =>
+      m.tipo === "meta" &&
+      !m.concluida &&
+      m.id !== aviso.id &&
+      !!m.inicio &&
+      m.inicio >= inicio &&
+      m.inicio <= limite
+  );
+}

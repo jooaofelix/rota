@@ -3,7 +3,7 @@ import clsx from "clsx";
 import { BottomSheet } from "@/components/common/BottomSheet";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { useToast } from "@/contexts/ToastContext";
-import { atualizarMeta, criarMeta, removerMeta, subscribeToGoals } from "@/services/goals";
+import { atualizarMeta, criarMeta, metasAtropeladas, removerMeta, subscribeToGoals } from "@/services/goals";
 import type { GoalDoc } from "@/types";
 import { todayKey } from "@/utils/date";
 
@@ -51,6 +51,7 @@ export function GoalsCard({ professionalId }: { professionalId: string }) {
             <Linha
               key={m.id}
               meta={m}
+              atropeladas={m.tipo === "agenda" ? metasAtropeladas(metas, m) : []}
               onAbrir={() => setEditando(m)}
               onAlternar={() => atualizarMeta(m.id, { concluida: !m.concluida })}
             />
@@ -70,6 +71,7 @@ export function GoalsCard({ professionalId }: { professionalId: string }) {
       {editando && (
         <MetaSheet
           professionalId={professionalId}
+          todas={metas}
           meta={editando === "nova" ? null : editando}
           onApagar={editando === "nova" ? undefined : () => setApagando(editando as GoalDoc)}
           onClose={() => setEditando(null)}
@@ -120,10 +122,12 @@ function quando(meta: GoalDoc): { texto: string; urgente: boolean } {
 
 function Linha({
   meta,
+  atropeladas,
   onAbrir,
   onAlternar,
 }: {
   meta: GoalDoc;
+  atropeladas: GoalDoc[];
   onAbrir: () => void;
   onAlternar: () => void;
 }) {
@@ -175,6 +179,17 @@ function Linha({
             <div className="h-full rounded-full bg-brand-500" style={{ width: `${pct}%` }} />
           </div>
         )}
+
+        {/* O choque entre as duas coisas que ela anotou em momentos diferentes.
+            Sozinhas, "congresso em setembro" e "entregar o TCC em outubro"
+            parecem compatíveis; juntas, não são. */}
+        {atropeladas.length > 0 && !meta.concluida && (
+          <p className="mt-1.5 rounded-lg bg-amber-50 px-2 py-1.5 text-[11px] leading-snug text-amber-800">
+            ⚠️ Atropela {atropeladas.length === 1 ? "a meta" : "as metas"}{" "}
+            <span className="font-bold">{atropeladas.map((m) => m.titulo).join(", ")}</span> — o prazo cai
+            {atropeladas.length === 1 ? " logo" : ""} depois deste período.
+          </p>
+        )}
       </button>
     </div>
   );
@@ -182,11 +197,13 @@ function Linha({
 
 function MetaSheet({
   professionalId,
+  todas,
   meta,
   onApagar,
   onClose,
 }: {
   professionalId: string;
+  todas: GoalDoc[];
   meta: GoalDoc | null;
   onApagar?: () => void;
   onClose: () => void;
@@ -297,6 +314,30 @@ function MetaSheet({
             </label>
           )}
         </div>
+
+        {tipo === "agenda" && (() => {
+          // Calculado enquanto ela escolhe as datas: descobrir o conflito antes
+          // de salvar é o que dá tempo de mudar alguma coisa.
+          const choque = metasAtropeladas(todas, { inicio, fim: fim || inicio, id: meta?.id });
+          return choque.length > 0 ? (
+            <div className="rounded-xl bg-amber-50 p-3 text-xs leading-relaxed text-amber-800">
+              <p className="font-bold">
+                ⚠️ Este período atropela {choque.length === 1 ? "uma meta" : `${choque.length} metas`}
+              </p>
+              <ul className="mt-1 flex flex-col gap-0.5">
+                {choque.map((m) => (
+                  <li key={m.id}>
+                    • {m.titulo} — prazo {formatarDia(m.inicio)}
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-1.5">
+                As semanas que você contava ter antes do prazo são as que vão embora. Vale rever o prazo
+                agora, enquanto ainda dá.
+              </p>
+            </div>
+          ) : null;
+        })()}
 
         {tipo === "meta" && (
           <>
