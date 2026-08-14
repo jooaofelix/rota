@@ -8,6 +8,8 @@ import { createRecurringSessions, createSession, deleteSession, updateSession } 
 import { subscribeToPartners, subscribeToRoomSlots } from "@/services/room";
 import { checkRoom, type RoomCheck } from "@/utils/roomAvailability";
 import { RoomConflictDialog } from "./RoomConflictDialog";
+import { avisosNaData, subscribeToGoals } from "@/services/goals";
+import type { GoalDoc } from "@/types";
 import type { PaymentStatus, RoomPartnerDoc, RoomSlotDoc, SessionDoc, SessionModality } from "@/types";
 
 interface SessionEditorSheetProps {
@@ -39,6 +41,7 @@ export function SessionEditorSheet({ professionalId, existing, defaultDate, owne
   const [partners, setPartners] = useState<RoomPartnerDoc[]>([]);
   const [slots, setSlots] = useState<RoomSlotDoc[]>([]);
   const [conflito, setConflito] = useState<RoomCheck | null>(null);
+  const [metas, setMetas] = useState<GoalDoc[]>([]);
   const [form, setForm] = useState(() =>
     existing
       ? {
@@ -63,6 +66,7 @@ export function SessionEditorSheet({ professionalId, existing, defaultDate, owne
     });
   }, [professionalId]);
 
+  useEffect(() => subscribeToGoals(professionalId, setMetas), [professionalId]);
   useEffect(() => subscribeToPartners(professionalId, setPartners), [professionalId]);
   useEffect(() => subscribeToRoomSlots(professionalId, setSlots), [professionalId]);
 
@@ -174,6 +178,16 @@ export function SessionEditorSheet({ professionalId, existing, defaultDate, owne
 
         <Field label="Data">
           <input type="date" value={form.date} onChange={(e) => update("date", e.target.value)} className="input-field" />
+
+          {/* O aviso que ela deixou para si em Início > Metas. Aparece aqui porque
+              é aqui que ele importa: em março ninguém lembra do que anotou em
+              outubro sobre julho. Avisa, não bloqueia — a decisão continua dela. */}
+          {avisosNaData(metas, form.date).map((aviso) => (
+            <p key={aviso.id} className="rounded-xl bg-amber-50 p-2.5 text-xs leading-snug text-amber-800">
+              <span className="font-bold">🚫 Você pediu para não marcar nesta data:</span> {aviso.titulo}
+              {aviso.detalhe ? ` — ${aviso.detalhe}` : ""}
+            </p>
+          ))}
         </Field>
 
         <div className="grid grid-cols-2 gap-2">

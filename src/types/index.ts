@@ -787,6 +787,36 @@ export interface AnamneseDoc {
   updatedAt: Timestamp;
 }
 
+/**
+ * documento em /goals/{id} — metas dela e avisos sobre a própria agenda.
+ *
+ * Duas coisas que parecem diferentes e são a mesma: um plano que só existe na
+ * cabeça e some. "Terminar a especialização até dezembro" e "não marcar nada em
+ * julho, congresso" têm o mesmo destino quando ficam no papelzinho da mesa.
+ *
+ * O aviso de agenda não é decorativo: quando ela for marcar um atendimento
+ * dentro do período, a tela lembra antes de gravar.
+ */
+export interface GoalDoc {
+  id: string;
+  professionalId: string;
+  /** meta = algo a alcançar; agenda = período em que ela não quer (ou quer reduzir) atendimento. */
+  tipo: "meta" | "agenda";
+  titulo: string;
+  detalhe?: string;
+  /** Prazo da meta, ou início do período do aviso (YYYY-MM-DD). */
+  inicio?: string;
+  /** Fim do período do aviso (YYYY-MM-DD). */
+  fim?: string;
+  /** Meta contável: 12 livros, 40 sessões, 8 supervisões. */
+  alvo?: number;
+  progresso?: number;
+  unidade?: string;
+  concluida?: boolean;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
 /** documento em /auditLogs/{id} — trilha de alterações relevantes */
 export interface AuditLogDoc {
   id: string;

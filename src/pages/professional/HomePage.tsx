@@ -11,6 +11,7 @@ import { NotificationsBell } from "@/components/common/NotificationsBell";
 import { UpcomingSessions } from "@/components/professional/UpcomingSessions";
 import { PendenciasCard } from "@/components/professional/PendenciasCard";
 import { BirthdaysCard } from "@/components/professional/BirthdaysCard";
+import { GoalsCard } from "@/components/professional/GoalsCard";
 import { FEELING_OPTIONS } from "@/utils/constants";
 
 /** Os lugares do aplicativo, reunidos num só ponto de partida. */
@@ -91,6 +92,8 @@ export function HomePage() {
         <PendenciasCard />
 
         <BirthdaysCard overview={overview} />
+
+        {firebaseUser && <GoalsCard professionalId={firebaseUser.uid} />}
 
         <div>
           <p className="mb-2 text-sm font-bold text-brand-700">Ir para</p>

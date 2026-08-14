@@ -29,6 +29,7 @@ export default defineConfig({
       { find: "@/services/personalEvents", replacement: r("./src/doc/mock-personal.ts") },
       { find: "@/services/referrals", replacement: r("./src/doc/mock-referrals.ts") },
       { find: "@/services/invoices", replacement: r("./src/doc/mock-invoices.ts") },
+      { find: "@/services/goals", replacement: r("./src/doc/mock-goals.ts") },
       { find: "@/services/anamnese", replacement: r("./src/doc/mock-anamnese.ts") },
       { find: "@/services/assessments", replacement: r("./src/doc/mock-assessments.ts") },
       { find: "@/services/notifications", replacement: r("./src/doc/mock-notifications.ts") },
