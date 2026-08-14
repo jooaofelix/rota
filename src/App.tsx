@@ -38,6 +38,7 @@ import { ProfessionalAccountPage } from "@/pages/professional/ProfessionalAccoun
 const ReportsPage = lazy(() => import("@/pages/professional/ReportsPage").then((m) => ({ default: m.ReportsPage })));
 const FinancePage = lazy(() => import("@/pages/professional/FinancePage").then((m) => ({ default: m.FinancePage })));
 // Materiais e questionários são texto demais para o pacote inicial.
+const AnamnesePage = lazy(() => import("@/pages/professional/AnamnesePage").then((m) => ({ default: m.AnamnesePage })));
 const MaterialsPage = lazy(() => import("@/pages/professional/MaterialsPage").then((m) => ({ default: m.MaterialsPage })));
 const MaterialPage = lazy(() => import("@/pages/legal/MaterialPage").then((m) => ({ default: m.MaterialPage })));
 // A bateria de esquemas sozinha são 436 itens: carrega só para quem abre.
@@ -104,6 +105,14 @@ export default function App() {
                 <Route path="/prontuarios" element={<RecordsPage />} />
                 <Route path="/pacientes" element={<PatientsListPage />} />
                 <Route path="/pacientes/:patientId" element={<PatientDetailPage />} />
+                <Route
+                  path="/pacientes/:patientId/anamnese"
+                  element={
+                    <Suspense fallback={<LoadingSpinner label="Carregando anamnese..." />}>
+                      <AnamnesePage />
+                    </Suspense>
+                  }
+                />
                 <Route path="/rotinas" element={<RoutinesPage />} />
                 <Route
                   path="/materiais"

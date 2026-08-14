@@ -320,6 +320,28 @@ service cloud.firestore {
       allow delete: if isSignedIn() && resource.data.professionalId == request.auth.uid;
     }
 
+    // ---------- anamneses (entrevista inicial) ----------
+    // Mesmo regime do prontuário, porque é prontuário: sigilosa, só a
+    // profissional que atende. O paciente não lê pelo app — o acesso a ele
+    // existe, mas passa por ela, para vir com leitura clínica junto, como manda
+    // a Resolução CFP 001/2009.
+    //
+    // O id do documento é o id do paciente: uma anamnese por pessoa, e o
+    // caminho já prova de quem ela é sem precisar ler o conteúdo.
+    match /anamneses/{patientId} {
+      allow read: if isLinkedProfessional(patientId);
+      allow create: if isLinkedProfessional(patientId)
+        && request.resource.data.professionalId == request.auth.uid;
+      // Encerrada, não muda mais: a única escrita que sobra é acrescentar
+      // adendo. `get` com padrão porque documento em preenchimento não tem o
+      // campo, e ler campo ausente derruba a regra inteira.
+      allow update: if isLinkedProfessional(patientId)
+        && resource.data.professionalId == request.auth.uid
+        && (resource.data.get('signedAt', null) == null
+            || onlyFieldsChanged(['addenda', 'updatedAt']));
+      allow delete: if false;
+    }
+
     // ---------- assessments (questionário aplicado a um paciente) ----------
     // O id do documento é o código do link, como na proposta — é assim que alguém
     // sem conta consegue responder. Mas aqui a leitura aberta tem prazo: vale

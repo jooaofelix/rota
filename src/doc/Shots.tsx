@@ -27,6 +27,7 @@ import { AssessmentsTab } from "@/components/professional/AssessmentsTab";
 import { QuestionnairePage } from "@/pages/legal/QuestionnairePage";
 import { MaterialPage } from "@/pages/legal/MaterialPage";
 import { MaterialsPage } from "@/pages/professional/MaterialsPage";
+import { AnamnesePage } from "@/pages/professional/AnamnesePage";
 import { RoutinesPage } from "@/pages/professional/RoutinesPage";
 import "@/styles/index.css";
 
@@ -69,6 +70,17 @@ function App() {
                 </div>
               }
             />
+          </Route>
+        </Routes>
+      </MemoryRouter>
+    );
+  }
+  if (screen === "anamnese") {
+    return (
+      <MemoryRouter initialEntries={["/pacientes/demo-ana/anamnese"]}>
+        <Routes>
+          <Route element={<ProfessionalLayout />}>
+            <Route path="/pacientes/:patientId/anamnese" element={<AnamnesePage />} />
           </Route>
         </Routes>
       </MemoryRouter>

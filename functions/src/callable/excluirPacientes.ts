@@ -22,6 +22,9 @@ const COLECOES_COM_PACIENTE = [
   "assessments",
 ];
 
+/** Coleções cujo id do documento é o próprio id do paciente. */
+const COLECOES_POR_ID = ["anamneses"];
+
 const LIMITE_POR_CHAMADA = 50;
 
 async function apagarPorPaciente(colecao: string, patientId: string): Promise<number> {
@@ -43,7 +46,7 @@ async function apagarPorPaciente(colecao: string, patientId: string): Promise<nu
  * Exclui cadastros de paciente.
  *
  * Roda no servidor por dois motivos. O primeiro é que apagar é uma varredura por
- * doze coleções, e as regras do Firestore proibiam exclusão em quase todas — de
+ * treze coleções, e as regras do Firestore proibiam exclusão em quase todas — de
  * propósito, para que nada suma por acidente do aplicativo. O segundo é que aqui
  * dá para separar dois casos que não podem ser tratados igual:
  *
@@ -97,9 +100,10 @@ export const excluirPacientes = onCall<{ patientIds: string[] }>(
       }
 
       // As treze coleções em paralelo: são independentes entre si, e em série o
-      // custo é doze idas ao banco por paciente só para descobrir que a maioria
+      // custo é treze idas ao banco por paciente só para descobrir que a maioria
       // está vazia — que é o caso de quem veio de importação.
       await Promise.all(COLECOES_COM_PACIENTE.map((colecao) => apagarPorPaciente(colecao, patientId)));
+      await Promise.all(COLECOES_POR_ID.map((c) => db.collection(c).doc(patientId).delete()));
       await pacienteRef.delete();
       await linkRef.delete();
       excluidos++;

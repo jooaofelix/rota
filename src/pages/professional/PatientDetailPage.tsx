@@ -129,6 +129,19 @@ export function PatientDetailPage() {
           </div>
         )}
         {tab === "overview" && (
+          <button
+            onClick={() => navigate(`/pacientes/${patientId}/anamnese`)}
+            className="card mb-4 flex w-full items-center gap-3 text-left"
+          >
+            <span className="text-2xl">🪪</span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-bold text-brand-800">Anamnese</span>
+              <span className="block text-xs text-brand-400">Entrevista inicial, no padrão da casa</span>
+            </span>
+            <span className="shrink-0 text-brand-300">›</span>
+          </button>
+        )}
+        {tab === "overview" && (
           <Suspense fallback={<LoadingSpinner label="Carregando indicadores..." />}>
             <PatientOverviewTab patientId={patientId} />
           </Suspense>

@@ -765,6 +765,28 @@ export interface AssessmentDoc {
   answeredAt?: Timestamp;
 }
 
+/**
+ * documento em /anamneses/{patientId} — a anamnese daquele paciente.
+ *
+ * Uma por paciente, com o id do próprio paciente: anamnese é a entrada do
+ * prontuário, não um registro que se repete. O que vier depois é evolução de
+ * sessão, e isso já mora em sessionRecords.
+ *
+ * Depois de encerrada não muda mais — só recebe adendo, como manda a Resolução
+ * CFP 001/2009 para documento de prontuário.
+ */
+export interface AnamneseDoc {
+  id: string;
+  patientId: string;
+  professionalId: string;
+  /** Respostas achatadas: "demanda.queixa" -> texto. */
+  respostas: Record<string, string>;
+  signedAt?: Timestamp;
+  addenda?: Array<{ texto: string; createdAt: Timestamp }>;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
 /** documento em /auditLogs/{id} — trilha de alterações relevantes */
 export interface AuditLogDoc {
   id: string;
