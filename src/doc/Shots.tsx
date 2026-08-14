@@ -25,6 +25,8 @@ import { ProposalPage } from "@/pages/legal/ProposalPage";
 import { ReferralTab } from "@/components/professional/ReferralTab";
 import { AssessmentsTab } from "@/components/professional/AssessmentsTab";
 import { QuestionnairePage } from "@/pages/legal/QuestionnairePage";
+import { MaterialPage } from "@/pages/legal/MaterialPage";
+import { MaterialsPage } from "@/pages/professional/MaterialsPage";
 import { RoutinesPage } from "@/pages/professional/RoutinesPage";
 import "@/styles/index.css";
 
@@ -68,6 +70,15 @@ function App() {
               }
             />
           </Route>
+        </Routes>
+      </MemoryRouter>
+    );
+  }
+  if (screen === "material") {
+    return (
+      <MemoryRouter initialEntries={["/material/bfrb"]}>
+        <Routes>
+          <Route path="/material/:slug" element={<MaterialPage />} />
         </Routes>
       </MemoryRouter>
     );
@@ -137,6 +148,7 @@ function App() {
     dashboard: { path: "/inicio", element: <HomePage /> },
     agenda: { path: "/agenda", element: <AgendaPage /> },
     financas: { path: "/financas", element: <FinancePage /> },
+    materiais: { path: "/materiais", element: <MaterialsPage /> },
     prontuarios: { path: "/prontuarios", element: <RecordsPage /> },
   };
   const pro = PRO[screen];

@@ -37,7 +37,10 @@ import { ProfessionalAccountPage } from "@/pages/professional/ProfessionalAccoun
 // que não devem entrar no bundle inicial de um app mobile-first.
 const ReportsPage = lazy(() => import("@/pages/professional/ReportsPage").then((m) => ({ default: m.ReportsPage })));
 const FinancePage = lazy(() => import("@/pages/professional/FinancePage").then((m) => ({ default: m.FinancePage })));
-// Carrega os 436 itens da bateria de esquemas só para quem abre o questionário.
+// Materiais e questionários são texto demais para o pacote inicial.
+const MaterialsPage = lazy(() => import("@/pages/professional/MaterialsPage").then((m) => ({ default: m.MaterialsPage })));
+const MaterialPage = lazy(() => import("@/pages/legal/MaterialPage").then((m) => ({ default: m.MaterialPage })));
+// A bateria de esquemas sozinha são 436 itens: carrega só para quem abre.
 const QuestionnairePage = lazy(() => import("@/pages/legal/QuestionnairePage").then((m) => ({ default: m.QuestionnairePage })));
 
 export default function App() {
@@ -61,6 +64,16 @@ export default function App() {
             <Route path="/sala/resposta/:token" element={<RoomRequestReplyPage />} />
             {/* Aberta pelo link da proposta, sem login: o paciente pode nem ter conta. */}
             <Route path="/proposta/:token" element={<ProposalPage />} />
+            {/* Material de psicoeducação: endereço fixo por assunto, aberto por
+                qualquer um com o link, sem documento no banco. */}
+            <Route
+              path="/material/:slug"
+              element={
+                <Suspense fallback={<LoadingSpinner brand />}>
+                  <MaterialPage />
+                </Suspense>
+              }
+            />
             {/* Questionário respondido pelo link, sem login — ou aberto por ela na
                 sessão, para entregar o aparelho ao paciente. */}
             <Route
@@ -92,6 +105,14 @@ export default function App() {
                 <Route path="/pacientes" element={<PatientsListPage />} />
                 <Route path="/pacientes/:patientId" element={<PatientDetailPage />} />
                 <Route path="/rotinas" element={<RoutinesPage />} />
+                <Route
+                  path="/materiais"
+                  element={
+                    <Suspense fallback={<LoadingSpinner label="Carregando materiais..." />}>
+                      <MaterialsPage />
+                    </Suspense>
+                  }
+                />
                 <Route
                   path="/relatorios"
                   element={

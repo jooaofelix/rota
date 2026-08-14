@@ -20,6 +20,7 @@ const ATALHOS = [
   { to: "/prontuarios", icon: "📓", label: "Prontuários", hint: "Registros por paciente" },
   { to: "/rotinas", icon: "📋", label: "Rotinas", hint: "Modelos prontos" },
   { to: "/relatorios", icon: "📄", label: "Relatórios", hint: "Gerar PDF por período" },
+  { to: "/materiais", icon: "💛", label: "Materiais", hint: "Enviar entre sessões" },
   { to: "/financas", icon: "💰", label: "Finanças", hint: "Recebido e em aberto" },
 ];
 
