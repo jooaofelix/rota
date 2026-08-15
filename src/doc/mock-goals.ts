@@ -22,3 +22,13 @@ export function avisosNaData(metas: GoalDoc[], data: string): GoalDoc[] {
   if (!data) return [];
   return metas.filter((m) => m.tipo === "agenda" && (m.inicio ?? "") <= data && data <= (m.fim ?? m.inicio ?? ""));
 }
+
+export function metasAtropeladas(metas: GoalDoc[], aviso: { inicio?: string; fim?: string; id?: string }): GoalDoc[] {
+  if (!aviso.inicio) return [];
+  const fim = new Date(`${aviso.fim ?? aviso.inicio}T00:00:00`);
+  fim.setDate(fim.getDate() + 21);
+  const limite = fim.toISOString().slice(0, 10);
+  return metas.filter(
+    (m) => m.tipo === "meta" && !m.concluida && !!m.inicio && m.inicio >= aviso.inicio! && m.inicio <= limite
+  );
+}

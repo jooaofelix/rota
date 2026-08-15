@@ -12,7 +12,7 @@ export function TopBar({ title, subtitle, back, action }: TopBarProps) {
   const navigate = useNavigate();
 
   return (
-    <header className="safe-top sticky top-0 z-20 bg-cream-50/95 px-4 pb-3 pt-4 backdrop-blur">
+    <header className="safe-top sticky top-0 z-30 bg-cream-50/95 px-4 pb-3 pt-4 backdrop-blur">
       <div className="flex items-center gap-2">
         {back && (
           <button
