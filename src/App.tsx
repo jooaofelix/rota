@@ -40,6 +40,7 @@ const FinancePage = lazy(() => import("@/pages/professional/FinancePage").then((
 // Materiais e questionários são texto demais para o pacote inicial.
 const AnamnesePage = lazy(() => import("@/pages/professional/AnamnesePage").then((m) => ({ default: m.AnamnesePage })));
 const MaterialsPage = lazy(() => import("@/pages/professional/MaterialsPage").then((m) => ({ default: m.MaterialsPage })));
+const AboutPage = lazy(() => import("@/pages/legal/AboutPage").then((m) => ({ default: m.AboutPage })));
 const MaterialPage = lazy(() => import("@/pages/legal/MaterialPage").then((m) => ({ default: m.MaterialPage })));
 // A bateria de esquemas sozinha são 436 itens: carrega só para quem abre.
 const QuestionnairePage = lazy(() => import("@/pages/legal/QuestionnairePage").then((m) => ({ default: m.QuestionnairePage })));
@@ -65,6 +66,16 @@ export default function App() {
             <Route path="/sala/resposta/:token" element={<RoomRequestReplyPage />} />
             {/* Aberta pelo link da proposta, sem login: o paciente pode nem ter conta. */}
             <Route path="/proposta/:token" element={<ProposalPage />} />
+            {/* Apresentação: o link que ela manda antes do convite, para a pessoa
+                entender o que vai acontecer antes de criar conta. */}
+            <Route
+              path="/conhecer"
+              element={
+                <Suspense fallback={<LoadingSpinner brand />}>
+                  <AboutPage />
+                </Suspense>
+              }
+            />
             {/* Material de psicoeducação: endereço fixo por assunto, aberto por
                 qualquer um com o link, sem documento no banco. */}
             <Route

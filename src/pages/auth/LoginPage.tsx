@@ -265,6 +265,13 @@ export function LoginPage() {
                 Criar conta de paciente
               </Link>
             </p>
+
+            {/* Para quem chegou aqui pelo link e ainda não sabe o que é isto. */}
+            <p className="text-center text-sm text-brand-500">
+              <Link to="/conhecer" className="font-bold hover:text-brand-600">
+                Veja como funciona
+              </Link>
+            </p>
           </div>
         </div>
 
