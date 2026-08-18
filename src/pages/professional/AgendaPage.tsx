@@ -13,6 +13,7 @@ import { SessionActionSheet } from "@/components/professional/SessionActionSheet
 import { RoomSchedule } from "@/components/professional/RoomSchedule";
 import { DayAgenda } from "@/components/professional/DayAgenda";
 import { PersonalEventSheet } from "@/components/professional/PersonalEventSheet";
+import { CalendarSyncSheet } from "@/components/professional/CalendarSyncSheet";
 import { RoomConflictDialog } from "@/components/professional/RoomConflictDialog";
 import { subscribeToPartners, subscribeToRoomSlots } from "@/services/room";
 import { checkRoom, hasOwnSchedule, ownWindows, type RoomCheck } from "@/utils/roomAvailability";
@@ -46,6 +47,7 @@ export function AgendaPage() {
   const [roomSlots, setRoomSlots] = useState<RoomSlotDoc[]>([]);
   const [events, setEvents] = useState<PersonalEventDoc[]>([]);
   const [editingEvent, setEditingEvent] = useState<PersonalEventDoc | "new" | null>(null);
+  const [sincronizando, setSincronizando] = useState(false);
   /** Dia mostrado na aba "Meu dia" — anda sozinho, sem mexer na semana. */
   const [diaFoco, setDiaFoco] = useState(() => todayKey());
   /** Arraste que caiu fora do turno dela e espera confirmação. */
@@ -140,12 +142,21 @@ export function AgendaPage() {
         }
         action={
           aba === "pacientes" ? (
-            <button
-              onClick={() => setEditing("new")}
-              className="rounded-full bg-brand-500 px-3 py-1.5 text-xs font-bold text-white"
-            >
-              + Sessão
-            </button>
+            <div className="flex gap-1.5">
+              <button
+                onClick={() => setSincronizando(true)}
+                title="Levar para o Google Agenda"
+                className="rounded-full bg-brand-50 px-3 py-1.5 text-xs font-bold text-brand-600"
+              >
+                📅 Sincronizar
+              </button>
+              <button
+                onClick={() => setEditing("new")}
+                className="rounded-full bg-brand-500 px-3 py-1.5 text-xs font-bold text-white"
+              >
+                + Sessão
+              </button>
+            </div>
           ) : aba === "dia" ? (
             <button
               onClick={() => setEditingEvent("new")}
@@ -413,6 +424,15 @@ export function AgendaPage() {
             applyDrop(pendingDrop.sessionId, pendingDrop.date, pendingDrop.startTime, pendingDrop.endTime)
           }
           onCancel={() => setPendingDrop(null)}
+        />
+      )}
+
+      {sincronizando && firebaseUser && (
+        <CalendarSyncSheet
+          professionalId={firebaseUser.uid}
+          sessoes={sessions}
+          pessoais={events}
+          onClose={() => setSincronizando(false)}
         />
       )}
 

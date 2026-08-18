@@ -295,6 +295,15 @@ service cloud.firestore {
       allow update, delete: if isProfessional() && resource.data.professionalId == request.auth.uid;
     }
 
+    // ---------- calendarFeeds (assinatura do calendário externo) ----------
+    // Guarda o código que vira o endereço do calendário dela. Fica fora de
+    // /professionals de propósito: aquele documento é legível por qualquer
+    // usuário logado, e quem tiver o código lê a agenda inteira.
+    // A função que serve o arquivo usa o Admin SDK e passa por cima destas regras.
+    match /calendarFeeds/{uid} {
+      allow read, write: if isSelf(uid);
+    }
+
     // ---------- goals (metas dela e avisos sobre a própria agenda) ----------
     // Só dela, em qualquer operação: aqui entra plano de carreira, formação e
     // período de férias. Nenhum paciente lê isto.
