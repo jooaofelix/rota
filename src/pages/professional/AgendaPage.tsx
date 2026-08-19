@@ -15,6 +15,7 @@ import { DayAgenda } from "@/components/professional/DayAgenda";
 import { PersonalEventSheet } from "@/components/professional/PersonalEventSheet";
 import { CalendarSyncSheet } from "@/components/professional/CalendarSyncSheet";
 import { AgendaImportSheet } from "@/components/professional/AgendaImportSheet";
+import { subscribeToExternalEvents, type ExternalEventDoc } from "@/services/externalEvents";
 import { RoomConflictDialog } from "@/components/professional/RoomConflictDialog";
 import { subscribeToPartners, subscribeToRoomSlots } from "@/services/room";
 import { checkRoom, hasOwnSchedule, ownWindows, type RoomCheck } from "@/utils/roomAvailability";
@@ -50,6 +51,7 @@ export function AgendaPage() {
   const [editingEvent, setEditingEvent] = useState<PersonalEventDoc | "new" | null>(null);
   const [sincronizando, setSincronizando] = useState(false);
   const [importandoAgenda, setImportandoAgenda] = useState(false);
+  const [doGoogle, setDoGoogle] = useState<ExternalEventDoc[]>([]);
   /** Dia mostrado na aba "Meu dia" — anda sozinho, sem mexer na semana. */
   const [diaFoco, setDiaFoco] = useState(() => todayKey());
   /** Arraste que caiu fora do turno dela e espera confirmação. */
@@ -65,6 +67,11 @@ export function AgendaPage() {
   useEffect(() => {
     if (!firebaseUser) return;
     return subscribeToSessionsInRange(firebaseUser.uid, start, end, setSessions);
+  }, [firebaseUser, start, end]);
+
+  useEffect(() => {
+    if (!firebaseUser) return;
+    return subscribeToExternalEvents(firebaseUser.uid, start, end, setDoGoogle);
   }, [firebaseUser, start, end]);
 
   useEffect(() => {
@@ -288,6 +295,27 @@ export function AgendaPage() {
                       })}
                     </div>
                   )}
+
+                  {/* O que veio do Google: cinza, atrás de tudo e sem clique. É
+                      cópia — mexer aqui daria a ilusão de ter mudado alguma coisa
+                      lá. Serve para ela não marcar paciente em cima. */}
+                  {doGoogle
+                    .filter((e) => e.date === key && e.startTime && e.endTime)
+                    .map((e) => {
+                      const g = blockGeometry(e, firstHour);
+                      return (
+                        <div
+                          key={e.id}
+                          title={`${e.titulo} (Google Agenda)`}
+                          style={{ top: g.top, height: g.height }}
+                          className="pointer-events-none absolute inset-x-0 overflow-hidden rounded-md border-l-4 border-slate-300 bg-slate-400/15 px-1.5 py-1"
+                        >
+                          <p className="truncate text-[11px] font-bold leading-tight text-slate-500">
+                            {e.titulo}
+                          </p>
+                        </div>
+                      );
+                    })}
 
                   {/* Compromisso pessoal desenhado antes do atendimento e em faixa
                       listrada: ocupa o horário de verdade, mas o atendimento é o que

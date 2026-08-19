@@ -11,6 +11,8 @@ import {
   type CalendarFeedDoc,
 } from "@/services/calendarFeed";
 import { baixarIcs, montarIcs, type PrivacidadeCalendario } from "@/utils/ics";
+import { espelharAgora } from "@/services/externalEvents";
+import { desligarEspelhoGoogle } from "@/services/calendarFeed";
 import type { PersonalEventDoc, SessionDoc } from "@/types";
 
 const OPCOES: Array<{ chave: PrivacidadeCalendario; titulo: string; exemplo: string }> = [
@@ -46,6 +48,12 @@ export function CalendarSyncSheet({
   const [feed, setFeed] = useState<CalendarFeedDoc | null>(null);
   const [erro, setErro] = useState(false);
   const [confirmandoTroca, setConfirmandoTroca] = useState(false);
+  const [urlGoogle, setUrlGoogle] = useState("");
+  const [espelhando, setEspelhando] = useState(false);
+
+  useEffect(() => {
+    if (feed?.googleIcsUrl) setUrlGoogle(feed.googleIcsUrl);
+  }, [feed?.googleIcsUrl]);
 
   useEffect(() => {
     garantirFeed(professionalId)
@@ -175,9 +183,73 @@ export function CalendarSyncSheet({
           </button>
         </section>
 
+        <section>
+          <p className="text-xs font-bold uppercase tracking-wide text-brand-400">
+            3. Ver o Google aqui dentro (espelho)
+          </p>
+          <p className="mt-1 text-[11px] leading-snug text-brand-500">
+            Cole o <span className="font-bold">endereço secreto em formato iCal</span> do seu Google
+            Agenda. O que estiver lá aparece na grade como bloco cinza de ocupado, e o ROTA relê a cada
+            meia hora. É leitura: esses blocos não viram atendimento e não podem ser editados aqui.
+          </p>
+          <input
+            value={urlGoogle}
+            onChange={(e) => setUrlGoogle(e.target.value)}
+            placeholder="https://calendar.google.com/calendar/ical/.../basic.ics"
+            className="input-field mt-2 text-xs"
+          />
+          <ol className="mt-1.5 flex flex-col gap-1 text-[11px] leading-snug text-brand-400">
+            <li>1. Google Agenda › passe o mouse no seu calendário › ⋮ › Configurações.</li>
+            <li>2. Role até “Endereço secreto em formato iCal” e copie.</li>
+          </ol>
+
+          <div className="mt-2 flex gap-2">
+            <button
+              onClick={async () => {
+                setEspelhando(true);
+                try {
+                  const r = await espelharAgora(urlGoogle.trim());
+                  if (r.ok) showToast(`${r.total} compromissos trazidos do Google.`);
+                  else showToast(r.erro ?? "Não consegui ler esse calendário.", "error");
+                } catch {
+                  showToast("Não consegui falar com o servidor agora.", "error");
+                } finally {
+                  setEspelhando(false);
+                }
+              }}
+              disabled={!urlGoogle.trim() || espelhando}
+              className="flex-1 rounded-xl bg-brand-500 px-3 py-2 text-xs font-bold text-white"
+            >
+              {espelhando ? "Lendo..." : feed?.googleAtivo ? "Atualizar agora" : "Ligar espelho"}
+            </button>
+            {feed?.googleAtivo && (
+              <button
+                onClick={async () => {
+                  await desligarEspelhoGoogle(professionalId);
+                  showToast("Espelho desligado. Os blocos somem na próxima atualização.");
+                }}
+                className="rounded-xl bg-cream-100 px-3 py-2 text-xs font-bold text-brand-600"
+              >
+                Desligar
+              </button>
+            )}
+          </div>
+
+          {feed?.googleErro && (
+            <p className="mt-2 rounded-xl bg-rose-50 p-2.5 text-[11px] leading-snug text-rose-700">
+              Última tentativa falhou: {feed.googleErro}
+            </p>
+          )}
+          {feed?.googleAtivo && feed.googleEventos !== undefined && !feed.googleErro && (
+            <p className="mt-2 text-[11px] text-brand-400">
+              {feed.googleEventos} compromissos espelhados na última leitura.
+            </p>
+          )}
+        </section>
+
         <section className="rounded-2xl bg-cream-50 p-3">
           <p className="text-xs font-bold uppercase tracking-wide text-brand-400">
-            3. Vindo do Google para cá
+            4. Mudando de casa
           </p>
           <p className="mt-1 text-[11px] leading-snug text-brand-500">
             Se a sua agenda ainda mora no Google e você está mudando de casa, dá para trazer os

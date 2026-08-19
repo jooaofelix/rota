@@ -5,6 +5,7 @@ export { findPatientByEmail } from "./callable/findPatientByEmail";
 export { assumirCadastro } from "./callable/assumirCadastro";
 export { excluirPacientes } from "./callable/excluirPacientes";
 export { agendaIcs } from "./http/agendaIcs";
+export { espelharGoogleAgenda, espelharGoogleAgora } from "./scheduled/espelharGoogle";
 export { onNotificationCreate } from "./triggers/onNotificationCreate";
 export { onCompletionCreate } from "./triggers/onCompletionCreate";
 export { onAccountDeletionRequested } from "./triggers/onAccountDeletionRequested";

@@ -11,6 +11,11 @@ export interface CalendarFeedDoc {
   token: string;
   privacidade: PrivacidadeCalendario;
   ativo: boolean;
+  /** Endereço secreto do Google Agenda dela, quando o espelho está ligado. */
+  googleIcsUrl?: string;
+  googleAtivo?: boolean;
+  googleEventos?: number;
+  googleErro?: string;
 }
 
 /** Sorteia um código longo: o endereço do calendário é a credencial dele. */
@@ -51,6 +56,10 @@ export async function trocarToken(professionalId: string): Promise<string> {
   const token = novoToken();
   await updateDoc(doc(db, COLECAO, professionalId), { token });
   return token;
+}
+
+export async function desligarEspelhoGoogle(professionalId: string) {
+  await updateDoc(doc(db, COLECAO, professionalId), { googleAtivo: false });
 }
 
 export async function desligarFeed(professionalId: string, ativo: boolean) {

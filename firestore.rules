@@ -304,6 +304,15 @@ service cloud.firestore {
       allow read, write: if isSelf(uid);
     }
 
+    // ---------- externalEvents (espelho do Google Agenda dela) ----------
+    // Só leitura, e só pela dona. A escrita é da função que busca o calendário,
+    // com o Admin SDK — deixar o aplicativo escrever aqui criaria a ilusão de
+    // que dá para editar no ROTA um compromisso que mora no Google.
+    match /externalEvents/{id} {
+      allow read, list: if isProfessional() && resource.data.professionalId == request.auth.uid;
+      allow write: if false;
+    }
+
     // ---------- goals (metas dela e avisos sobre a própria agenda) ----------
     // Só dela, em qualquer operação: aqui entra plano de carreira, formação e
     // período de férias. Nenhum paciente lê isto.
