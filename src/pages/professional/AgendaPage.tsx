@@ -14,6 +14,7 @@ import { RoomSchedule } from "@/components/professional/RoomSchedule";
 import { DayAgenda } from "@/components/professional/DayAgenda";
 import { PersonalEventSheet } from "@/components/professional/PersonalEventSheet";
 import { CalendarSyncSheet } from "@/components/professional/CalendarSyncSheet";
+import { AgendaImportSheet } from "@/components/professional/AgendaImportSheet";
 import { RoomConflictDialog } from "@/components/professional/RoomConflictDialog";
 import { subscribeToPartners, subscribeToRoomSlots } from "@/services/room";
 import { checkRoom, hasOwnSchedule, ownWindows, type RoomCheck } from "@/utils/roomAvailability";
@@ -48,6 +49,7 @@ export function AgendaPage() {
   const [events, setEvents] = useState<PersonalEventDoc[]>([]);
   const [editingEvent, setEditingEvent] = useState<PersonalEventDoc | "new" | null>(null);
   const [sincronizando, setSincronizando] = useState(false);
+  const [importandoAgenda, setImportandoAgenda] = useState(false);
   /** Dia mostrado na aba "Meu dia" — anda sozinho, sem mexer na semana. */
   const [diaFoco, setDiaFoco] = useState(() => todayKey());
   /** Arraste que caiu fora do turno dela e espera confirmação. */
@@ -432,8 +434,16 @@ export function AgendaPage() {
           professionalId={firebaseUser.uid}
           sessoes={sessions}
           pessoais={events}
+          onImportar={() => {
+            setSincronizando(false);
+            setImportandoAgenda(true);
+          }}
           onClose={() => setSincronizando(false)}
         />
+      )}
+
+      {importandoAgenda && firebaseUser && (
+        <AgendaImportSheet professionalId={firebaseUser.uid} onClose={() => setImportandoAgenda(false)} />
       )}
 
       {editingEvent && firebaseUser && (

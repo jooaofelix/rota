@@ -33,11 +33,13 @@ export function CalendarSyncSheet({
   professionalId,
   sessoes,
   pessoais,
+  onImportar,
   onClose,
 }: {
   professionalId: string;
   sessoes: SessionDoc[];
   pessoais: PersonalEventDoc[];
+  onImportar: () => void;
   onClose: () => void;
 }) {
   const { showToast } = useToast();
@@ -170,6 +172,19 @@ export function CalendarSyncSheet({
           </p>
           <button onClick={baixar} className="btn-secondary mt-2">
             ⬇ Baixar agenda (.ics)
+          </button>
+        </section>
+
+        <section className="rounded-2xl bg-cream-50 p-3">
+          <p className="text-xs font-bold uppercase tracking-wide text-brand-400">
+            3. Vindo do Google para cá
+          </p>
+          <p className="mt-1 text-[11px] leading-snug text-brand-500">
+            Se a sua agenda ainda mora no Google e você está mudando de casa, dá para trazer os
+            atendimentos de lá — uma vez só, virando sessões de verdade, com paciente e valor.
+          </p>
+          <button onClick={onImportar} className="btn-secondary mt-2">
+            Trazer a agenda do Google
           </button>
         </section>
 
