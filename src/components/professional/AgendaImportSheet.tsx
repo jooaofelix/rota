@@ -29,9 +29,11 @@ type Destino =
  */
 export function AgendaImportSheet({
   professionalId,
+  onVerificarDuplicidade,
   onClose,
 }: {
   professionalId: string;
+  onVerificarDuplicidade: () => void;
   onClose: () => void;
 }) {
   const { showToast } = useToast();
@@ -227,6 +229,12 @@ export function AgendaImportSheet({
             Todos entraram como <span className="font-bold">agendados</span> e{" "}
             <span className="font-bold">pagamento pendente</span>. Confira a semana antes de confiar.
           </p>
+          <button
+            onClick={onVerificarDuplicidade}
+            className="mt-3 rounded-full bg-cream-100 px-4 py-2 text-xs font-bold text-brand-600"
+          >
+            🔎 Verificar duplicidade
+          </button>
         </div>
       </BottomSheet>
     );

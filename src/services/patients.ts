@@ -164,6 +164,20 @@ export async function createContactPatient(
  * mesmo arquivo dependia justamente desse retrato estar velho.
  */
 export async function getExistingPatientNames(professionalId: string): Promise<string[]> {
+  const pacientes = await getLinkedPatientsBasics(professionalId);
+  return pacientes.map((p) => p.name).filter(Boolean);
+}
+
+/**
+ * Id, nome e situação de cada paciente vinculado — nada além disso.
+ *
+ * Existe ao lado de getPatientsOverview porque a visão do dashboard varre rotina
+ * e cumprimentos de cada um: cara demais para uma tela que só quer saber quem
+ * tem nome repetido.
+ */
+export async function getLinkedPatientsBasics(
+  professionalId: string
+): Promise<Array<{ id: string; name: string; active: boolean }>> {
   const links = await getDocs(
     query(
       collection(db, "professionalPatientLinks"),
@@ -171,14 +185,15 @@ export async function getExistingPatientNames(professionalId: string): Promise<s
       where("status", "==", "active")
     )
   );
-  const nomes = await Promise.all(
+  const pacientes = await Promise.all(
     links.docs.map(async (link) => {
       const id = (link.data() as ProfessionalPatientLink).patientId;
       const snap = await getDoc(doc(db, "patients", id));
-      return (snap.data()?.name as string | undefined) ?? "";
+      const dados = snap.data() as PatientDoc | undefined;
+      return { id, name: dados?.name ?? "", active: dados?.active !== false };
     })
   );
-  return nomes.filter(Boolean);
+  return pacientes.filter((p) => p.name);
 }
 
 /**

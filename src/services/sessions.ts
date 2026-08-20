@@ -172,6 +172,17 @@ export async function createRecurringSessions(data: NewSession, weeks: number, e
   return Object.assign(ids, { puladas });
 }
 
+/**
+ * Toda a agenda da profissional, de uma vez.
+ *
+ * Só para a varredura de duplicidade, que precisa olhar o histórico inteiro:
+ * limitar por data esconderia justamente a cópia antiga que ninguém viu.
+ */
+export async function getAllSessions(professionalId: string): Promise<SessionDoc[]> {
+  const snap = await getDocs(query(collection(db, SESSIONS), where("professionalId", "==", professionalId)));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as SessionDoc));
+}
+
 /** Sessões da profissional num intervalo, lidas uma vez (para conferir choque de horário). */
 export async function getSessionsInRange(
   professionalId: string,

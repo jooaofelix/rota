@@ -16,6 +16,7 @@ import { PersonalEventSheet } from "@/components/professional/PersonalEventSheet
 import { CalendarSyncSheet } from "@/components/professional/CalendarSyncSheet";
 import { GoogleBlockSheet } from "@/components/professional/GoogleBlockSheet";
 import { AgendaImportSheet } from "@/components/professional/AgendaImportSheet";
+import { DuplicatesSheet } from "@/components/professional/DuplicatesSheet";
 import { subscribeToExternalEvents, type ExternalEventDoc } from "@/services/externalEvents";
 import { RoomConflictDialog } from "@/components/professional/RoomConflictDialog";
 import { subscribeToPartners, subscribeToRoomSlots } from "@/services/room";
@@ -52,6 +53,7 @@ export function AgendaPage() {
   const [editingEvent, setEditingEvent] = useState<PersonalEventDoc | "new" | null>(null);
   const [sincronizando, setSincronizando] = useState(false);
   const [importandoAgenda, setImportandoAgenda] = useState(false);
+  const [verificando, setVerificando] = useState(false);
   const [doGoogle, setDoGoogle] = useState<ExternalEventDoc[]>([]);
   const [erroGoogle, setErroGoogle] = useState<{ mensagem: string; link?: string } | null>(null);
   const [blocoGoogle, setBlocoGoogle] = useState<ExternalEventDoc | null>(null);
@@ -484,11 +486,22 @@ export function AgendaPage() {
       )}
 
       {sessions.length > 0 && (
-        <p className="px-4 pb-6 text-center text-xs text-brand-400">
+        <p className="px-4 text-center text-xs text-brand-400">
           Segure um atendimento por um instante e arraste para mudar de dia ou horário.
           {mostraSala && " As faixas sombreadas são horários em que a sala não é sua."}
         </p>
       )}
+
+      {/* Fica no rodapé da semana, e não no cabeçalho, porque é faxina: procurada
+          quando ela desconfia que algo entrou duas vezes, não todo dia. */}
+      <div className="px-4 pb-6 pt-3 text-center">
+        <button
+          onClick={() => setVerificando(true)}
+          className="rounded-full bg-white px-4 py-2 text-xs font-bold text-brand-500 shadow-sm"
+        >
+          🔎 Verificar duplicidade
+        </button>
+      </div>
 
       </>
       )}
@@ -529,12 +542,27 @@ export function AgendaPage() {
             setSincronizando(false);
             setImportandoAgenda(true);
           }}
+          onVerificarDuplicidade={() => {
+            setSincronizando(false);
+            setVerificando(true);
+          }}
           onClose={() => setSincronizando(false)}
         />
       )}
 
       {importandoAgenda && firebaseUser && (
-        <AgendaImportSheet professionalId={firebaseUser.uid} onClose={() => setImportandoAgenda(false)} />
+        <AgendaImportSheet
+          professionalId={firebaseUser.uid}
+          onVerificarDuplicidade={() => {
+            setImportandoAgenda(false);
+            setVerificando(true);
+          }}
+          onClose={() => setImportandoAgenda(false)}
+        />
+      )}
+
+      {verificando && firebaseUser && (
+        <DuplicatesSheet professionalId={firebaseUser.uid} onClose={() => setVerificando(false)} />
       )}
 
       {editingEvent && firebaseUser && (

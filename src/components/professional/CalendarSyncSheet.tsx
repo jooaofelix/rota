@@ -36,12 +36,14 @@ export function CalendarSyncSheet({
   sessoes,
   pessoais,
   onImportar,
+  onVerificarDuplicidade,
   onClose,
 }: {
   professionalId: string;
   sessoes: SessionDoc[];
   pessoais: PersonalEventDoc[];
   onImportar: () => void;
+  onVerificarDuplicidade: () => void;
   onClose: () => void;
 }) {
   const { showToast } = useToast();
@@ -275,6 +277,16 @@ export function CalendarSyncSheet({
           <button onClick={onImportar} className="btn-secondary mt-2">
             Trazer a agenda do Google
           </button>
+          <button
+            onClick={onVerificarDuplicidade}
+            className="mt-2 w-full rounded-xl bg-cream-100 px-3 py-2 text-xs font-bold text-brand-600"
+          >
+            🔎 Verificar duplicidade
+          </button>
+          <p className="mt-1.5 text-[11px] leading-snug text-brand-400">
+            Se você já trouxe a agenda antes, vale conferir: a varredura procura o mesmo paciente marcado
+            duas vezes no mesmo horário.
+          </p>
         </section>
 
         <button
