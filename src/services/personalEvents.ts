@@ -3,6 +3,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDocs,
   onSnapshot,
   query,
   serverTimestamp,
@@ -30,6 +31,23 @@ export function subscribeToPersonalEventsInRange(
     const items = snap.docs.map((d) => ({ id: d.id, ...d.data() } as PersonalEventDoc));
     callback(items.sort(byDateTime));
   });
+}
+
+/** Uma leitura só, para conferir se o horário pretendido já tem compromisso pessoal. */
+export async function getPersonalEventsInRange(
+  professionalId: string,
+  start: string,
+  end: string
+): Promise<PersonalEventDoc[]> {
+  const snap = await getDocs(
+    query(
+      collection(db, EVENTS),
+      where("professionalId", "==", professionalId),
+      where("date", ">=", start),
+      where("date", "<=", end)
+    )
+  );
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as PersonalEventDoc));
 }
 
 /** Sem hora vai para o fim do dia: é demanda, não compromisso marcado. */

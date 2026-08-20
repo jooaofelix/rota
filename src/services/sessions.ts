@@ -15,6 +15,8 @@ import {
 } from "firebase/firestore";
 import { db } from "@/firebase/config";
 import type { PaymentStatus, SessionDoc, SessionRecordDoc } from "@/types";
+import { minutesOf } from "@/utils/agenda";
+import { datasDaSerie } from "@/utils/conflitos";
 import { todayKey } from "@/utils/date";
 
 const SESSIONS = "sessions";
@@ -73,7 +75,74 @@ function byDateTime(a: SessionDoc, b: SessionDoc) {
   return `${a.date} ${a.startTime}`.localeCompare(`${b.date} ${b.startTime}`);
 }
 
+/**
+ * Erro de sessão repetida: o mesmo paciente já tem atendimento naquele horário.
+ *
+ * É uma classe própria porque quem chama precisa distinguir isso de uma falha de
+ * rede. A importação em lote, por exemplo, pula a repetida e segue com o resto;
+ * a tela de agendamento mostra o motivo em vez de "não consegui salvar".
+ */
+export class SessaoRepetidaError extends Error {
+  constructor(public readonly existente: SessionDoc) {
+    super(`Já existe atendimento de ${existente.patientName} em ${existente.date} às ${existente.startTime}.`);
+    this.name = "SessaoRepetidaError";
+  }
+}
+
+/**
+ * A sessão não cancelada do mesmo paciente que já ocupa aquele horário, se houver.
+ *
+ * A consulta é por dia inteiro do paciente, e a sobreposição é conferida aqui: o
+ * Firestore não sabe comparar faixas de hora, e um atendimento das 9h às 9h50 tem
+ * de barrar outro das 9h20 às 10h, não só o que começa exatamente às 9h.
+ */
+export async function findOverlappingSession(
+  professionalId: string,
+  patientId: string,
+  date: string,
+  startTime: string,
+  endTime: string,
+  ignoreSessionId?: string
+): Promise<SessionDoc | null> {
+  // professionalId entra na consulta por causa das regras: sem ele, um paciente
+  // que também é atendido por outra profissional derrubaria a leitura inteira.
+  const snap = await getDocs(
+    query(
+      collection(db, SESSIONS),
+      where("professionalId", "==", professionalId),
+      where("patientId", "==", patientId),
+      where("date", "==", date)
+    )
+  );
+  const conflito = snap.docs
+    .map((d) => ({ id: d.id, ...d.data() } as SessionDoc))
+    .find(
+      (s) =>
+        s.id !== ignoreSessionId &&
+        s.status !== "cancelled" &&
+        minutesOf(s.startTime) < minutesOf(endTime) &&
+        minutesOf(s.endTime) > minutesOf(startTime)
+    );
+  return conflito ?? null;
+}
+
+/**
+ * Cria a sessão, recusando duplicata do mesmo paciente no mesmo horário.
+ *
+ * A conferência mora aqui, e não só na tela, porque a agenda é criada por três
+ * caminhos diferentes (agendamento, repetição e importação do Google) e um deles
+ * já produziu duplicata na vida real.
+ */
 export async function createSession(data: NewSession): Promise<string> {
+  const repetida = await findOverlappingSession(
+    data.professionalId,
+    data.patientId,
+    data.date,
+    data.startTime,
+    data.endTime
+  );
+  if (repetida) throw new SessaoRepetidaError(repetida);
+
   const ref = await addDoc(collection(db, SESSIONS), {
     ...data,
     createdAt: serverTimestamp(),
@@ -85,21 +154,39 @@ export async function createSession(data: NewSession): Promise<string> {
 /**
  * Repete a sessão nas semanas seguintes. Atendimento psicológico costuma ser um
  * horário fixo semanal ou quinzenal, então criar uma a uma seria trabalho manual puro.
+ *
+ * Uma data que já tem aquele paciente no horário é pulada em vez de derrubar a
+ * série inteira: quem repete oito semanas quer as sete que faltam, não um erro.
  */
 export async function createRecurringSessions(data: NewSession, weeks: number, everyOtherWeek = false) {
-  const step = everyOtherWeek ? 14 : 7;
   const ids: string[] = [];
-  for (let i = 0; i < weeks; i++) {
-    const date = addDays(data.date, i * step);
-    ids.push(await createSession({ ...data, date }));
+  const puladas: string[] = [];
+  for (const date of datasDaSerie(data.date, weeks, everyOtherWeek)) {
+    try {
+      ids.push(await createSession({ ...data, date }));
+    } catch (erro) {
+      if (erro instanceof SessaoRepetidaError) puladas.push(date);
+      else throw erro;
+    }
   }
-  return ids;
+  return Object.assign(ids, { puladas });
 }
 
-function addDays(isoDate: string, days: number): string {
-  const d = new Date(`${isoDate}T12:00:00`);
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
+/** Sessões da profissional num intervalo, lidas uma vez (para conferir choque de horário). */
+export async function getSessionsInRange(
+  professionalId: string,
+  start: string,
+  end: string
+): Promise<SessionDoc[]> {
+  const snap = await getDocs(
+    query(
+      collection(db, SESSIONS),
+      where("professionalId", "==", professionalId),
+      where("date", ">=", start),
+      where("date", "<=", end)
+    )
+  );
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as SessionDoc));
 }
 
 export async function updateSession(sessionId: string, data: Partial<SessionDoc>) {

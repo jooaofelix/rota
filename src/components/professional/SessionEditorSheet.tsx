@@ -4,12 +4,22 @@ import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { useToast } from "@/contexts/ToastContext";
 import { subscribeToLinkedPatients } from "@/services/patients";
 import { getPatientsOverview } from "@/services/professionalOverview";
-import { createRecurringSessions, createSession, deleteSession, updateSession } from "@/services/sessions";
+import {
+  createRecurringSessions,
+  createSession,
+  deleteSession,
+  getSessionsInRange,
+  SessaoRepetidaError,
+  updateSession,
+} from "@/services/sessions";
+import { getPersonalEventsInRange } from "@/services/personalEvents";
+import { getExternalEvents, type ExternalEventDoc } from "@/services/externalEvents";
 import { subscribeToPartners, subscribeToRoomSlots } from "@/services/room";
 import { checkRoom, type RoomCheck } from "@/utils/roomAvailability";
+import { acharChoques, bloqueio, datasDaSerie, type Choque } from "@/utils/conflitos";
 import { RoomConflictDialog } from "./RoomConflictDialog";
 import { avisosNaData, subscribeToGoals } from "@/services/goals";
-import type { GoalDoc } from "@/types";
+import type { GoalDoc, PersonalEventDoc } from "@/types";
 import type { PaymentStatus, RoomPartnerDoc, RoomSlotDoc, SessionDoc, SessionModality } from "@/types";
 
 interface SessionEditorSheetProps {
@@ -45,6 +55,11 @@ export function SessionEditorSheet({ professionalId, existing, defaultDate, defa
   const [slots, setSlots] = useState<RoomSlotDoc[]>([]);
   const [conflito, setConflito] = useState<RoomCheck | null>(null);
   const [metas, setMetas] = useState<GoalDoc[]>([]);
+  const [agenda, setAgenda] = useState<{
+    sessoes: SessionDoc[];
+    pessoais: PersonalEventDoc[];
+    externos: ExternalEventDoc[];
+  } | null>(null);
   const [form, setForm] = useState(() =>
     existing
       ? {
@@ -77,6 +92,59 @@ export function SessionEditorSheet({ professionalId, existing, defaultDate, defa
   useEffect(() => subscribeToGoals(professionalId, setMetas), [professionalId]);
   useEffect(() => subscribeToPartners(professionalId, setPartners), [professionalId]);
   useEffect(() => subscribeToRoomSlots(professionalId, setSlots), [professionalId]);
+
+  // As datas que este agendamento vai ocupar — uma só, ou a série inteira da repetição.
+  const datas = existing || form.repeat === "none" ? [form.date] : datasDaSerie(form.date, form.repeatWeeks, form.repeat === "biweekly");
+
+  /**
+   * Carrega o que já existe no período para conferir choque de horário.
+   *
+   * A leitura é avulsa (não fica escutando) porque a folha vive poucos segundos e
+   * o que importa é o retrato de agora. Cobre a série inteira quando há repetição:
+   * o conflito costuma estar na quinta semana, não na primeira.
+   */
+  useEffect(() => {
+    if (!form.date) return;
+    let vivo = true;
+    const inicio = datas[0];
+    const fim = datas[datas.length - 1];
+
+    Promise.all([
+      getSessionsInRange(professionalId, inicio, fim),
+      getPersonalEventsInRange(professionalId, inicio, fim).catch(() => [] as PersonalEventDoc[]),
+      getExternalEvents(professionalId, inicio, fim).catch(() => [] as ExternalEventDoc[]),
+    ])
+      .then(([sessoes, pessoais, externos]) => {
+        if (vivo) setAgenda({ sessoes, pessoais, externos });
+      })
+      // Sem a conferência a agenda continua funcionando; o servidor ainda barra a
+      // duplicata na hora de gravar. Só o aviso antecipado se perde.
+      .catch(() => vivo && setAgenda(null));
+
+    return () => {
+      vivo = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [professionalId, form.date, form.repeat, form.repeatWeeks]);
+
+  const choquesPorData: Array<{ date: string; choques: Choque[] }> = agenda
+    ? datas
+        .map((date) => ({
+          date,
+          choques: acharChoques(
+            { date, startTime: form.startTime, endTime: form.endTime, patientId: form.patientId, ignorarSessaoId: existing?.id },
+            agenda
+          ),
+        }))
+        .filter((d) => d.choques.length > 0)
+    : [];
+
+  const choquesDoDia = choquesPorData.find((d) => d.date === form.date)?.choques ?? [];
+  const repetidoNoDia = form.patientId ? bloqueio(choquesDoDia) : undefined;
+  const repetidosNaSerie = form.patientId
+    ? choquesPorData.filter((d) => d.date !== form.date && bloqueio(d.choques))
+    : [];
+  const ocupadoPorOutros = choquesDoDia.filter((c) => c.tipo !== "mesmo-paciente");
 
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -132,9 +200,22 @@ export function SessionEditorSheet({ professionalId, existing, defaultDate, defa
         showToast("Sessão agendada.");
       } else {
         const created = await createRecurringSessions(payload, form.repeatWeeks, form.repeat === "biweekly");
-        showToast(`${created.length} sessões agendadas.`);
+        const puladas = created.puladas.length;
+        showToast(
+          puladas === 0
+            ? `${created.length} sessões agendadas.`
+            : `${created.length} sessões agendadas. ${puladas} ${puladas === 1 ? "data já tinha" : "datas já tinham"} este paciente no horário e ${puladas === 1 ? "foi mantida como estava" : "foram mantidas como estavam"}.`
+        );
       }
       onClose();
+    } catch (erro) {
+      // Última barreira: entre abrir a folha e tocar em salvar, alguém (ou o
+      // espelho do Google) pode ter criado a mesma sessão. O aviso diz o que é.
+      if (erro instanceof SessaoRepetidaError) {
+        showToast(`${erro.existente.patientName} já tem atendimento às ${erro.existente.startTime}. Nada foi criado.`);
+      } else {
+        throw erro;
+      }
     } finally {
       setSaving(false);
     }
@@ -147,7 +228,7 @@ export function SessionEditorSheet({ professionalId, existing, defaultDate, defa
     onClose();
   }
 
-  const canSave = !!form.patientId && !!form.date && form.startTime < form.endTime;
+  const canSave = !!form.patientId && !!form.date && form.startTime < form.endTime && !repetidoNoDia;
 
   return (
     <BottomSheet
@@ -157,7 +238,13 @@ export function SessionEditorSheet({ professionalId, existing, defaultDate, defa
       footer={
         <div className="flex flex-col gap-2">
           <button className="btn-primary" onClick={handleSave} disabled={!canSave || saving}>
-            {saving ? "Salvando..." : existing ? "Salvar alterações" : "Agendar"}
+            {saving
+              ? "Salvando..."
+              : repetidoNoDia
+                ? "Horário já ocupado por este paciente"
+                : existing
+                  ? "Salvar alterações"
+                  : "Agendar"}
           </button>
           {existing && (
             <button onClick={() => setConfirmingDelete(true)} className="text-sm font-bold text-rose-500">
@@ -206,6 +293,40 @@ export function SessionEditorSheet({ professionalId, existing, defaultDate, defa
             <input type="time" value={form.endTime} onChange={(e) => update("endTime", e.target.value)} className="input-field" />
           </Field>
         </div>
+
+        {/* Duas conversas diferentes com a mesma tela. O vermelho é erro: a mesma
+            pessoa duas vezes no mesmo horário não existe na vida real, então o
+            botão de salvar fica travado. O amarelo é informação: o horário está
+            ocupado por outra coisa, e há motivo legítimo para marcar assim mesmo
+            (encaixe, atendimento de casal, compromisso que ela vai remanejar). */}
+        {repetidoNoDia && (
+          <p className="rounded-xl bg-rose-50 p-2.5 text-xs leading-snug text-rose-700">
+            <span className="font-bold">Este atendimento já está na agenda.</span> {repetidoNoDia.nome} tem
+            sessão neste dia das {repetidoNoDia.quando}. Mude o horário ou a data — ou abra a sessão que já
+            existe para editar aquela.
+          </p>
+        )}
+
+        {!repetidoNoDia && ocupadoPorOutros.length > 0 && (
+          <p className="rounded-xl bg-amber-50 p-2.5 text-xs leading-snug text-amber-800">
+            <span className="font-bold">⚠️ Este horário já tem compromisso:</span>{" "}
+            {ocupadoPorOutros.map((c) => `${c.nome} (${c.quando})`).join(", ")}
+            {ocupadoPorOutros.some((c) => c.tipo === "google") ? " — vindo do Google Agenda" : ""}. Dá para
+            marcar assim mesmo, se for o que você quer.
+          </p>
+        )}
+
+        {repetidosNaSerie.length > 0 && (
+          <p className="rounded-xl bg-amber-50 p-2.5 text-xs leading-snug text-amber-800">
+            <span className="font-bold">
+              {repetidosNaSerie.length === 1
+                ? "1 data da repetição já tem"
+                : `${repetidosNaSerie.length} datas da repetição já têm`}
+            </span>{" "}
+            este paciente neste horário ({repetidosNaSerie.map((d) => diaCurto(d.date)).join(", ")}). Vou pular{" "}
+            {repetidosNaSerie.length === 1 ? "essa" : "essas"} e criar o resto.
+          </p>
+        )}
 
         <Field label="Modalidade">
           <div className="flex gap-2">
@@ -314,6 +435,12 @@ export function SessionEditorSheet({ professionalId, existing, defaultDate, defa
       />
     </BottomSheet>
   );
+}
+
+/** "2026-09-14" vira "14/09" — o ano é sempre o mesmo dentro de uma repetição. */
+function diaCurto(date: string): string {
+  const [, m, d] = date.split("-");
+  return `${d}/${m}`;
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import { BottomSheet } from "@/components/common/BottomSheet";
 import { useToast } from "@/contexts/ToastContext";
-import { createSession } from "@/services/sessions";
+import { createSession, SessaoRepetidaError } from "@/services/sessions";
 import { createContactPatient, subscribeToLinkedPatients } from "@/services/patients";
 import { getPatientsOverview } from "@/services/professionalOverview";
 import { lerIcsDeAgenda, palpitarPaciente, type EventoImportado, type ResultadoIcs } from "@/utils/icsImport";
@@ -52,7 +52,7 @@ export function AgendaImportSheet({
   const [valor, setValor] = useState("");
   const [modalidade, setModalidade] = useState<"in_person" | "online">("in_person");
   const [importando, setImportando] = useState(false);
-  const [resumo, setResumo] = useState<{ criadas: number; pacientes: number } | null>(null);
+  const [resumo, setResumo] = useState<{ criadas: number; pacientes: number; repetidas: number } | null>(null);
 
   useEffect(() => {
     return subscribeToLinkedPatients(professionalId, async (links) => {
@@ -153,6 +153,7 @@ export function AgendaImportSheet({
     }
 
     let criadas = 0;
+    let repetidas = 0;
     for (const evento of resultado.eventos) {
       if (evento.diaInteiro) continue;
       const destino = destinos[evento.titulo];
@@ -180,13 +181,16 @@ export function AgendaImportSheet({
           ...(evento.local ? { note: evento.local } : {}),
         });
         criadas++;
-      } catch {
+      } catch (erro) {
+        // O que já estava marcado no ROTA não vira cópia: o serviço recusa a
+        // repetida e a importação conta em vez de somar duas do mesmo horário.
+        if (erro instanceof SessaoRepetidaError) repetidas++;
         // idem: uma sessão recusada não interrompe as outras.
       }
     }
 
     setImportando(false);
-    setResumo({ criadas, pacientes: novosCadastros });
+    setResumo({ criadas, pacientes: novosCadastros, repetidas });
   }
 
   if (resumo) {
@@ -211,11 +215,17 @@ export function AgendaImportSheet({
               e {resumo.pacientes} {resumo.pacientes === 1 ? "cadastro novo" : "cadastros novos"} de paciente
             </p>
           )}
+          {resumo.repetidas > 0 && (
+            <p className="mt-3 rounded-xl bg-cream-100 p-2.5 text-xs leading-snug text-brand-600">
+              <span className="font-bold">
+                {resumo.repetidas} {resumo.repetidas === 1 ? "já existia" : "já existiam"} na sua agenda
+              </span>{" "}
+              e {resumo.repetidas === 1 ? "foi mantido" : "foram mantidos"} como {resumo.repetidas === 1 ? "estava" : "estavam"} — nada virou cópia.
+            </p>
+          )}
           <p className="mt-3 text-sm leading-relaxed text-brand-500">
             Todos entraram como <span className="font-bold">agendados</span> e{" "}
-            <span className="font-bold">pagamento pendente</span>. Confira a semana antes de confiar — e
-            lembre que os que você já tinha marcado aqui continuam lá, então vale olhar se algum ficou
-            repetido.
+            <span className="font-bold">pagamento pendente</span>. Confira a semana antes de confiar.
           </p>
         </div>
       </BottomSheet>
