@@ -211,8 +211,19 @@ export function CalendarSyncSheet({
                   const r = await espelharAgora(urlGoogle.trim());
                   if (r.ok) showToast(`${r.total} compromissos trazidos do Google.`);
                   else showToast(r.erro ?? "Não consegui ler esse calendário.", "error");
-                } catch {
-                  showToast("Não consegui falar com o servidor agora.", "error");
+                } catch (erro) {
+                  // "Não consegui falar com o servidor" servia para tudo, e o
+                  // caso mais comum é o único em que insistir nunca resolve:
+                  // a função ainda não publicada.
+                  const codigo = (erro as { code?: string })?.code ?? "";
+                  showToast(
+                    codigo === "functions/not-found"
+                      ? "A função de espelho ainda não foi publicada. Rode: firebase deploy --only functions:espelharGoogleAgora"
+                      : codigo === "functions/unauthenticated" || codigo === "functions/permission-denied"
+                        ? "Falta liberar o acesso público da função no Cloud Run (serviço espelhargoogleagora)."
+                        : `Não consegui ler o calendário. [${codigo || "sem código"}]`,
+                    "error"
+                  );
                 } finally {
                   setEspelhando(false);
                 }
