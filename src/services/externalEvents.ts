@@ -24,7 +24,8 @@ export function subscribeToExternalEvents(
   professionalId: string,
   start: string,
   end: string,
-  callback: (itens: ExternalEventDoc[]) => void
+  callback: (itens: ExternalEventDoc[]) => void,
+  onErro?: (mensagem: string) => void
 ) {
   const q = query(
     collection(db, "externalEvents"),
@@ -35,9 +36,20 @@ export function subscribeToExternalEvents(
   return onSnapshot(
     q,
     (snap) => callback(snap.docs.map((d) => ({ id: d.id, ...d.data() } as ExternalEventDoc))),
-    // Antes do primeiro espelhamento a coleção nem existe; falhar aqui deixaria
-    // a agenda inteira em branco por causa de um recurso opcional.
-    () => callback([])
+    (erro) => {
+      // Engolir esta falha calado foi um erro: o espelho dizia "218 espelhados"
+      // e a grade continuava vazia, sem nenhuma pista de por quê. A agenda
+      // segue funcionando sem os blocos, mas o motivo aparece na tela.
+      callback([]);
+      const codigo = (erro as { code?: string })?.code ?? "";
+      onErro?.(
+        codigo === "permission-denied"
+          ? "Os blocos do Google não aparecem: falta publicar as regras do Firestore (firebase deploy --only firestore:rules)."
+          : codigo === "failed-precondition"
+            ? "Os blocos do Google não aparecem: falta o índice do Firestore (firebase deploy --only firestore:indexes)."
+            : `Os blocos do Google não aparecem. [${codigo || "sem código"}]`
+      );
+    }
   );
 }
 

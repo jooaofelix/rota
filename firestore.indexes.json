@@ -15,6 +15,20 @@
       ]
     },
     {
+      "collectionGroup": "externalEvents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "professionalId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "date",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "completions",
       "queryScope": "COLLECTION",
       "fields": [

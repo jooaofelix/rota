@@ -52,6 +52,7 @@ export function AgendaPage() {
   const [sincronizando, setSincronizando] = useState(false);
   const [importandoAgenda, setImportandoAgenda] = useState(false);
   const [doGoogle, setDoGoogle] = useState<ExternalEventDoc[]>([]);
+  const [erroGoogle, setErroGoogle] = useState<string | null>(null);
   /** Dia mostrado na aba "Meu dia" — anda sozinho, sem mexer na semana. */
   const [diaFoco, setDiaFoco] = useState(() => todayKey());
   /** Arraste que caiu fora do turno dela e espera confirmação. */
@@ -71,7 +72,16 @@ export function AgendaPage() {
 
   useEffect(() => {
     if (!firebaseUser) return;
-    return subscribeToExternalEvents(firebaseUser.uid, start, end, setDoGoogle);
+    return subscribeToExternalEvents(
+      firebaseUser.uid,
+      start,
+      end,
+      (itens) => {
+        setDoGoogle(itens);
+        setErroGoogle(null);
+      },
+      setErroGoogle
+    );
   }, [firebaseUser, start, end]);
 
   useEffect(() => {
@@ -176,6 +186,15 @@ export function AgendaPage() {
           ) : undefined
         }
       />
+
+      {/* O espelho do Google falhando em silêncio custou uma tarde: dizia "218
+          compromissos espelhados" e a grade continuava vazia. Agora o motivo
+          aparece aqui, com o comando que resolve. */}
+      {erroGoogle && (
+        <p className="mx-4 mb-3 rounded-xl bg-amber-50 p-2.5 text-[11px] leading-snug text-amber-800">
+          ⚠️ {erroGoogle}
+        </p>
+      )}
 
       <div className="mb-3 flex gap-2 px-4">
         {(
