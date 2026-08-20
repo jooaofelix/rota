@@ -52,7 +52,7 @@ export function AgendaPage() {
   const [sincronizando, setSincronizando] = useState(false);
   const [importandoAgenda, setImportandoAgenda] = useState(false);
   const [doGoogle, setDoGoogle] = useState<ExternalEventDoc[]>([]);
-  const [erroGoogle, setErroGoogle] = useState<string | null>(null);
+  const [erroGoogle, setErroGoogle] = useState<{ mensagem: string; link?: string } | null>(null);
   /** Dia mostrado na aba "Meu dia" — anda sozinho, sem mexer na semana. */
   const [diaFoco, setDiaFoco] = useState(() => todayKey());
   /** Arraste que caiu fora do turno dela e espera confirmação. */
@@ -191,9 +191,19 @@ export function AgendaPage() {
           compromissos espelhados" e a grade continuava vazia. Agora o motivo
           aparece aqui, com o comando que resolve. */}
       {erroGoogle && (
-        <p className="mx-4 mb-3 rounded-xl bg-amber-50 p-2.5 text-[11px] leading-snug text-amber-800">
-          ⚠️ {erroGoogle}
-        </p>
+        <div className="mx-4 mb-3 rounded-xl bg-amber-50 p-2.5 text-[11px] leading-snug text-amber-800">
+          <p>⚠️ {erroGoogle.mensagem}</p>
+          {erroGoogle.link && (
+            <a
+              href={erroGoogle.link}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-1.5 inline-block rounded-lg bg-amber-200/70 px-2.5 py-1 font-bold text-amber-900"
+            >
+              Criar o índice no Firebase →
+            </a>
+          )}
+        </div>
       )}
 
       <div className="mb-3 flex gap-2 px-4">

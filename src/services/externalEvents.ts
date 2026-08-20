@@ -25,7 +25,7 @@ export function subscribeToExternalEvents(
   start: string,
   end: string,
   callback: (itens: ExternalEventDoc[]) => void,
-  onErro?: (mensagem: string) => void
+  onErro?: (erro: { mensagem: string; link?: string }) => void
 ) {
   const q = query(
     collection(db, "externalEvents"),
@@ -42,13 +42,22 @@ export function subscribeToExternalEvents(
       // segue funcionando sem os blocos, mas o motivo aparece na tela.
       callback([]);
       const codigo = (erro as { code?: string })?.code ?? "";
-      onErro?.(
-        codigo === "permission-denied"
-          ? "Os blocos do Google não aparecem: falta publicar as regras do Firestore (firebase deploy --only firestore:rules)."
-          : codigo === "failed-precondition"
-            ? "Os blocos do Google não aparecem: falta o índice do Firestore (firebase deploy --only firestore:indexes)."
-            : `Os blocos do Google não aparecem. [${codigo || "sem código"}]`
-      );
+      const texto = (erro as { message?: string })?.message ?? "";
+
+      // Quando falta índice, o próprio Firestore devolve um endereço que o cria
+      // com um clique. Repassar esse endereço poupa uma viagem ao terminal —
+      // e é a diferença entre resolver agora e resolver amanhã.
+      const link = texto.match(/https:\/\/console\.firebase\.google\.com\/\S+/)?.[0]?.replace(/[.,)]+$/, "");
+
+      onErro?.({
+        mensagem:
+          codigo === "permission-denied"
+            ? "Os blocos do Google não aparecem: falta publicar as regras do Firestore (firebase deploy --only firestore:rules)."
+            : codigo === "failed-precondition"
+              ? "Os blocos do Google não aparecem porque falta um índice no Firestore. Dá para criar com um clique:"
+              : `Os blocos do Google não aparecem. [${codigo || "sem código"}] ${texto.slice(0, 160)}`,
+        link,
+      });
     }
   );
 }
