@@ -1,4 +1,4 @@
-import { collection, onSnapshot, query, where } from "firebase/firestore";
+import { collection, getDocs, onSnapshot, query, where } from "firebase/firestore";
 import { db, functions } from "@/firebase/config";
 import { httpsCallable } from "firebase/functions";
 
@@ -60,6 +60,23 @@ export function subscribeToExternalEvents(
       });
     }
   );
+}
+
+/** Uma leitura só, para a tela que converte os blocos em atendimentos. */
+export async function getExternalEvents(
+  professionalId: string,
+  start: string,
+  end: string
+): Promise<ExternalEventDoc[]> {
+  const snap = await getDocs(
+    query(
+      collection(db, "externalEvents"),
+      where("professionalId", "==", professionalId),
+      where("date", ">=", start),
+      where("date", "<=", end)
+    )
+  );
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as ExternalEventDoc));
 }
 
 /** Lê o calendário do Google agora, sem esperar a próxima passagem automática. */

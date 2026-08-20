@@ -6,6 +6,7 @@ import { createSession } from "@/services/sessions";
 import { createContactPatient, subscribeToLinkedPatients } from "@/services/patients";
 import { getPatientsOverview } from "@/services/professionalOverview";
 import { lerIcsDeAgenda, palpitarPaciente, type EventoImportado, type ResultadoIcs } from "@/utils/icsImport";
+import { getExternalEvents } from "@/services/externalEvents";
 import { todayKey } from "@/utils/date";
 
 /** O que fazer com cada evento do arquivo. */
@@ -44,6 +45,9 @@ export function AgendaImportSheet({
   });
   const [resultado, setResultado] = useState<ResultadoIcs | null>(null);
   const [arquivo, setArquivo] = useState<string | null>(null);
+  /** Quantos blocos já espelhados existem — a fonte mais fácil, quando existe. */
+  const [temEspelho, setTemEspelho] = useState<number | null>(null);
+  const [carregandoEspelho, setCarregandoEspelho] = useState(false);
   const [destinos, setDestinos] = useState<Record<string, Destino>>({});
   const [valor, setValor] = useState("");
   const [modalidade, setModalidade] = useState<"in_person" | "online">("in_person");
@@ -56,6 +60,44 @@ export function AgendaImportSheet({
       setPacientes(overview.map((o) => ({ id: o.patientId, name: o.name })));
     });
   }, [professionalId]);
+
+  // Se o espelho está ligado, os compromissos já estão aqui: exportar o arquivo
+  // do Google de novo seria pedir trabalho por nada.
+  useEffect(() => {
+    getExternalEvents(professionalId, de, ate)
+      .then((itens) => setTemEspelho(itens.filter((e) => e.startTime && e.endTime).length))
+      .catch(() => setTemEspelho(0));
+  }, [professionalId, de, ate]);
+
+  async function usarEspelho() {
+    setCarregandoEspelho(true);
+    try {
+      const itens = await getExternalEvents(professionalId, de, ate);
+      const eventos: EventoImportado[] = itens
+        .filter((e) => e.startTime && e.endTime)
+        .map((e) => ({
+          uid: e.id,
+          titulo: e.titulo,
+          data: e.date,
+          inicio: e.startTime,
+          fim: e.endTime,
+          diaInteiro: false,
+          repetido: false,
+        }))
+        .sort((a, b) => (a.data + a.inicio).localeCompare(b.data + b.inicio));
+
+      setArquivo(null);
+      setResultado({ eventos, naoInterpretados: [] });
+      const novos: Record<string, Destino> = {};
+      new Set(eventos.map((e) => e.titulo)).forEach((titulo) => {
+        const palpite = palpitarPaciente(titulo, pacientes);
+        novos[titulo] = palpite ? { tipo: "paciente", patientId: palpite } : { tipo: "ignorar" };
+      });
+      setDestinos(novos);
+    } finally {
+      setCarregandoEspelho(false);
+    }
+  }
 
   /** Relê o arquivo quando ela muda a janela de datas. */
   useEffect(() => {
@@ -190,6 +232,10 @@ export function AgendaImportSheet({
           <button onClick={importar} disabled={aCriar === 0 || importando} className="btn-primary">
             {importando ? "Criando..." : `Criar ${aCriar} ${aCriar === 1 ? "atendimento" : "atendimentos"}`}
           </button>
+        ) : temEspelho ? (
+          <button onClick={usarEspelho} disabled={carregandoEspelho} className="btn-primary">
+            {carregandoEspelho ? "Carregando..." : `Usar os ${temEspelho} do espelho`}
+          </button>
         ) : (
           <button onClick={() => inputRef.current?.click()} className="btn-primary">
             Escolher arquivo .ics
@@ -201,8 +247,33 @@ export function AgendaImportSheet({
 
       {!resultado ? (
         <div className="flex flex-col gap-3">
+          {temEspelho ? (
+            <div className="rounded-2xl bg-brand-50/70 p-3">
+              <p className="text-xs font-bold text-brand-700">
+                {temEspelho} compromissos já estão aqui
+              </p>
+              <p className="mt-1 text-xs leading-relaxed text-brand-600">
+                Vieram do espelho do seu Google Agenda, no período escolhido abaixo. Dá para transformar
+                em atendimentos direto, sem exportar arquivo nenhum — você liga cada título a um paciente
+                na próxima tela.
+              </p>
+              <div className="mt-2 flex gap-2">
+                <label className="flex flex-1 flex-col gap-1">
+                  <span className="text-[11px] font-bold text-brand-700">De</span>
+                  <input type="date" value={de} onChange={(e) => setDe(e.target.value)} className="input-field text-xs" />
+                </label>
+                <label className="flex flex-1 flex-col gap-1">
+                  <span className="text-[11px] font-bold text-brand-700">até</span>
+                  <input type="date" value={ate} onChange={(e) => setAte(e.target.value)} className="input-field text-xs" />
+                </label>
+              </div>
+            </div>
+          ) : null}
+
           <div className="rounded-2xl bg-cream-100 p-3">
-            <p className="text-xs font-bold text-brand-700">Como exportar do Google</p>
+            <p className="text-xs font-bold text-brand-700">
+              {temEspelho ? "Ou exportar do Google" : "Como exportar do Google"}
+            </p>
             <ol className="mt-1 flex flex-col gap-1 text-xs leading-snug text-brand-600">
               <li>1. No computador, abra o Google Agenda.</li>
               <li>2. Engrenagem › <span className="font-bold">Configurações</span>.</li>
@@ -210,9 +281,14 @@ export function AgendaImportSheet({
               <li>4. Baixa um .zip — descompacte e escolha aqui o arquivo <span className="font-bold">.ics</span>.</li>
             </ol>
           </div>
-          <p className="rounded-2xl bg-brand-50/70 p-3 text-xs leading-relaxed text-brand-600">
-            O arquivo é lido aqui no seu aparelho. Nada é gravado antes de você conferir a lista e ligar
-            cada evento a um paciente.
+          {temEspelho ? (
+            <button onClick={() => inputRef.current?.click()} className="btn-secondary">
+              Escolher arquivo .ics
+            </button>
+          ) : null}
+
+          <p className="text-xs leading-relaxed text-brand-500">
+            Nada é gravado antes de você conferir a lista e ligar cada evento a um paciente.
           </p>
         </div>
       ) : resultado.erro ? (

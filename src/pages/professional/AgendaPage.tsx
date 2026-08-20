@@ -332,7 +332,19 @@ export function AgendaPage() {
                       lado a lado quando dois se sobrepõem — dois compromissos
                       empilhados escondiam um ao outro. Clicar abre; arrastar não,
                       porque quem manda neles é o Google. */}
-                  {layoutDay(doGoogle.filter((e) => e.date === key && e.startTime && e.endTime)).map(
+                  {/* O bloco some quando já existe atendimento no mesmo horário:
+                      depois de converter, ver os dois lado a lado pareceria
+                      agenda dobrada — e o Google continua mandando o mesmo
+                      compromisso a cada leitura. */}
+                  {layoutDay(
+                    doGoogle.filter(
+                      (e) =>
+                        e.date === key &&
+                        e.startTime &&
+                        e.endTime &&
+                        !sessions.some((s) => s.date === e.date && s.startTime === e.startTime)
+                    )
+                  ).map(
                     ({ item: e, lane, lanes }) => {
                       const g = blockGeometry(e, firstHour);
                       return (
