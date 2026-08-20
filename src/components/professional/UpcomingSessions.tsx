@@ -4,8 +4,9 @@ import clsx from "clsx";
 import { subscribeToUpcomingSessions } from "@/services/sessions";
 import type { SessionDoc } from "@/types";
 import { PAYMENT_LABELS, PAYMENT_STYLES, sessionColor } from "@/utils/agenda";
-import { formatShortDate, isDateKeyToday } from "@/utils/date";
+import { formatShortDate, isDateKeyToday, todayKey } from "@/utils/date";
 import { SessionActionSheet } from "./SessionActionSheet";
+import { subscribeToExternalEvents, type ExternalEventDoc } from "@/services/externalEvents";
 
 /** "13:00" -> "13h00", como aparece nas agendas de consultório. */
 function hourLabel(time: string) {
@@ -28,11 +29,21 @@ function initials(name: string) {
 export function UpcomingSessions({ professionalId, max = 8 }: { professionalId: string; max?: number }) {
   const navigate = useNavigate();
   const [sessions, setSessions] = useState<SessionDoc[]>([]);
+  const [doGoogle, setDoGoogle] = useState<ExternalEventDoc[]>([]);
   // Guarda o id, e não o documento: assim a folha aberta acompanha o que a
   // assinatura traz de novo em vez de ficar presa ao retrato do toque.
   const [activeId, setActiveId] = useState<string | null>(null);
 
   useEffect(() => subscribeToUpcomingSessions(professionalId, setSessions), [professionalId]);
+
+  // Só a semana à frente: aqui os blocos do Google servem apenas para explicar
+  // um cartão vazio, não para virar lista.
+  useEffect(() => {
+    const hoje = todayKey();
+    const fim = new Date();
+    fim.setDate(fim.getDate() + 7);
+    return subscribeToExternalEvents(professionalId, hoje, fim.toISOString().slice(0, 10), setDoGoogle);
+  }, [professionalId]);
 
   const grouped = useMemo(() => {
     const days = new Map<string, SessionDoc[]>();
@@ -54,7 +65,29 @@ export function UpcomingSessions({ professionalId, max = 8 }: { professionalId: 
       </div>
 
       {grouped.length === 0 ? (
-        <p className="py-4 text-center text-sm text-brand-400">Nenhuma sessão agendada daqui para frente.</p>
+        <div className="py-4 text-center">
+          <p className="text-sm text-brand-400">Nenhuma sessão agendada daqui para frente.</p>
+
+          {/* A confusão previsível: a grade cheia de blocos do Google e este
+              cartão vazio. Eles não são atendimentos — não têm paciente, valor
+              nem prontuário —, e é justamente por isso que não contam aqui.
+              Melhor explicar no lugar onde a dúvida nasce. */}
+          {doGoogle.length > 0 && (
+            <p className="mx-auto mt-3 max-w-sm rounded-xl bg-cream-100 p-3 text-xs leading-relaxed text-brand-600">
+              Você tem <span className="font-bold">{doGoogle.length} compromissos vindos do Google</span> nos
+              próximos dias. Eles aparecem na grade como ocupado, mas não entram aqui porque não têm
+              paciente — e é do atendimento que saem o prontuário e a cobrança.
+              <br />
+              <button
+                onClick={() => navigate("/agenda")}
+                className="mt-1.5 font-bold text-brand-600 underline underline-offset-2"
+              >
+                Transformar em atendimentos
+              </button>{" "}
+              em Agenda › Sincronizar › Trazer a agenda do Google.
+            </p>
+          )}
+        </div>
       ) : (
         <div className="flex flex-col gap-3">
           {grouped.map(([date, items]) => (
