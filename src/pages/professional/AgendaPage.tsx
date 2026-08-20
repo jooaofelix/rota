@@ -34,6 +34,7 @@ import {
   weekDays,
   weekLabel,
 } from "@/utils/agenda";
+import { ecoDoGoogle } from "@/utils/conflitos";
 import { todayKey } from "@/utils/date";
 import { PERSONAL_COLORS, PERSONAL_ICONS } from "@/utils/personal";
 
@@ -340,11 +341,7 @@ export function AgendaPage() {
                       compromisso a cada leitura. */}
                   {layoutDay(
                     doGoogle.filter(
-                      (e) =>
-                        e.date === key &&
-                        e.startTime &&
-                        e.endTime &&
-                        !sessions.some((s) => s.date === e.date && s.startTime === e.startTime)
+                      (e) => e.date === key && e.startTime && e.endTime && !ecoDoGoogle(e, sessions)
                     )
                   ).map(
                     ({ item: e, lane, lanes }) => {

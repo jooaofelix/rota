@@ -5,7 +5,7 @@ import { BottomSheet } from "@/components/common/BottomSheet";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { useToast } from "@/contexts/ToastContext";
 import { deleteSession, getAllSessions } from "@/services/sessions";
-import { getLinkedPatientsBasics } from "@/services/patients";
+import { excluirPacientes, getLinkedPatientsBasics } from "@/services/patients";
 import {
   acharCadastrosRepetidos,
   acharSessoesRepetidas,
@@ -33,9 +33,12 @@ export function DuplicatesSheet({ professionalId, onClose }: { professionalId: s
   const [total, setTotal] = useState(0);
   /** Qual sessão fica, por grupo. Começa na sugestão e ela pode trocar. */
   const [manter, setManter] = useState<Record<string, string>>({});
-  const [confirmando, setConfirmando] = useState<GrupoDeSessoes | null>(null);
+  const [confirmando, setConfirmando] = useState<GrupoDeSessoes | "todos" | null>(null);
   const [limpando, setLimpando] = useState(false);
+  const [progresso, setProgresso] = useState<{ feitos: number; total: number } | null>(null);
   const [limpos, setLimpos] = useState<Set<string>>(new Set());
+  const [apagandoCadastro, setApagandoCadastro] = useState<{ id: string; nome: string } | null>(null);
+  const [cadastrosApagados, setCadastrosApagados] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     let vivo = true;
@@ -63,25 +66,67 @@ export function DuplicatesSheet({ professionalId, onClose }: { professionalId: s
     };
   }, [professionalId]);
 
-  async function limpar(grupo: GrupoDeSessoes) {
-    const ficam = manter[grupo.chave];
-    const apagar = grupo.sessoes.filter((s) => s.id !== ficam);
+  const pendentes = gruposSessoes.filter((g) => !limpos.has(g.chave));
+  /** O que sai se ela mandar limpar tudo: uma fica em cada horário, o resto vai. */
+  const sobrando = pendentes.reduce((n, g) => n + g.sessoes.length - 1, 0);
+  // Um grupo de nomes some da lista quando sobra um cadastro só: deixou de ser repetido.
+  const nomesPendentes = gruposNomes.filter(
+    (g) => g.pacientes.filter((p) => !cadastrosApagados.has(p.id)).length > 1
+  );
+  const tudoLimpo = pendentes.length === 0 && nomesPendentes.length === 0;
+
+  /**
+   * Apaga as cópias, de um horário ou de todos.
+   *
+   * Vai uma a uma e marca o grupo como resolvido assim que ele termina: se cair
+   * a internet no meio de trinta, o que já saiu está registrado na tela em vez
+   * de a varredura inteira parecer não ter acontecido.
+   */
+  async function limpar(grupos: GrupoDeSessoes[]) {
+    const alvos = grupos.flatMap((g) => g.sessoes.filter((s) => s.id !== manter[g.chave]));
     setLimpando(true);
+    setProgresso({ feitos: 0, total: alvos.length });
+    let feitos = 0;
     try {
-      for (const s of apagar) await deleteSession(s.id);
-      setLimpos((prev) => new Set(prev).add(grupo.chave));
+      for (const g of grupos) {
+        for (const s of g.sessoes) {
+          if (s.id === manter[g.chave]) continue;
+          await deleteSession(s.id);
+          feitos++;
+          setProgresso({ feitos, total: alvos.length });
+        }
+        setLimpos((prev) => new Set(prev).add(g.chave));
+      }
+      showToast(feitos === 1 ? "Cópia removida. A original ficou." : `${feitos} cópias removidas.`);
+    } catch (e) {
+      const codigo = (e as { code?: string })?.code ?? "";
       showToast(
-        apagar.length === 1 ? "Cópia removida. A original ficou." : `${apagar.length} cópias removidas.`
+        feitos > 0
+          ? `Parei no meio: ${feitos} já saíram. Tente de novo para o resto. [${codigo || "sem código"}]`
+          : `Não consegui remover. [${codigo || "sem código"}]`,
+        "error"
       );
-    } catch {
-      showToast("Não consegui remover agora. Tente de novo.", "error");
     } finally {
       setLimpando(false);
+      setProgresso(null);
       setConfirmando(null);
     }
   }
 
-  const pendentes = gruposSessoes.filter((g) => !limpos.has(g.chave));
+  /** Apaga um cadastro repetido — só é oferecido para o que não tem atendimento nenhum. */
+  async function apagarCadastro(id: string) {
+    setLimpando(true);
+    try {
+      const r = await excluirPacientes([id]);
+      setCadastrosApagados((prev) => new Set(prev).add(id));
+      showToast(r.desvinculados > 0 ? "Cadastro desvinculado da sua lista." : "Cadastro repetido excluído.");
+    } catch (e) {
+      showToast((e as Error).message, "error");
+    } finally {
+      setLimpando(false);
+      setApagandoCadastro(null);
+    }
+  }
 
   return (
     <BottomSheet open onClose={onClose} title="Verificar duplicidade">
@@ -95,7 +140,7 @@ export function DuplicatesSheet({ professionalId, onClose }: { professionalId: s
             <p className="rounded-2xl bg-cream-100 p-3 text-xs leading-relaxed text-brand-600">
               Olhei {total} {total === 1 ? "atendimento" : "atendimentos"} — do primeiro ao último, sem
               recorte de data.{" "}
-              {pendentes.length === 0 && gruposNomes.length === 0 ? (
+              {tudoLimpo ? (
                 <span className="font-bold">Nada repetido.</span>
               ) : (
                 <>
@@ -105,10 +150,12 @@ export function DuplicatesSheet({ professionalId, onClose }: { professionalId: s
               )}
             </p>
 
-            {pendentes.length === 0 && gruposNomes.length === 0 && (
+            {tudoLimpo && (
               <div className="py-4 text-center">
                 <p className="text-4xl">✅</p>
-                <p className="mt-2 text-sm font-bold text-brand-700">Agenda limpa</p>
+                <p className="mt-2 text-sm font-bold text-brand-700">
+                  {limpos.size > 0 || cadastrosApagados.size > 0 ? "Tudo resolvido" : "Agenda limpa"}
+                </p>
                 <p className="mt-1 text-xs text-brand-400">
                   Nenhum paciente aparece duas vezes no mesmo horário, e nenhum nome está cadastrado em
                   dobro.
@@ -121,6 +168,24 @@ export function DuplicatesSheet({ professionalId, onClose }: { professionalId: s
                 <p className="text-xs font-bold uppercase tracking-wide text-brand-400">
                   Atendimentos repetidos ({pendentes.length})
                 </p>
+
+                {/* Trinta horários repetidos, um a um, é trabalho que ninguém faz
+                    até o fim. O de uma vez resolve a leva; a escolha individual
+                    continua embaixo para quando ela quiser mandar em algum. */}
+                <button
+                  onClick={() => setConfirmando("todos")}
+                  disabled={limpando}
+                  className="rounded-xl bg-brand-500 px-3 py-2.5 text-sm font-bold text-white disabled:opacity-60"
+                >
+                  {limpando && progresso
+                    ? `Removendo ${progresso.feitos} de ${progresso.total}...`
+                    : `Remover as ${sobrando} cópias de uma vez`}
+                </button>
+                <p className="-mt-1 text-[11px] leading-snug text-brand-400">
+                  Fica um atendimento em cada horário — o que está marcado abaixo em cada grupo. Confira
+                  antes se algum deles você quer manter diferente.
+                </p>
+
                 {pendentes.map((g) => (
                   <GrupoSessoes
                     key={g.chave}
@@ -140,40 +205,56 @@ export function DuplicatesSheet({ professionalId, onClose }: { professionalId: s
               </p>
             )}
 
-            {gruposNomes.length > 0 && (
+            {nomesPendentes.length > 0 && (
               <section className="flex flex-col gap-2">
                 <p className="text-xs font-bold uppercase tracking-wide text-brand-400">
-                  Cadastros com o mesmo nome ({gruposNomes.length})
+                  Cadastros com o mesmo nome ({nomesPendentes.length})
                 </p>
                 <p className="text-[11px] leading-snug text-brand-400">
-                  Aqui eu não mexo. Xará existe, e apagar o cadastro errado leva junto rotina, prontuário e
-                  histórico. Abra cada um, veja qual tem atendimento, e exclua o vazio em Pacientes.
+                  Xará existe, e apagar o cadastro errado leva junto rotina, prontuário e histórico. Por
+                  isso aqui só dá para excluir o que <span className="font-bold">não tem atendimento
+                  nenhum</span> — a cópia vazia da importação. Se os dois tiverem, abra cada um e decida.
                 </p>
-                {gruposNomes.map((g) => (
-                  <div key={g.nome} className="rounded-2xl bg-cream-50 p-3">
-                    <p className="text-sm font-bold text-brand-800">{g.nome}</p>
-                    <div className="mt-1.5 flex flex-col gap-1">
-                      {g.pacientes.map((p) => (
-                        <button
-                          key={p.id}
-                          onClick={() => {
-                            onClose();
-                            navigate(`/pacientes/${p.id}`);
-                          }}
-                          className="flex items-center justify-between rounded-xl bg-white px-2.5 py-2 text-left"
-                        >
-                          <span className="text-xs text-brand-600">
-                            {p.sessoes === 0
-                              ? "sem nenhum atendimento"
-                              : `${p.sessoes} ${p.sessoes === 1 ? "atendimento" : "atendimentos"}`}
-                            {!p.ativo && " · inativo"}
-                          </span>
-                          <span className="text-xs font-bold text-brand-500">abrir ›</span>
-                        </button>
-                      ))}
+                {nomesPendentes.map((g) => {
+                  const vivos = g.pacientes.filter((p) => !cadastrosApagados.has(p.id));
+                  if (vivos.length < 2) return null;
+                  const comAtendimento = vivos.filter((p) => p.sessoes > 0).length;
+                  return (
+                    <div key={g.nome} className="rounded-2xl bg-cream-50 p-3">
+                      <p className="text-sm font-bold text-brand-800">{g.nome}</p>
+                      <div className="mt-1.5 flex flex-col gap-1">
+                        {vivos.map((p) => (
+                          <div key={p.id} className="flex items-center gap-1.5 rounded-xl bg-white px-2.5 py-2">
+                            <button
+                              onClick={() => {
+                                onClose();
+                                navigate(`/pacientes/${p.id}`);
+                              }}
+                              className="min-w-0 flex-1 text-left text-xs text-brand-600"
+                            >
+                              {p.sessoes === 0
+                                ? "sem nenhum atendimento"
+                                : `${p.sessoes} ${p.sessoes === 1 ? "atendimento" : "atendimentos"}`}
+                              {!p.ativo && " · inativo"}
+                              <span className="ml-1.5 font-bold text-brand-400">abrir ›</span>
+                            </button>
+                            {/* Só o vazio ganha botão, e só enquanto houver outro
+                                para ficar no lugar dele. */}
+                            {p.sessoes === 0 && comAtendimento > 0 && (
+                              <button
+                                onClick={() => setApagandoCadastro({ id: p.id, nome: p.name })}
+                                disabled={limpando}
+                                className="shrink-0 rounded-lg bg-rose-50 px-2 py-1 text-[11px] font-bold text-rose-600"
+                              >
+                                Excluir
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </section>
             )}
           </>
@@ -184,18 +265,38 @@ export function DuplicatesSheet({ professionalId, onClose }: { professionalId: s
         open={!!confirmando}
         danger
         title={
-          confirmando && confirmando.sessoes.length > 2
-            ? `Remover ${confirmando.sessoes.length - 1} cópias?`
-            : "Remover a cópia?"
+          confirmando === "todos"
+            ? `Remover ${sobrando} ${sobrando === 1 ? "cópia" : "cópias"}?`
+            : confirmando && confirmando.sessoes.length > 2
+              ? `Remover ${confirmando.sessoes.length - 1} cópias?`
+              : "Remover a cópia?"
         }
         description={
-          confirmando
-            ? `Fica um atendimento de ${confirmando.patientName} em ${diaBR(confirmando.date)}. As outras saem da agenda — o registro clínico já escrito, se houver, continua guardado no prontuário.`
-            : ""
+          confirmando === "todos"
+            ? `Sobra um atendimento em cada um dos ${pendentes.length} horários repetidos — o que está marcado em cada grupo. Os outros ${sobrando} saem da agenda. O registro clínico já escrito, se houver, continua guardado no prontuário.`
+            : confirmando
+              ? `Fica um atendimento de ${confirmando.patientName} em ${diaBR(confirmando.date)}. As outras saem da agenda — o registro clínico já escrito, se houver, continua guardado no prontuário.`
+              : ""
         }
         confirmLabel={limpando ? "Removendo..." : "Remover"}
         onCancel={() => setConfirmando(null)}
-        onConfirm={() => confirmando && limpar(confirmando)}
+        onConfirm={() =>
+          confirmando && limpar(confirmando === "todos" ? pendentes : [confirmando])
+        }
+      />
+
+      <ConfirmDialog
+        open={!!apagandoCadastro}
+        danger
+        title="Excluir este cadastro repetido?"
+        description={
+          apagandoCadastro
+            ? `“${apagandoCadastro.nome}” não tem nenhum atendimento marcado, mas leva junto o que estiver na rotina, nas anotações e no histórico dele. O outro cadastro com o mesmo nome continua intacto. Se a pessoa tiver conta própria, o cadastro não é apagado: ela só sai da sua lista.`
+            : ""
+        }
+        confirmLabel={limpando ? "Excluindo..." : "Excluir"}
+        onCancel={() => setApagandoCadastro(null)}
+        onConfirm={() => apagandoCadastro && apagarCadastro(apagandoCadastro.id)}
       />
     </BottomSheet>
   );

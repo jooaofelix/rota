@@ -92,6 +92,34 @@ export function resumirChoques(choques: Choque[]): string {
   return `${nomes.slice(0, -1).join(", ")} e ${nomes[nomes.length - 1]}`;
 }
 
+/**
+ * O bloco do Google é eco de um atendimento que já existe aqui?
+ *
+ * Depois de converter um compromisso do Google em sessão, os dois passam a
+ * ocupar o mesmo espaço na grade e a semana parece dobrada — e o Google continua
+ * mandando o mesmo compromisso a cada leitura. Comparar só o horário de início
+ * não bastava: bastava ela arrastar a sessão dez minutos para o bloco reaparecer.
+ *
+ * O critério é cobertura: se um atendimento cobre a maior parte do bloco, é o
+ * mesmo compromisso visto duas vezes. Sobreposição pequena continua aparecendo —
+ * aí são dois compromissos brigando, e ela precisa ver os dois.
+ */
+export function ecoDoGoogle(
+  evento: { date: string; startTime: string; endTime: string },
+  sessoes: SessionDoc[]
+): boolean {
+  const inicio = minutesOf(evento.startTime);
+  const fim = minutesOf(evento.endTime);
+  const duracao = fim - inicio;
+  if (duracao <= 0) return false;
+
+  return sessoes.some((s) => {
+    if (s.date !== evento.date || s.status === "cancelled") return false;
+    const coberto = Math.min(fim, minutesOf(s.endTime)) - Math.max(inicio, minutesOf(s.startTime));
+    return coberto / duracao >= 0.6;
+  });
+}
+
 /** As datas que uma repetição semanal ou quinzenal vai ocupar. */
 export function datasDaSerie(date: string, vezes: number, quinzenal = false): string[] {
   const passo = quinzenal ? 14 : 7;
