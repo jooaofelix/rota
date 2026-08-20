@@ -195,13 +195,19 @@ export function CalendarSyncSheet({
           <input
             value={urlGoogle}
             onChange={(e) => setUrlGoogle(e.target.value)}
-            placeholder="https://calendar.google.com/calendar/ical/.../basic.ics"
+            placeholder="https://.../basic.ics"
             className="input-field mt-2 text-xs"
           />
           <ol className="mt-1.5 flex flex-col gap-1 text-[11px] leading-snug text-brand-400">
             <li>1. Google Agenda › passe o mouse no seu calendário › ⋮ › Configurações.</li>
-            <li>2. Role até “Endereço secreto em formato iCal” e copie.</li>
+            <li>2. Role até “Endereço secreto em formato iCal” e use o botão de copiar.</li>
+            <li>3. Ele termina em <span className="font-bold">/basic.ics</span> — se o seu não termina, veio cortado.</li>
           </ol>
+          <p className="mt-1.5 text-[11px] leading-snug text-brand-400">
+            Serve qualquer calendário que publique .ics: Google, Outlook, Apple ou o sistema que você
+            usava antes. O Google só oferece endereço secreto para calendário <span className="font-bold">seu</span> —
+            se for um que você assinou de outro sistema, pegue o endereço lá na origem.
+          </p>
 
           <div className="mt-2 flex gap-2">
             <button

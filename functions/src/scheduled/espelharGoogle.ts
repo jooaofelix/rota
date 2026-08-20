@@ -41,7 +41,17 @@ const chave = (d: Date) => d.toISOString().slice(0, 10);
  */
 async function espelhar(professionalId: string, url: string): Promise<{ total: number }> {
   const resposta = await fetch(url, { redirect: "follow" });
-  if (!resposta.ok) throw new Error(`O Google respondeu ${resposta.status}`);
+  if (resposta.status === 404) {
+    throw new Error(
+      "404 — endereço não encontrado. Confira se copiou inteiro: o do Google termina em /basic.ics."
+    );
+  }
+  if (!resposta.ok) throw new Error(`O calendário respondeu ${resposta.status}`);
+
+  const tipo = resposta.headers.get("content-type") ?? "";
+  if (!/calendar|text\/plain|octet-stream/i.test(tipo)) {
+    throw new Error(`Esse endereço não devolveu um calendário (veio ${tipo.split(";")[0] || "algo inesperado"}).`);
+  }
 
   const texto = await resposta.text();
   const de = dia(-JANELA_ATRAS);
@@ -121,11 +131,12 @@ export const espelharGoogleAgora = onCall<{ url?: string }>(
     const feed = await db.collection("calendarFeeds").doc(uid).get();
     const url = request.data?.url?.trim() || (feed.data()?.googleIcsUrl as string | undefined);
     if (!url) return { ok: false, erro: "Cole primeiro o endereço do seu Google Agenda." };
-    if (!/^https:\/\/calendar\.google\.com\//.test(url)) {
-      return {
-        ok: false,
-        erro: "Esse endereço não parece ser do Google Agenda. Copie o \"endereço secreto em formato iCal\" nas configurações do calendário.",
-      };
+    // Qualquer calendário que publique .ics serve — Google, Outlook, Apple ou o
+    // sistema antigo do consultório. Prender ao Google seria arbitrário: o
+    // formato é o mesmo, e quem está migrando costuma ter o endereço do outro
+    // lado, não do Google.
+    if (!/^https:\/\/.+/i.test(url)) {
+      return { ok: false, erro: "O endereço precisa começar com https://" };
     }
 
     try {
