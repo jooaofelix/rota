@@ -316,6 +316,29 @@ export function AgendaImportSheet({
             {porTitulo.length} {porTitulo.length === 1 ? "título diferente" : "títulos diferentes"}
           </p>
 
+          {/* A automação existe mas era invisível: os títulos reconhecidos já
+              vêm ligados, e apertar o botão agora cria todos eles. Mostrar a
+              conta evita a impressão de que é tudo trabalho manual. */}
+          {(() => {
+            const reconhecidos = porTitulo.filter(([t]) => destinos[t]?.tipo === "paciente").length;
+            const restantes = porTitulo.length - reconhecidos;
+            return (
+              <p className="rounded-xl bg-cream-100 p-2.5 text-xs leading-snug text-brand-600">
+                <span className="font-bold">{reconhecidos}</span>{" "}
+                {reconhecidos === 1 ? "título já foi ligado" : "títulos já foram ligados"} a um paciente pelo
+                nome — {reconhecidos === 1 ? "esse" : "esses"} podem ser criados agora, sem você mexer.
+                {restantes > 0 && (
+                  <>
+                    {" "}
+                    <span className="font-bold">{restantes}</span>{" "}
+                    {restantes === 1 ? "não bateu" : "não bateram"} com ninguém da sua lista: escolha o
+                    paciente ou deixe em ignorar, se não for atendimento.
+                  </>
+                )}
+              </p>
+            );
+          })()}
+
           {resultado.naoInterpretados.length > 0 && (
             <p className="rounded-xl bg-amber-50 p-2.5 text-xs leading-snug text-amber-800">
               Não consegui expandir a repetição de: {resultado.naoInterpretados.join(", ")}. Prefiro avisar
