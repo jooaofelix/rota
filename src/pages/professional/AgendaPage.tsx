@@ -14,6 +14,7 @@ import { RoomSchedule } from "@/components/professional/RoomSchedule";
 import { DayAgenda } from "@/components/professional/DayAgenda";
 import { PersonalEventSheet } from "@/components/professional/PersonalEventSheet";
 import { CalendarSyncSheet } from "@/components/professional/CalendarSyncSheet";
+import { GoogleBlockSheet } from "@/components/professional/GoogleBlockSheet";
 import { AgendaImportSheet } from "@/components/professional/AgendaImportSheet";
 import { subscribeToExternalEvents, type ExternalEventDoc } from "@/services/externalEvents";
 import { RoomConflictDialog } from "@/components/professional/RoomConflictDialog";
@@ -53,6 +54,8 @@ export function AgendaPage() {
   const [importandoAgenda, setImportandoAgenda] = useState(false);
   const [doGoogle, setDoGoogle] = useState<ExternalEventDoc[]>([]);
   const [erroGoogle, setErroGoogle] = useState<{ mensagem: string; link?: string } | null>(null);
+  const [blocoGoogle, setBlocoGoogle] = useState<ExternalEventDoc | null>(null);
+  const [novaDe, setNovaDe] = useState<{ date: string; inicio: string; fim: string } | null>(null);
   /** Dia mostrado na aba "Meu dia" — anda sozinho, sem mexer na semana. */
   const [diaFoco, setDiaFoco] = useState(() => todayKey());
   /** Arraste que caiu fora do turno dela e espera confirmação. */
@@ -325,26 +328,33 @@ export function AgendaPage() {
                     </div>
                   )}
 
-                  {/* O que veio do Google: cinza, atrás de tudo e sem clique. É
-                      cópia — mexer aqui daria a ilusão de ter mudado alguma coisa
-                      lá. Serve para ela não marcar paciente em cima. */}
-                  {doGoogle
-                    .filter((e) => e.date === key && e.startTime && e.endTime)
-                    .map((e) => {
+                  {/* O que veio do Google: cinza e atrás do atendimento, mas
+                      lado a lado quando dois se sobrepõem — dois compromissos
+                      empilhados escondiam um ao outro. Clicar abre; arrastar não,
+                      porque quem manda neles é o Google. */}
+                  {layoutDay(doGoogle.filter((e) => e.date === key && e.startTime && e.endTime)).map(
+                    ({ item: e, lane, lanes }) => {
                       const g = blockGeometry(e, firstHour);
                       return (
-                        <div
+                        <button
                           key={e.id}
+                          onClick={() => setBlocoGoogle(e)}
                           title={`${e.titulo} (Google Agenda)`}
-                          style={{ top: g.top, height: g.height }}
-                          className="pointer-events-none absolute inset-x-0 overflow-hidden rounded-md border-l-4 border-slate-300 bg-slate-400/15 px-1.5 py-1"
+                          style={{
+                            top: g.top,
+                            height: g.height,
+                            left: `${(lane / lanes) * 100}%`,
+                            width: `${100 / lanes}%`,
+                          }}
+                          className="absolute overflow-hidden rounded-md border-l-4 border-slate-300 bg-slate-400/15 px-1.5 py-1 text-left"
                         >
                           <p className="truncate text-[11px] font-bold leading-tight text-slate-500">
                             {e.titulo}
                           </p>
-                        </div>
+                        </button>
                       );
-                    })}
+                    }
+                  )}
 
                   {/* Compromisso pessoal desenhado antes do atendimento e em faixa
                       listrada: ocupa o horário de verdade, mas o atendimento é o que
@@ -486,6 +496,18 @@ export function AgendaPage() {
         />
       )}
 
+      {blocoGoogle && (
+        <GoogleBlockSheet
+          evento={blocoGoogle}
+          onVirarSessao={() => {
+            setNovaDe({ date: blocoGoogle.date, inicio: blocoGoogle.startTime, fim: blocoGoogle.endTime });
+            setBlocoGoogle(null);
+            setEditing("new");
+          }}
+          onClose={() => setBlocoGoogle(null)}
+        />
+      )}
+
       {sincronizando && firebaseUser && (
         <CalendarSyncSheet
           professionalId={firebaseUser.uid}
@@ -516,9 +538,14 @@ export function AgendaPage() {
         <SessionEditorSheet
           professionalId={firebaseUser.uid}
           existing={editing === "new" ? undefined : editing}
-          defaultDate={start}
+          defaultDate={novaDe?.date ?? start}
+          defaultStart={novaDe?.inicio}
+          defaultEnd={novaDe?.fim}
           ownerName={userDoc?.name ?? "Responsável"}
-          onClose={() => setEditing(null)}
+          onClose={() => {
+            setEditing(null);
+            setNovaDe(null);
+          }}
         />
       )}
 

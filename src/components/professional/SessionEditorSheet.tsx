@@ -16,6 +16,9 @@ interface SessionEditorSheetProps {
   professionalId: string;
   existing?: SessionDoc;
   defaultDate: string;
+  /** Horário sugerido, quando a sessão nasce de um bloco já existente na grade. */
+  defaultStart?: string;
+  defaultEnd?: string;
   ownerName: string;
   onClose: () => void;
 }
@@ -33,7 +36,7 @@ const emptyForm = {
   repeatWeeks: 8,
 };
 
-export function SessionEditorSheet({ professionalId, existing, defaultDate, ownerName, onClose }: SessionEditorSheetProps) {
+export function SessionEditorSheet({ professionalId, existing, defaultDate, defaultStart, defaultEnd, ownerName, onClose }: SessionEditorSheetProps) {
   const { showToast } = useToast();
   const [patients, setPatients] = useState<Array<{ id: string; name: string }>>([]);
   const [saving, setSaving] = useState(false);
@@ -56,7 +59,12 @@ export function SessionEditorSheet({ professionalId, existing, defaultDate, owne
           repeat: "none" as const,
           repeatWeeks: 8,
         }
-      : { ...emptyForm, date: defaultDate }
+      : {
+          ...emptyForm,
+          date: defaultDate,
+          ...(defaultStart ? { startTime: defaultStart } : {}),
+          ...(defaultEnd ? { endTime: defaultEnd } : {}),
+        }
   );
 
   useEffect(() => {
