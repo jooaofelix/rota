@@ -161,7 +161,7 @@ export function SessionActionSheet({
             pergunta="Pagou?"
             opcoes={[
               { valor: "paid", icone: "💲", rotulo: "Pago", cor: "emerald" },
-              { valor: "pending", icone: "⏳", rotulo: "A pagar", cor: "amber" },
+              { valor: "pending", icone: "💰", rotulo: "A pagar", cor: "rose" },
             ]}
             atual={view.paymentStatus}
             onEscolher={(v) => changePayment(v as PaymentStatus)}

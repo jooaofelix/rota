@@ -23,6 +23,7 @@ import { subscribeToPartners, subscribeToRoomSlots } from "@/services/room";
 import { checkRoom, hasOwnSchedule, ownWindows, type RoomCheck } from "@/utils/roomAvailability";
 import type { RoomPartnerDoc, RoomSlotDoc } from "@/types";
 import {
+  CORES_DA_MARCA,
   HOUR_PX,
   blockGeometry,
   dayKey,
@@ -456,12 +457,25 @@ export function AgendaPage() {
                           </p>
                         )}
                         {height > 34 && (
-                          <p className="pointer-events-none flex items-center gap-0.5 text-[10px] leading-tight">
-                            {marcasDaSessao(session).map((m) => (
-                              <span key={m.chave} title={m.titulo}>
-                                {m.icone}
-                              </span>
-                            ))}
+                          <p className="pointer-events-none flex items-center gap-1 text-[10px] leading-tight">
+                            {marcasDaSessao(session).map((m) =>
+                              // O cifrão sai num círculo branco porque a cor é o
+                              // recado: verde sobre bloco verde não diria nada.
+                              m.cor ? (
+                                <span
+                                  key={m.chave}
+                                  title={m.titulo}
+                                  style={{ color: CORES_DA_MARCA[m.cor] }}
+                                  className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-white text-[10px] font-extrabold leading-none"
+                                >
+                                  {m.icone}
+                                </span>
+                              ) : (
+                                <span key={m.chave} title={m.titulo}>
+                                  {m.icone}
+                                </span>
+                              )
+                            )}
                           </p>
                         )}
                       </button>

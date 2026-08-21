@@ -157,7 +157,23 @@ export interface MarcaDaSessao {
   chave: "presenca" | "pagamento" | "modalidade";
   icone: string;
   titulo: string;
+  /**
+   * Cor da marca — só o pagamento usa.
+   *
+   * Emoji não aceita cor: o cifrão do 💲 é sempre o mesmo, e distinguir pago de
+   * não pago pela opacidade não funcionava sobre o fundo colorido do bloco. Por
+   * isso o pagamento é desenhado como texto — aí verde e vermelho valem, e o
+   * sinal fica igual ao que ela já lê em qualquer outro sistema.
+   */
+  cor?: "verde" | "vermelho" | "cinza";
 }
+
+/** Cor do cifrão. Sai num círculo branco, para valer em bloco de qualquer cor. */
+export const CORES_DA_MARCA: Record<"verde" | "vermelho" | "cinza", string> = {
+  verde: "#15803d",
+  vermelho: "#dc2626",
+  cinza: "#64748b",
+};
 
 export function marcasDaSessao(session: SessionDoc): MarcaDaSessao[] {
   const marcas: MarcaDaSessao[] = [];
@@ -166,17 +182,24 @@ export function marcasDaSessao(session: SessionDoc): MarcaDaSessao[] {
   else if (session.status === "no_show") marcas.push({ chave: "presenca", icone: "👎", titulo: "Faltou" });
   else if (session.status === "cancelled") marcas.push({ chave: "presenca", icone: "🚫", titulo: "Cancelada" });
 
-  if (session.paymentStatus === "paid") marcas.push({ chave: "pagamento", icone: "💲", titulo: "Pago" });
-  else if (session.paymentStatus === "exempt") marcas.push({ chave: "pagamento", icone: "🎁", titulo: "Isento" });
-  // Pendente ganha um desenho próprio em vez do mesmo cifrão apagado: na grade,
-  // distinguir dois ícones iguais pela opacidade não funciona — some no fundo
-  // colorido do bloco, que é justamente onde eles aparecem.
-  else
-    marcas.push(
-      session.paymentStatus === "overdue"
-        ? { chave: "pagamento", icone: "❗", titulo: "Pagamento atrasado" }
-        : { chave: "pagamento", icone: "⏳", titulo: "A pagar" }
-    );
+  marcas.push({
+    chave: "pagamento",
+    icone: "$",
+    titulo:
+      session.paymentStatus === "paid"
+        ? "Pago"
+        : session.paymentStatus === "exempt"
+          ? "Isento"
+          : session.paymentStatus === "overdue"
+            ? "Pagamento atrasado"
+            : "A pagar",
+    cor:
+      session.paymentStatus === "paid"
+        ? "verde"
+        : session.paymentStatus === "exempt"
+          ? "cinza"
+          : "vermelho",
+  });
 
   marcas.push(
     session.modality === "online"
