@@ -2,8 +2,7 @@ import { useEffect, useState } from "react";
 import { BottomSheet } from "@/components/common/BottomSheet";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { useToast } from "@/contexts/ToastContext";
-import { subscribeToLinkedPatients } from "@/services/patients";
-import { getPatientsOverview } from "@/services/professionalOverview";
+import { getLinkedPatientsBasics } from "@/services/patients";
 import {
   createRecurringSessions,
   createSession,
@@ -82,11 +81,16 @@ export function SessionEditorSheet({ professionalId, existing, defaultDate, defa
         }
   );
 
+  // Só o nome, e uma leitura só: a visão completa do painel varre a rotina e os
+  // cumprimentos de cada paciente, e abrir "Nova sessão" não precisa disso.
   useEffect(() => {
-    return subscribeToLinkedPatients(professionalId, async (links) => {
-      const overview = await getPatientsOverview(links.map((l) => l.patientId));
-      setPatients(overview.map((o) => ({ id: o.patientId, name: o.name })));
-    });
+    let vivo = true;
+    getLinkedPatientsBasics(professionalId)
+      .then((lista) => vivo && setPatients(lista))
+      .catch(() => vivo && setPatients([]));
+    return () => {
+      vivo = false;
+    };
   }, [professionalId]);
 
   useEffect(() => subscribeToGoals(professionalId, setMetas), [professionalId]);
@@ -109,20 +113,25 @@ export function SessionEditorSheet({ professionalId, existing, defaultDate, defa
     const inicio = datas[0];
     const fim = datas[datas.length - 1];
 
-    Promise.all([
-      getSessionsInRange(professionalId, inicio, fim),
-      getPersonalEventsInRange(professionalId, inicio, fim).catch(() => [] as PersonalEventDoc[]),
-      getExternalEvents(professionalId, inicio, fim).catch(() => [] as ExternalEventDoc[]),
-    ])
-      .then(([sessoes, pessoais, externos]) => {
-        if (vivo) setAgenda({ sessoes, pessoais, externos });
-      })
-      // Sem a conferência a agenda continua funcionando; o servidor ainda barra a
-      // duplicata na hora de gravar. Só o aviso antecipado se perde.
-      .catch(() => vivo && setAgenda(null));
+    // Meio segundo de espera: digitar a data num campo nativo dispara uma mudança
+    // por dígito, e sem isso cada uma pedia três consultas ao servidor.
+    const timer = setTimeout(() => {
+      Promise.all([
+        getSessionsInRange(professionalId, inicio, fim),
+        getPersonalEventsInRange(professionalId, inicio, fim).catch(() => [] as PersonalEventDoc[]),
+        getExternalEvents(professionalId, inicio, fim).catch(() => [] as ExternalEventDoc[]),
+      ])
+        .then(([sessoes, pessoais, externos]) => {
+          if (vivo) setAgenda({ sessoes, pessoais, externos });
+        })
+        // Sem a conferência a agenda continua funcionando; o servidor ainda barra
+        // a duplicata na hora de gravar. Só o aviso antecipado se perde.
+        .catch(() => vivo && setAgenda(null));
+    }, 500);
 
     return () => {
       vivo = false;
+      clearTimeout(timer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [professionalId, form.date, form.repeat, form.repeatWeeks]);

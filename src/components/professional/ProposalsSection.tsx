@@ -2,8 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import clsx from "clsx";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
-import { subscribeToLinkedPatients } from "@/services/patients";
-import { getPatientsOverview } from "@/services/professionalOverview";
+import { getLinkedPatientsBasics } from "@/services/patients";
 import { isExpired, proposalLink, removeProposal, subscribeToOffers, subscribeToProposals } from "@/services/offers";
 import type { OfferDoc, ProposalDoc } from "@/types";
 import { formatMoney } from "@/utils/agenda";
@@ -48,11 +47,14 @@ export function ProposalsSection() {
 
   useEffect(() => {
     if (!firebaseUser) return;
-    return subscribeToLinkedPatients(firebaseUser.uid, (links) => {
-      getPatientsOverview(links.map((l) => l.patientId))
-        .then((ov) => setPatients(ov.map((o) => ({ id: o.patientId, nome: o.name }))))
-        .catch(() => setPatients([]));
-    });
+    let vivo = true;
+    // Nome e id bastam para escolher a quem mandar a proposta.
+    getLinkedPatientsBasics(firebaseUser.uid)
+      .then((lista) => vivo && setPatients(lista.map((p) => ({ id: p.id, nome: p.name }))))
+      .catch(() => vivo && setPatients([]));
+    return () => {
+      vivo = false;
+    };
   }, [firebaseUser]);
 
   const hoje = todayKey();

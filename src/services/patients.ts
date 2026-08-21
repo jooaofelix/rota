@@ -169,15 +169,21 @@ export async function getExistingPatientNames(professionalId: string): Promise<s
 }
 
 /**
- * Id, nome e situação de cada paciente vinculado — nada além disso.
+ * Id, nome, foto e situação de cada paciente vinculado — nada além disso.
  *
- * Existe ao lado de getPatientsOverview porque a visão do dashboard varre rotina
- * e cumprimentos de cada um: cara demais para uma tela que só quer saber quem
- * tem nome repetido.
+ * Existe ao lado de getPatientsOverview porque aquela visão, além do cadastro,
+ * varre a rotina e **todos** os cumprimentos de cada paciente para calcular
+ * pendências e alertas do dia. Com quase noventa pacientes isso vira centenas de
+ * consultas e milhares de documentos toda vez que a tela abre — preço justo no
+ * painel, que mostra esses números, e absurdo numa lista que só precisa do nome
+ * para preencher um seletor.
+ *
+ * O nome sai de /users quando a pessoa tem conta, como no painel: quem se
+ * cadastrou pode ter escrito o próprio nome diferente do que ela anotou.
  */
 export async function getLinkedPatientsBasics(
   professionalId: string
-): Promise<Array<{ id: string; name: string; active: boolean }>> {
+): Promise<Array<{ id: string; name: string; active: boolean; photoURL?: string }>> {
   const links = await getDocs(
     query(
       collection(db, "professionalPatientLinks"),
@@ -188,12 +194,21 @@ export async function getLinkedPatientsBasics(
   const pacientes = await Promise.all(
     links.docs.map(async (link) => {
       const id = (link.data() as ProfessionalPatientLink).patientId;
-      const snap = await getDoc(doc(db, "patients", id));
-      const dados = snap.data() as PatientDoc | undefined;
-      return { id, name: dados?.name ?? "", active: dados?.active !== false };
+      const [userSnap, patientSnap] = await Promise.all([
+        getDoc(doc(db, "users", id)),
+        getDoc(doc(db, "patients", id)),
+      ]);
+      const user = userSnap.data() as UserDoc | undefined;
+      const dados = patientSnap.data() as PatientDoc | undefined;
+      return {
+        id,
+        name: user?.name ?? dados?.name ?? "",
+        active: dados?.active !== false,
+        photoURL: user?.photoURL ?? dados?.photoURL,
+      };
     })
   );
-  return pacientes.filter((p) => p.name);
+  return pacientes.filter((p) => p.name).sort((a, b) => a.name.localeCompare(b.name));
 }
 
 /**

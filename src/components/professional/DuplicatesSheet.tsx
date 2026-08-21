@@ -39,17 +39,32 @@ export function DuplicatesSheet({ professionalId, onClose }: { professionalId: s
   const [limpos, setLimpos] = useState<Set<string>>(new Set());
   const [apagandoCadastro, setApagandoCadastro] = useState<{ id: string; nome: string } | null>(null);
   const [cadastrosApagados, setCadastrosApagados] = useState<Set<string>>(new Set());
+  /** A segunda varredura, que continua rodando depois da tela já ter conteúdo. */
+  const [lendoCadastros, setLendoCadastros] = useState(true);
 
+  /**
+   * A agenda primeiro, os cadastros depois.
+   *
+   * São duas varreduras de custo bem diferente: a agenda é uma consulta só, e a
+   * lista de pacientes é uma leitura por pessoa. Esperar as duas deixava a tela
+   * parada uns bons segundos com quase noventa cadastros — agora os atendimentos
+   * repetidos, que é o que ela veio ver, aparecem assim que chegam.
+   */
   useEffect(() => {
     let vivo = true;
-    Promise.all([getAllSessions(professionalId), getLinkedPatientsBasics(professionalId)])
-      .then(([sessoes, pacientes]) => {
+    getAllSessions(professionalId)
+      .then((sessoes) => {
         if (!vivo) return;
         const grupos = acharSessoesRepetidas(sessoes);
         setTotal(sessoes.length);
         setGruposSessoes(grupos);
-        setGruposNomes(acharCadastrosRepetidos(pacientes, sessoes));
         setManter(Object.fromEntries(grupos.map((g) => [g.chave, g.sugerida])));
+        setCarregando(false);
+
+        getLinkedPatientsBasics(professionalId)
+          .then((pacientes) => vivo && setGruposNomes(acharCadastrosRepetidos(pacientes, sessoes)))
+          .catch(() => undefined)
+          .finally(() => vivo && setLendoCadastros(false));
       })
       .catch((e) => {
         if (!vivo) return;
@@ -73,7 +88,8 @@ export function DuplicatesSheet({ professionalId, onClose }: { professionalId: s
   const nomesPendentes = gruposNomes.filter(
     (g) => g.pacientes.filter((p) => !cadastrosApagados.has(p.id)).length > 1
   );
-  const tudoLimpo = pendentes.length === 0 && nomesPendentes.length === 0;
+  // Enquanto a segunda varredura roda, "nada repetido" ainda seria chute.
+  const tudoLimpo = pendentes.length === 0 && nomesPendentes.length === 0 && !lendoCadastros;
 
   /**
    * Apaga as cópias, de um horário ou de todos.
@@ -196,6 +212,10 @@ export function DuplicatesSheet({ professionalId, onClose }: { professionalId: s
                   />
                 ))}
               </section>
+            )}
+
+            {lendoCadastros && (
+              <p className="text-center text-[11px] text-brand-400">Conferindo os cadastros repetidos...</p>
             )}
 
             {limpos.size > 0 && (

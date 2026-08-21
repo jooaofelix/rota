@@ -133,15 +133,20 @@ export async function findOverlappingSession(
  * caminhos diferentes (agendamento, repetição e importação do Google) e um deles
  * já produziu duplicata na vida real.
  */
-export async function createSession(data: NewSession): Promise<string> {
-  const repetida = await findOverlappingSession(
-    data.professionalId,
-    data.patientId,
-    data.date,
-    data.startTime,
-    data.endTime
-  );
-  if (repetida) throw new SessaoRepetidaError(repetida);
+export async function createSession(data: NewSession, opcoes?: { jaConferido?: boolean }): Promise<string> {
+  // A importação em lote confere as duzentas de uma vez, com a agenda já na mão,
+  // e passa jaConferido: repetir a consulta por evento dobraria o tempo dela sem
+  // descobrir nada de novo.
+  if (!opcoes?.jaConferido) {
+    const repetida = await findOverlappingSession(
+      data.professionalId,
+      data.patientId,
+      data.date,
+      data.startTime,
+      data.endTime
+    );
+    if (repetida) throw new SessaoRepetidaError(repetida);
+  }
 
   const ref = await addDoc(collection(db, SESSIONS), {
     ...data,

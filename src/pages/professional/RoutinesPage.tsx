@@ -1,21 +1,19 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { subscribeToLinkedPatients } from "@/services/patients";
+import { getLinkedPatientsBasics } from "@/services/patients";
 import { subscribeToTemplates, applyTemplateToPatient, saveTemplate } from "@/services/templates";
-import type { ProfessionalPatientLink, RoutineTemplateDoc } from "@/types";
+import type { RoutineTemplateDoc } from "@/types";
 import { TopBar } from "@/components/common/TopBar";
 import { BottomSheet } from "@/components/common/BottomSheet";
 import { TemplatePreview } from "@/components/common/TemplatePreview";
 import { useToast } from "@/contexts/ToastContext";
-import { getPatientsOverview, type PatientOverview } from "@/services/professionalOverview";
 import { ICON_OPTIONS } from "@/utils/constants";
 import clsx from "clsx";
 
 export function RoutinesPage() {
   const { firebaseUser } = useAuth();
   const { showToast } = useToast();
-  const [links, setLinks] = useState<ProfessionalPatientLink[]>([]);
-  const [patients, setPatients] = useState<PatientOverview[]>([]);
+  const [patients, setPatients] = useState<Array<{ id: string; name: string; photoURL?: string }>>([]);
   const [templates, setTemplates] = useState<RoutineTemplateDoc[]>([]);
   /** Modelo aberto na prévia, ainda sem paciente escolhido. */
   const [previewTemplate, setPreviewTemplate] = useState<RoutineTemplateDoc | null>(null);
@@ -26,20 +24,21 @@ export function RoutinesPage() {
 
   useEffect(() => {
     if (!firebaseUser) return;
-    const unsub = [
-      subscribeToLinkedPatients(firebaseUser.uid, setLinks),
-      subscribeToTemplates(firebaseUser.uid, setTemplates),
-    ];
-    return () => unsub.forEach((u) => u());
+    return subscribeToTemplates(firebaseUser.uid, setTemplates);
   }, [firebaseUser]);
 
+  // Nome e foto bastam para escolher quem recebe a rotina; a visão completa do
+  // painel varreria rotina e cumprimentos de todos os pacientes só para isso.
   useEffect(() => {
-    if (links.length === 0) {
-      setPatients([]);
-      return;
-    }
-    getPatientsOverview(links.map((l) => l.patientId)).then(setPatients);
-  }, [links]);
+    if (!firebaseUser) return;
+    let vivo = true;
+    getLinkedPatientsBasics(firebaseUser.uid)
+      .then((lista) => vivo && setPatients(lista))
+      .catch(() => vivo && setPatients([]));
+    return () => {
+      vivo = false;
+    };
+  }, [firebaseUser]);
 
   async function handleApply(patientId: string) {
     if (!selectedTemplate || !firebaseUser) return;
@@ -100,7 +99,7 @@ export function RoutinesPage() {
             <p className="text-sm text-brand-400">Nenhum paciente vinculado ainda.</p>
           ) : (
             patients.map((p) => (
-              <button key={p.patientId} onClick={() => handleApply(p.patientId)} disabled={applying} className="card flex items-center gap-3 text-left disabled:opacity-60">
+              <button key={p.id} onClick={() => handleApply(p.id)} disabled={applying} className="card flex items-center gap-3 text-left disabled:opacity-60">
                 {p.photoURL ? (
                   <img src={p.photoURL} className="h-10 w-10 rounded-full object-cover" alt="" />
                 ) : (

@@ -2,9 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import { BottomSheet } from "@/components/common/BottomSheet";
 import { useToast } from "@/contexts/ToastContext";
-import { createSession, SessaoRepetidaError } from "@/services/sessions";
-import { createContactPatient, subscribeToLinkedPatients } from "@/services/patients";
-import { getPatientsOverview } from "@/services/professionalOverview";
+import { createSession, getSessionsInRange } from "@/services/sessions";
+import { acharChoques, bloqueio } from "@/utils/conflitos";
+import type { SessionDoc } from "@/types";
+import { createContactPatient, getLinkedPatientsBasics } from "@/services/patients";
 import { lerIcsDeAgenda, palpitarPaciente, type EventoImportado, type ResultadoIcs } from "@/utils/icsImport";
 import { getExternalEvents } from "@/services/externalEvents";
 import { todayKey } from "@/utils/date";
@@ -56,11 +57,16 @@ export function AgendaImportSheet({
   const [importando, setImportando] = useState(false);
   const [resumo, setResumo] = useState<{ criadas: number; pacientes: number; repetidas: number } | null>(null);
 
+  // Só nome e id: casar título com paciente não precisa da visão completa do
+  // painel, que varre rotina e cumprimentos de cada um.
   useEffect(() => {
-    return subscribeToLinkedPatients(professionalId, async (links) => {
-      const overview = await getPatientsOverview(links.map((l) => l.patientId));
-      setPacientes(overview.map((o) => ({ id: o.patientId, name: o.name })));
-    });
+    let vivo = true;
+    getLinkedPatientsBasics(professionalId)
+      .then((lista) => vivo && setPacientes(lista))
+      .catch(() => vivo && setPacientes([]));
+    return () => {
+      vivo = false;
+    };
   }, [professionalId]);
 
   // Se o espelho está ligado, os compromissos já estão aqui: exportar o arquivo
@@ -154,6 +160,17 @@ export function AgendaImportSheet({
       }
     }
 
+    // A agenda existente vem numa consulta só, antes do laço. Perguntar por
+    // evento custaria uma ida ao servidor para cada um dos duzentos — e a
+    // resposta seria a mesma que já está aqui.
+    const janela = resultado.eventos.map((e) => e.data).sort();
+    const jaMarcadas = janela.length
+      ? await getSessionsInRange(professionalId, janela[0], janela[janela.length - 1]).catch(
+          () => [] as SessionDoc[]
+        )
+      : [];
+    const criadasAgora: SessionDoc[] = [];
+
     let criadas = 0;
     let repetidas = 0;
     for (const evento of resultado.eventos) {
@@ -168,26 +185,34 @@ export function AgendaImportSheet({
           ? evento.titulo
           : pacientes.find((p) => p.id === patientId)?.name ?? evento.titulo;
 
+      // Contra o que já estava marcado e contra o que esta mesma leva acabou de
+      // criar: o arquivo do Google costuma trazer o mesmo compromisso repetido.
+      const alvo = { date: evento.data, startTime: evento.inicio, endTime: evento.fim, patientId };
+      if (bloqueio(acharChoques(alvo, { sessoes: [...jaMarcadas, ...criadasAgora] }))) {
+        repetidas++;
+        continue;
+      }
+
+      const payload = {
+        professionalId,
+        patientId,
+        patientName: nome,
+        date: evento.data,
+        startTime: evento.inicio,
+        endTime: evento.fim,
+        modality: modalidade,
+        status: "scheduled" as const,
+        paymentStatus: "pending" as const,
+        ...(valor ? { price: Number(valor.replace(",", ".")) } : {}),
+        ...(evento.local ? { note: evento.local } : {}),
+      };
+
       try {
-        await createSession({
-          professionalId,
-          patientId,
-          patientName: nome,
-          date: evento.data,
-          startTime: evento.inicio,
-          endTime: evento.fim,
-          modality: modalidade,
-          status: "scheduled",
-          paymentStatus: "pending",
-          ...(valor ? { price: Number(valor.replace(",", ".")) } : {}),
-          ...(evento.local ? { note: evento.local } : {}),
-        });
+        const id = await createSession(payload, { jaConferido: true });
+        criadasAgora.push({ id, ...payload } as SessionDoc);
         criadas++;
-      } catch (erro) {
-        // O que já estava marcado no ROTA não vira cópia: o serviço recusa a
-        // repetida e a importação conta em vez de somar duas do mesmo horário.
-        if (erro instanceof SessaoRepetidaError) repetidas++;
-        // idem: uma sessão recusada não interrompe as outras.
+      } catch {
+        // Uma sessão recusada não interrompe as outras.
       }
     }
 

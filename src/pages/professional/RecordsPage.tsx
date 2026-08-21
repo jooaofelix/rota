@@ -1,8 +1,7 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import clsx from "clsx";
 import { useAuth } from "@/contexts/AuthContext";
-import { subscribeToLinkedPatients } from "@/services/patients";
-import { getPatientsOverview } from "@/services/professionalOverview";
+import { getLinkedPatientsBasics } from "@/services/patients";
 import { subscribeToProfessionalRecords } from "@/services/sessions";
 import type { SessionRecordDoc } from "@/types";
 import { TopBar } from "@/components/common/TopBar";
@@ -32,10 +31,15 @@ export function RecordsPage() {
 
   useEffect(() => {
     if (!firebaseUser) return;
-    return subscribeToLinkedPatients(firebaseUser.uid, async (links) => {
-      const overview = await getPatientsOverview(links.map((l) => l.patientId));
-      setNames(Object.fromEntries(overview.map((o) => [o.patientId, o.name])));
-    });
+    let vivo = true;
+    // Só o nome de cada um, para dar título aos prontuários. A visão completa do
+    // painel varreria rotina e cumprimentos de todo mundo para nada.
+    getLinkedPatientsBasics(firebaseUser.uid)
+      .then((lista) => vivo && setNames(Object.fromEntries(lista.map((p) => [p.id, p.name]))))
+      .catch(() => vivo && setNames({}));
+    return () => {
+      vivo = false;
+    };
   }, [firebaseUser]);
 
   const porPaciente = useMemo(() => {
