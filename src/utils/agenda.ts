@@ -210,6 +210,33 @@ export function marcasDaSessao(session: SessionDoc): MarcaDaSessao[] {
   return marcas;
 }
 
+/**
+ * O que uma marca vira quando ela toca nela na própria grade.
+ *
+ * Presença dá a volta inteira — nada, veio, faltou, nada — porque nem toda
+ * sessão tem resposta, e tirar a marca errada precisa custar o mesmo toque que
+ * pôr. Pagamento e modalidade só têm dois lados. Nada aqui é irreversível: é o
+ * que autoriza o toque solto no meio da agenda, sem confirmação.
+ */
+export function proximaMarca(
+  session: SessionDoc,
+  chave: MarcaDaSessao["chave"]
+): { patch: Partial<SessionDoc>; aviso: string } {
+  if (chave === "presenca") {
+    if (session.status === "done") return { patch: { status: "no_show" }, aviso: "Faltou" };
+    if (session.status === "no_show") return { patch: { status: "scheduled" }, aviso: "De volta a agendada" };
+    return { patch: { status: "done" }, aviso: "Compareceu" };
+  }
+  if (chave === "pagamento") {
+    return session.paymentStatus === "paid"
+      ? { patch: { paymentStatus: "pending" }, aviso: "A pagar" }
+      : { patch: { paymentStatus: "paid" }, aviso: "Pago" };
+  }
+  return session.modality === "online"
+    ? { patch: { modality: "in_person" }, aviso: "Presencial" }
+    : { patch: { modality: "online" }, aviso: "Online" };
+}
+
 export function formatMoney(value: number | undefined): string {
   return (value ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }

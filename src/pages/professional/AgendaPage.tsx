@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { addDays } from "date-fns";
 import clsx from "clsx";
 import { useAuth } from "@/contexts/AuthContext";
-import { subscribeToSessionsInRange, updateSession } from "@/services/sessions";
+import { setPaymentStatus, subscribeToSessionsInRange, updateSession } from "@/services/sessions";
 import { subscribeToPersonalEventsInRange } from "@/services/personalEvents";
 import { useSessionDrag } from "@/hooks/useSessionDrag";
 import { useToast } from "@/contexts/ToastContext";
@@ -32,9 +32,11 @@ import {
   layoutDay,
   marcasDaSessao,
   minutesOf,
+  proximaMarca,
   sessionColor,
   weekDays,
   weekLabel,
+  type MarcaDaSessao,
 } from "@/utils/agenda";
 import { ecoDoGoogle } from "@/utils/conflitos";
 import { todayKey } from "@/utils/date";
@@ -145,6 +147,24 @@ export function AgendaPage() {
       applyDrop(sessionId, date, startTime, endTime);
     }
   );
+
+  /**
+   * Toque numa marca do bloco: responde a pergunta sem abrir nada.
+   *
+   * Grava direto, sem confirmar, porque tudo aqui se desfaz com outro toque — e
+   * pedir confirmação para marcar "pago" vinte vezes por dia seria pior que
+   * errar uma. O aviso diz de quem e o quê, para o toque errado ser visível.
+   */
+  async function alternarMarca(session: SessionDoc, chave: MarcaDaSessao["chave"]) {
+    const { patch, aviso } = proximaMarca(session, chave);
+    try {
+      if (patch.paymentStatus) await setPaymentStatus(session.id, patch.paymentStatus);
+      else await updateSession(session.id, patch);
+      showToast(`${session.patientName}: ${aviso.toLowerCase()}.`);
+    } catch {
+      showToast("Não deu para atualizar agora.", "error");
+    }
+  }
 
   async function applyDrop(sessionId: string, date: string, startTime: string, endTime: string) {
     setPendingDrop(null);
@@ -401,14 +421,26 @@ export function AgendaPage() {
                     const off = session.status === "cancelled" || session.status === "no_show";
                     const arrastando = preview?.sessionId === session.id;
                     return (
-                      <button
+                      // div em vez de button: as marcas de presença, pagamento e
+                      // modalidade são botões de verdade agora, e botão dentro de
+                      // botão não existe em HTML.
+                      <div
                         key={session.id}
+                        role="button"
+                        tabIndex={0}
                         onPointerDown={(e) => onPointerDown(e, session)}
                         onPointerMove={onPointerMove}
                         onPointerUp={() => finish(true)}
                         onPointerCancel={() => finish(false)}
                         onClick={() => {
                           if (consumeDrag()) return; // acabou de arrastar: não abre a folha
+                          setActive(session);
+                        }}
+                        // Um <button> trazia isto de graça; o div precisa devolver,
+                        // e no computador o teclado é caminho de uso, não exceção.
+                        onKeyDown={(e) => {
+                          if (e.key !== "Enter" && e.key !== " ") return;
+                          e.preventDefault();
                           setActive(session);
                         }}
                         style={{
@@ -456,29 +488,43 @@ export function AgendaPage() {
                             {session.startTime} - {session.endTime}
                           </p>
                         )}
+                        {/* Cada marca é um botão: um toque nela responde a
+                            pergunta ali mesmo, sem abrir nada. O stopPropagation
+                            no pointerdown impede que o toque arme o arraste do
+                            bloco — sem isso, segurar o dedo no cifrão começaria a
+                            mover o atendimento. */}
                         {height > 34 && (
-                          <p className="pointer-events-none flex items-center gap-1 text-[10px] leading-tight">
-                            {marcasDaSessao(session).map((m) =>
-                              // O cifrão sai num círculo branco porque a cor é o
-                              // recado: verde sobre bloco verde não diria nada.
-                              m.cor ? (
-                                <span
-                                  key={m.chave}
-                                  title={m.titulo}
-                                  style={{ color: CORES_DA_MARCA[m.cor] }}
-                                  className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-white text-[10px] font-extrabold leading-none"
-                                >
-                                  {m.icone}
-                                </span>
-                              ) : (
-                                <span key={m.chave} title={m.titulo}>
-                                  {m.icone}
-                                </span>
-                              )
-                            )}
-                          </p>
+                          <div className="flex items-center gap-0.5 text-[10px] leading-tight">
+                            {marcasDaSessao(session).map((m) => (
+                              <button
+                                key={m.chave}
+                                type="button"
+                                title={`${m.titulo} — toque para mudar`}
+                                aria-label={`${session.patientName}: ${m.titulo}. Toque para mudar.`}
+                                onPointerDown={(e) => e.stopPropagation()}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  alternarMarca(session, m.chave);
+                                }}
+                                className="-mx-0.5 flex h-5 w-5 items-center justify-center rounded-full active:bg-black/20"
+                              >
+                                {/* O cifrão sai num círculo branco porque a cor é o
+                                    recado: verde sobre bloco verde não diria nada. */}
+                                {m.cor ? (
+                                  <span
+                                    style={{ color: CORES_DA_MARCA[m.cor] }}
+                                    className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-white text-[10px] font-extrabold leading-none"
+                                  >
+                                    {m.icone}
+                                  </span>
+                                ) : (
+                                  m.icone
+                                )}
+                              </button>
+                            ))}
+                          </div>
                         )}
-                      </button>
+                      </div>
                     );
                   })}
 
