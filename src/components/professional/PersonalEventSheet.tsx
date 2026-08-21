@@ -26,20 +26,27 @@ export function PersonalEventSheet({
   professionalId,
   existing,
   defaultDate,
+  defaultStart,
+  defaultEnd,
   onClose,
 }: {
   professionalId: string;
   existing?: PersonalEventDoc;
   defaultDate: string;
+  /** Horário sugerido, quando o compromisso nasce de um toque na grade. */
+  defaultStart?: string;
+  defaultEnd?: string;
   onClose: () => void;
 }) {
   const { showToast } = useToast();
   const [title, setTitle] = useState(existing?.title ?? "");
   const [kind, setKind] = useState<PersonalKind>(existing?.kind ?? "personal");
   const [date, setDate] = useState(existing?.date ?? defaultDate);
-  const [comHora, setComHora] = useState(!!existing?.startTime);
-  const [startTime, setStartTime] = useState(existing?.startTime ?? "12:00");
-  const [endTime, setEndTime] = useState(existing?.endTime ?? "13:00");
+  // Nascido de um toque na grade, já vem com hora marcada: ela apontou para um
+  // lugar do relógio, e voltar para "sem horário" seria desfazer o gesto.
+  const [comHora, setComHora] = useState(!!existing?.startTime || !!defaultStart);
+  const [startTime, setStartTime] = useState(existing?.startTime ?? defaultStart ?? "12:00");
+  const [endTime, setEndTime] = useState(existing?.endTime ?? defaultEnd ?? "13:00");
   const [note, setNote] = useState(existing?.note ?? "");
   const [saving, setSaving] = useState(false);
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);

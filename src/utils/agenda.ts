@@ -19,6 +19,12 @@ export function minutesOf(time: string): number {
   return h * 60 + (m || 0);
 }
 
+/** O contrário de minutesOf: 570 vira "09:30". Preso ao dia, para não virar "25:10". */
+export function horaDe(minutos: number): string {
+  const preso = Math.max(0, Math.min(24 * 60 - 5, Math.round(minutos)));
+  return `${String(Math.floor(preso / 60)).padStart(2, "0")}:${String(preso % 60).padStart(2, "0")}`;
+}
+
 export function weekDays(reference: Date): Date[] {
   const start = startOfWeek(reference, { weekStartsOn: 1 }); // segunda
   return Array.from({ length: 7 }, (_, i) => addDays(start, i));

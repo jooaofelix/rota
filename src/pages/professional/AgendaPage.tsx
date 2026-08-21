@@ -17,6 +17,7 @@ import { CalendarSyncSheet } from "@/components/professional/CalendarSyncSheet";
 import { GoogleBlockSheet } from "@/components/professional/GoogleBlockSheet";
 import { AgendaImportSheet } from "@/components/professional/AgendaImportSheet";
 import { DuplicatesSheet } from "@/components/professional/DuplicatesSheet";
+import { NovoBlocoSheet } from "@/components/professional/NovoBlocoSheet";
 import { subscribeToExternalEvents, type ExternalEventDoc } from "@/services/externalEvents";
 import { RoomConflictDialog } from "@/components/professional/RoomConflictDialog";
 import { subscribeToPartners, subscribeToRoomSlots } from "@/services/room";
@@ -28,6 +29,7 @@ import {
   blockGeometry,
   dayKey,
   dayLabel,
+  horaDe,
   hourRange,
   layoutDay,
   marcasDaSessao,
@@ -63,6 +65,12 @@ export function AgendaPage() {
   const [erroGoogle, setErroGoogle] = useState<{ mensagem: string; link?: string } | null>(null);
   const [blocoGoogle, setBlocoGoogle] = useState<ExternalEventDoc | null>(null);
   const [novaDe, setNovaDe] = useState<{ date: string; inicio: string; fim: string } | null>(null);
+  /** Horário vazio que ela tocou na grade, esperando virar atendimento ou pessoal. */
+  const [novoEm, setNovoEm] = useState<{ date: string; inicio: string; fim: string } | null>(null);
+  /** O mesmo horário, já encaminhado para o lado pessoal. */
+  const [novoPessoalEm, setNovoPessoalEm] = useState<{ date: string; inicio: string; fim: string } | null>(
+    null
+  );
   /** Dia mostrado na aba "Meu dia" — anda sozinho, sem mexer na semana. */
   const [diaFoco, setDiaFoco] = useState(() => todayKey());
   /** Arraste que caiu fora do turno dela e espera confirmação. */
@@ -329,11 +337,31 @@ export function AgendaPage() {
                 <div
                   key={key}
                   data-day={key}
+                  onClick={(e) => {
+                    // Só o vazio conta. Um clique num atendimento, num bloco do
+                    // Google ou num compromisso pessoal cai naquele bloco, não
+                    // aqui — e o teste é o alvo, não a posição, porque depois de
+                    // arrastar o clique ainda pertence ao bloco arrastado.
+                    const alvo = e.target as HTMLElement;
+                    if (alvo !== e.currentTarget && alvo.dataset.hora === undefined) return;
+
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const bruto = firstHour * 60 + ((e.clientY - rect.top) / HOUR_PX) * 60;
+                    // Para baixo, não para o mais perto: tocar às 9h20 e receber
+                    // 9h30 tira o horário do lugar onde o dedo pousou.
+                    const inicio = Math.max(0, Math.floor(bruto / 30) * 30);
+                    setNovoEm({ date: key, inicio: horaDe(inicio), fim: horaDe(inicio + 50) });
+                  }}
                   className={clsx("relative flex-1 border-l border-brand-100", key === today && "bg-brand-50/40")}
                   style={{ height: hours.length * HOUR_PX }}
                 >
                   {hours.map((hour) => (
-                    <div key={hour} style={{ height: HOUR_PX }} className="border-b border-dashed border-brand-100" />
+                    <div
+                      key={hour}
+                      data-hora={hour}
+                      style={{ height: HOUR_PX }}
+                      className="border-b border-dashed border-brand-100"
+                    />
                   ))}
 
                   {/* Só as faixas em que a sala é dela ficam limpas; o resto sai sombreado,
@@ -636,12 +664,36 @@ export function AgendaPage() {
         <DuplicatesSheet professionalId={firebaseUser.uid} onClose={() => setVerificando(false)} />
       )}
 
+      {novoEm && (
+        <NovoBlocoSheet
+          data={novoEm.date}
+          inicio={novoEm.inicio}
+          fim={novoEm.fim}
+          onAtendimento={() => {
+            setNovaDe(novoEm);
+            setNovoEm(null);
+            setEditing("new");
+          }}
+          onPessoal={() => {
+            setNovoPessoalEm(novoEm);
+            setNovoEm(null);
+            setEditingEvent("new");
+          }}
+          onClose={() => setNovoEm(null)}
+        />
+      )}
+
       {editingEvent && firebaseUser && (
         <PersonalEventSheet
           professionalId={firebaseUser.uid}
           existing={editingEvent === "new" ? undefined : editingEvent}
-          defaultDate={aba === "dia" ? diaFoco : today}
-          onClose={() => setEditingEvent(null)}
+          defaultDate={novoPessoalEm?.date ?? (aba === "dia" ? diaFoco : today)}
+          defaultStart={novoPessoalEm?.inicio}
+          defaultEnd={novoPessoalEm?.fim}
+          onClose={() => {
+            setEditingEvent(null);
+            setNovoPessoalEm(null);
+          }}
         />
       )}
 
