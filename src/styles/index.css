@@ -293,3 +293,13 @@ html.desktop-mode .app-container {
 html.desktop-mode .nav-inner {
   max-width: 46rem;
 }
+
+/**
+ * A agenda é a única tela que ganha com largura no computador: sete colunas de
+ * dia em 46rem dão 95px cada, e nome de paciente com as marcas de presença,
+ * pagamento e modalidade não cabem nisso. As outras telas continuam estreitas de
+ * propósito — texto em linha longa demais cansa de ler.
+ */
+html.desktop-mode .app-container:has(.agenda-larga) {
+  max-width: 64rem;
+}

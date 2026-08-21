@@ -5,13 +5,17 @@ import { useToast } from "@/contexts/ToastContext";
 import { setPaymentStatus, updateSession } from "@/services/sessions";
 import { draftFromSession } from "@/services/invoices";
 import { NFSE_ATIVA } from "@/config/features";
-import type { PaymentMethod, PaymentStatus, SessionDoc, SessionStatus } from "@/types";
+import type { PaymentMethod, PaymentStatus, SessionDoc, SessionModality, SessionStatus } from "@/types";
 import { PAYMENT_LABELS, PAYMENT_STYLES, STATUS_LABELS, formatMoney } from "@/utils/agenda";
 import { formatShortDate } from "@/utils/date";
 import { SessionRecordSheet } from "./SessionRecordSheet";
 
-const STATUS_ORDER: SessionStatus[] = ["scheduled", "done", "no_show", "cancelled"];
-const PAYMENT_ORDER: PaymentStatus[] = ["pending", "paid", "exempt"];
+// Veio e faltou já estão nos botões grandes acima; aqui ficam as duas saídas que
+// eles não cobrem — voltar ao estado neutro e cancelar.
+const STATUS_ORDER: SessionStatus[] = ["scheduled", "cancelled"];
+// Pagar e pago já estão nos botões grandes; sobra a isenção, que é decisão
+// diferente — não é "ainda não pagou", é "não vai pagar".
+const PAYMENT_ORDER: PaymentStatus[] = ["exempt"];
 
 const METHOD_LABELS: Record<PaymentMethod, string> = {
   pix: "Pix",
@@ -72,6 +76,17 @@ export function SessionActionSheet({
     }
   }
 
+  async function changeModality(modality: SessionModality) {
+    setView((v) => ({ ...v, modality }));
+    try {
+      await updateSession(session.id, { modality });
+      showToast(modality === "online" ? "Marcada como online." : "Marcada como presencial.");
+    } catch {
+      setView((v) => ({ ...v, modality: session.modality }));
+      showToast("Não deu para atualizar agora.");
+    }
+  }
+
   async function changePayment(status: PaymentStatus, method?: PaymentMethod) {
     setView((v) => ({ ...v, paymentStatus: status, paymentMethod: method ?? v.paymentMethod }));
     try {
@@ -128,8 +143,42 @@ export function SessionActionSheet({
 
         {view.note && <p className="rounded-xl bg-cream-100 p-3 text-sm text-brand-600">{view.note}</p>}
 
+        {/* As três perguntas que ela responde depois de cada atendimento —
+            compareceu, pagou, onde foi — em um toque cada, grandes o bastante
+            para o dedo e claras o bastante para o mouse. Tocar de novo no que já
+            está marcado desfaz: errar o botão não pode custar uma ida ao editor. */}
+        <div className="grid gap-2">
+          <Escolha
+            pergunta="Compareceu?"
+            opcoes={[
+              { valor: "done", icone: "👍", rotulo: "Veio", cor: "emerald" },
+              { valor: "no_show", icone: "👎", rotulo: "Faltou", cor: "rose" },
+            ]}
+            atual={view.status}
+            onEscolher={(v) => changeStatus(v === view.status ? "scheduled" : (v as SessionStatus))}
+          />
+          <Escolha
+            pergunta="Pagou?"
+            opcoes={[
+              { valor: "paid", icone: "💲", rotulo: "Pago", cor: "emerald" },
+              { valor: "pending", icone: "⏳", rotulo: "A pagar", cor: "amber" },
+            ]}
+            atual={view.paymentStatus}
+            onEscolher={(v) => changePayment(v as PaymentStatus)}
+          />
+          <Escolha
+            pergunta="Onde foi?"
+            opcoes={[
+              { valor: "in_person", icone: "🏠", rotulo: "Presencial", cor: "brand" },
+              { valor: "online", icone: "💻", rotulo: "Online", cor: "brand" },
+            ]}
+            atual={view.modality}
+            onEscolher={(v) => changeModality(v as SessionModality)}
+          />
+        </div>
+
         <div>
-          <p className="mb-1.5 text-xs font-bold text-brand-500">Situação da sessão</p>
+          <p className="mb-1.5 text-xs font-bold text-brand-500">Outras situações</p>
           <div className="flex flex-wrap gap-1.5">
             {STATUS_ORDER.map((s) => (
               <button
@@ -147,7 +196,7 @@ export function SessionActionSheet({
         </div>
 
         <div>
-          <p className="mb-1.5 text-xs font-bold text-brand-500">Pagamento</p>
+          <p className="mb-1.5 text-xs font-bold text-brand-500">Isenção e forma de pagamento</p>
           <div className="flex flex-wrap gap-1.5">
             {PAYMENT_ORDER.map((s) => (
               <button
@@ -184,5 +233,52 @@ export function SessionActionSheet({
 
       </div>
     </BottomSheet>
+  );
+}
+
+/**
+ * Uma pergunta com duas respostas, do tamanho de um botão de verdade.
+ *
+ * O alvo tem 44px de altura porque é o mínimo que um dedo acerta sem mirar, e a
+ * cor só aparece na resposta escolhida — duas cores fortes lado a lado disputam
+ * a atenção e nenhuma das duas informa nada.
+ */
+const CORES: Record<string, string> = {
+  emerald: "bg-emerald-500 text-white",
+  rose: "bg-rose-500 text-white",
+  amber: "bg-amber-500 text-white",
+  brand: "bg-brand-500 text-white",
+};
+
+function Escolha({
+  pergunta,
+  opcoes,
+  atual,
+  onEscolher,
+}: {
+  pergunta: string;
+  opcoes: Array<{ valor: string; icone: string; rotulo: string; cor: string }>;
+  atual: string;
+  onEscolher: (valor: string) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <p className="w-24 shrink-0 text-[11px] font-bold leading-tight text-brand-500">{pergunta}</p>
+      <div className="flex flex-1 gap-1.5">
+        {opcoes.map((o) => (
+          <button
+            key={o.valor}
+            onClick={() => onEscolher(o.valor)}
+            className={clsx(
+              "flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl text-sm font-bold transition",
+              atual === o.valor ? CORES[o.cor] : "bg-cream-100 text-brand-500 hover:bg-brand-50"
+            )}
+          >
+            <span className="text-base">{o.icone}</span>
+            {o.rotulo}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }

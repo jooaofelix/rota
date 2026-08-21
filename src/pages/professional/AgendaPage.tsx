@@ -29,6 +29,7 @@ import {
   dayLabel,
   hourRange,
   layoutDay,
+  marcasDaSessao,
   minutesOf,
   sessionColor,
   weekDays,
@@ -155,7 +156,7 @@ export function AgendaPage() {
   }
 
   return (
-    <div>
+    <div className="agenda-larga">
       <TopBar
         title="Agenda"
         subtitle={
@@ -440,7 +441,11 @@ export function AgendaPage() {
                         >
                           {session.patientName}
                         </p>
-                        {height > 34 && (
+                        {/* Numa coluna de celular cabem umas dez letras por linha,
+                            então horário e marcas não dividem a mesma. Quando o
+                            bloco é curto demais para as duas, o horário sai: a
+                            posição na grade já diz a hora, e as marcas não. */}
+                        {height > 52 && (
                           <p
                             className={clsx(
                               "pointer-events-none truncate text-[10px] leading-tight",
@@ -448,6 +453,15 @@ export function AgendaPage() {
                             )}
                           >
                             {session.startTime} - {session.endTime}
+                          </p>
+                        )}
+                        {height > 34 && (
+                          <p className="pointer-events-none flex items-center gap-0.5 text-[10px] leading-tight">
+                            {marcasDaSessao(session).map((m) => (
+                              <span key={m.chave} title={m.titulo}>
+                                {m.icone}
+                              </span>
+                            ))}
                           </p>
                         )}
                       </button>

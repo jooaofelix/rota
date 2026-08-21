@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import clsx from "clsx";
 import { setPersonalEventDone } from "@/services/personalEvents";
 import type { PersonalEventDoc, SessionDoc } from "@/types";
-import { PAYMENT_LABELS, PAYMENT_STYLES, formatMoney, sessionColor } from "@/utils/agenda";
+import { PAYMENT_LABELS, PAYMENT_STYLES, formatMoney, marcasDaSessao, sessionColor } from "@/utils/agenda";
 import { formatShortDate, isDateKeyToday } from "@/utils/date";
 import { PERSONAL_COLORS, PERSONAL_ICONS } from "@/utils/personal";
 
@@ -85,7 +85,9 @@ export function DayAgenda({
                       hora={linha.session.startTime}
                       fim={linha.session.endTime}
                       titulo={linha.session.patientName}
-                      detalhe={linha.session.modality === "online" ? "🎥 Atendimento online" : "Atendimento presencial"}
+                      detalhe={marcasDaSessao(linha.session)
+                        .map((m) => `${m.icone} ${m.titulo}`)
+                        .join(" · ")}
                       onClick={() => onOpenSession(linha.session)}
                       etiqueta={
                         linha.session.price ? (

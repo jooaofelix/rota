@@ -2,8 +2,14 @@ import { addDays, format, parseISO, startOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { PaymentStatus, SessionDoc, SessionStatus } from "@/types";
 
-/** Altura de uma hora na grade, em pixels. Define toda a escala vertical da agenda. */
-export const HOUR_PX = 56;
+/**
+ * Altura de uma hora na grade, em pixels. Define toda a escala vertical da agenda.
+ *
+ * Subiu de 56 para 68 quando os blocos passaram a mostrar presença, pagamento e
+ * modalidade: com 56, um atendimento de 50 minutos tinha 47px e as três marcas
+ * não cabiam junto do nome e do horário.
+ */
+export const HOUR_PX = 68;
 
 export const DEFAULT_DAY_START = 7;
 export const DEFAULT_DAY_END = 21;
@@ -139,6 +145,47 @@ export const PAYMENT_STYLES: Record<PaymentStatus, string> = {
   exempt: "bg-slate-100 text-slate-600",
   overdue: "bg-rose-100 text-rose-700",
 };
+
+/**
+ * As três marcas que o bloco mostra sem ninguém abrir nada: veio, pagou, onde foi.
+ *
+ * São as três perguntas que ela responde o dia inteiro, e ler a semana de relance
+ * vale mais do que abrir vinte atendimentos para conferir um a um. A presença
+ * some quando a sessão ainda está só agendada — nada aconteceu para marcar.
+ */
+export interface MarcaDaSessao {
+  chave: "presenca" | "pagamento" | "modalidade";
+  icone: string;
+  titulo: string;
+}
+
+export function marcasDaSessao(session: SessionDoc): MarcaDaSessao[] {
+  const marcas: MarcaDaSessao[] = [];
+
+  if (session.status === "done") marcas.push({ chave: "presenca", icone: "👍", titulo: "Compareceu" });
+  else if (session.status === "no_show") marcas.push({ chave: "presenca", icone: "👎", titulo: "Faltou" });
+  else if (session.status === "cancelled") marcas.push({ chave: "presenca", icone: "🚫", titulo: "Cancelada" });
+
+  if (session.paymentStatus === "paid") marcas.push({ chave: "pagamento", icone: "💲", titulo: "Pago" });
+  else if (session.paymentStatus === "exempt") marcas.push({ chave: "pagamento", icone: "🎁", titulo: "Isento" });
+  // Pendente ganha um desenho próprio em vez do mesmo cifrão apagado: na grade,
+  // distinguir dois ícones iguais pela opacidade não funciona — some no fundo
+  // colorido do bloco, que é justamente onde eles aparecem.
+  else
+    marcas.push(
+      session.paymentStatus === "overdue"
+        ? { chave: "pagamento", icone: "❗", titulo: "Pagamento atrasado" }
+        : { chave: "pagamento", icone: "⏳", titulo: "A pagar" }
+    );
+
+  marcas.push(
+    session.modality === "online"
+      ? { chave: "modalidade", icone: "💻", titulo: "Online" }
+      : { chave: "modalidade", icone: "🏠", titulo: "Presencial" }
+  );
+
+  return marcas;
+}
 
 export function formatMoney(value: number | undefined): string {
   return (value ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
