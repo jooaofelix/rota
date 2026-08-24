@@ -113,11 +113,11 @@ export function UpcomingSessions({ professionalId, max = 8 }: { professionalId: 
                       <span className="block truncate text-sm font-bold text-brand-800">{s.patientName}</span>
                       <span className="block text-xs text-brand-400">
                         {s.modality === "online" ? "🎥 Online" : "Presencial"}
-                        {/* Marcar "realizada" ou "faltou" precisa aparecer na própria
+                        {/* Marcar "realizada" ou "ausente" precisa aparecer na própria
                             linha; antes só o pagamento mudava e a escolha parecia
                             não ter pegado. */}
                         {s.status === "done" && " · ✓ realizada"}
-                        {s.status === "no_show" && " · faltou"}
+                        {s.status === "no_show" && " · ausente"}
                       </span>
                     </span>
                     <span

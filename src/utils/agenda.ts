@@ -134,7 +134,7 @@ export const WEEKDAY_SHORT = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 export const STATUS_LABELS: Record<SessionStatus, string> = {
   scheduled: "Agendada",
   done: "Realizada",
-  no_show: "Faltou",
+  no_show: "Ausente",
   cancelled: "Cancelada",
 };
 
@@ -184,8 +184,8 @@ export const CORES_DA_MARCA: Record<"verde" | "vermelho" | "cinza", string> = {
 export function marcasDaSessao(session: SessionDoc): MarcaDaSessao[] {
   const marcas: MarcaDaSessao[] = [];
 
-  if (session.status === "done") marcas.push({ chave: "presenca", icone: "👍", titulo: "Compareceu" });
-  else if (session.status === "no_show") marcas.push({ chave: "presenca", icone: "👎", titulo: "Faltou" });
+  if (session.status === "done") marcas.push({ chave: "presenca", icone: "👍", titulo: "Presente" });
+  else if (session.status === "no_show") marcas.push({ chave: "presenca", icone: "👎", titulo: "Ausente" });
   else if (session.status === "cancelled") marcas.push({ chave: "presenca", icone: "🚫", titulo: "Cancelada" });
 
   marcas.push({
@@ -219,7 +219,7 @@ export function marcasDaSessao(session: SessionDoc): MarcaDaSessao[] {
 /**
  * O que uma marca vira quando ela toca nela na própria grade.
  *
- * Presença dá a volta inteira — nada, veio, faltou, nada — porque nem toda
+ * Presença dá a volta inteira — nada, presente, ausente, nada — porque nem toda
  * sessão tem resposta, e tirar a marca errada precisa custar o mesmo toque que
  * pôr. Pagamento e modalidade só têm dois lados. Nada aqui é irreversível: é o
  * que autoriza o toque solto no meio da agenda, sem confirmação.
@@ -229,9 +229,9 @@ export function proximaMarca(
   chave: MarcaDaSessao["chave"]
 ): { patch: Partial<SessionDoc>; aviso: string } {
   if (chave === "presenca") {
-    if (session.status === "done") return { patch: { status: "no_show" }, aviso: "Faltou" };
+    if (session.status === "done") return { patch: { status: "no_show" }, aviso: "Ausente" };
     if (session.status === "no_show") return { patch: { status: "scheduled" }, aviso: "De volta a agendada" };
-    return { patch: { status: "done" }, aviso: "Compareceu" };
+    return { patch: { status: "done" }, aviso: "Presente" };
   }
   if (chave === "pagamento") {
     return session.paymentStatus === "paid"

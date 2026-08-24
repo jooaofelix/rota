@@ -10,8 +10,8 @@ import { PAYMENT_LABELS, PAYMENT_STYLES, STATUS_LABELS, formatMoney } from "@/ut
 import { formatShortDate } from "@/utils/date";
 import { SessionRecordSheet } from "./SessionRecordSheet";
 
-// Veio e faltou já estão nos botões grandes acima; aqui ficam as duas saídas que
-// eles não cobrem — voltar ao estado neutro e cancelar.
+// Presente e ausente já estão nos botões grandes acima; aqui ficam as duas saídas
+// que eles não cobrem — voltar ao estado neutro e cancelar.
 const STATUS_ORDER: SessionStatus[] = ["scheduled", "cancelled"];
 // Pagar e pago já estão nos botões grandes; sobra a isenção, que é decisão
 // diferente — não é "ainda não pagou", é "não vai pagar".
@@ -149,10 +149,10 @@ export function SessionActionSheet({
             está marcado desfaz: errar o botão não pode custar uma ida ao editor. */}
         <div className="grid gap-2">
           <Escolha
-            pergunta="Compareceu?"
+            pergunta="Presença?"
             opcoes={[
-              { valor: "done", icone: "👍", rotulo: "Veio", cor: "emerald" },
-              { valor: "no_show", icone: "👎", rotulo: "Faltou", cor: "rose" },
+              { valor: "done", icone: "👍", rotulo: "Presente", cor: "emerald" },
+              { valor: "no_show", icone: "👎", rotulo: "Ausente", cor: "rose" },
             ]}
             atual={view.status}
             onEscolher={(v) => changeStatus(v === view.status ? "scheduled" : (v as SessionStatus))}
