@@ -541,7 +541,14 @@ export function AgendaPage() {
                                 {m.cor ? (
                                   <span
                                     style={{ color: CORES_DA_MARCA[m.cor] }}
-                                    className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-white text-[10px] font-extrabold leading-none"
+                                    className={clsx(
+                                      "flex h-3.5 w-3.5 items-center justify-center rounded-full bg-white text-[10px] font-extrabold leading-none",
+                                      // Cinza é estado neutro — presença ainda sem
+                                      // resposta, atendimento isento. Discreto de
+                                      // propósito: senão a semana que vem inteira
+                                      // grita por uma resposta que ainda não existe.
+                                      m.cor === "cinza" && "opacity-60"
+                                    )}
                                   >
                                     {m.icone}
                                   </span>

@@ -153,28 +153,31 @@ export const PAYMENT_STYLES: Record<PaymentStatus, string> = {
 };
 
 /**
- * As três marcas que o bloco mostra sem ninguém abrir nada: veio, pagou, onde foi.
+ * As três marcas que o bloco mostra sem ninguém abrir nada: presença, pagamento
+ * e modalidade.
  *
  * São as três perguntas que ela responde o dia inteiro, e ler a semana de relance
- * vale mais do que abrir vinte atendimentos para conferir um a um. A presença
- * some quando a sessão ainda está só agendada — nada aconteceu para marcar.
+ * vale mais do que abrir vinte atendimentos para conferir um a um. As três
+ * aparecem sempre, inclusive sem resposta: a marca é o botão que responde, e uma
+ * marca que só nasce depois de respondida não tem como ser tocada a primeira vez.
  */
 export interface MarcaDaSessao {
   chave: "presenca" | "pagamento" | "modalidade";
   icone: string;
   titulo: string;
   /**
-   * Cor da marca — só o pagamento usa.
+   * Cor da marca, quando o desenho é texto e não emoji.
    *
    * Emoji não aceita cor: o cifrão do 💲 é sempre o mesmo, e distinguir pago de
    * não pago pela opacidade não funcionava sobre o fundo colorido do bloco. Por
-   * isso o pagamento é desenhado como texto — aí verde e vermelho valem, e o
-   * sinal fica igual ao que ela já lê em qualquer outro sistema.
+   * isso pagamento e presença-sem-resposta são desenhados como texto — aí verde,
+   * vermelho e cinza valem, e o sinal fica igual ao que ela já lê em qualquer
+   * outro sistema.
    */
   cor?: "verde" | "vermelho" | "cinza";
 }
 
-/** Cor do cifrão. Sai num círculo branco, para valer em bloco de qualquer cor. */
+/** Cor do glifo. Sai num círculo branco, para valer em bloco de qualquer cor. */
 export const CORES_DA_MARCA: Record<"verde" | "vermelho" | "cinza", string> = {
   verde: "#15803d",
   vermelho: "#dc2626",
@@ -187,6 +190,10 @@ export function marcasDaSessao(session: SessionDoc): MarcaDaSessao[] {
   if (session.status === "done") marcas.push({ chave: "presenca", icone: "👍", titulo: "Presente" });
   else if (session.status === "no_show") marcas.push({ chave: "presenca", icone: "👎", titulo: "Ausente" });
   else if (session.status === "cancelled") marcas.push({ chave: "presenca", icone: "🚫", titulo: "Cancelada" });
+  // Agendada é a maioria dos blocos, e era justamente onde não havia marca
+  // nenhuma — ou seja, onde ela mais precisava tocar e não tinha onde. Cinza e
+  // discreta, para não gritar em cada atendimento da semana que vem.
+  else marcas.push({ chave: "presenca", icone: "?", titulo: "Marcar presença", cor: "cinza" });
 
   marcas.push({
     chave: "pagamento",
