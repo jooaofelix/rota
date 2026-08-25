@@ -447,6 +447,8 @@ export function AgendaPage() {
                     const { top, height } = blockGeometry(session, firstHour);
                     const color = sessionColor(session);
                     const off = session.status === "cancelled" || session.status === "no_show";
+                    // Abaixo disto não cabem duas linhas — nome e marcas dividem uma.
+                    const curto = height < 40;
                     const arrastando = preview?.sessionId === session.id;
                     return (
                       // div em vez de button: as marcas de presença, pagamento e
@@ -486,78 +488,57 @@ export function AgendaPage() {
                           userSelect: "none",
                         }}
                         className={clsx(
-                          "absolute overflow-hidden rounded-md border-l-4 px-1.5 py-1 text-left",
+                          "absolute overflow-hidden rounded-md border-l-4 text-left",
+                          // No bloco curto cada pixel é disputado entre o nome e as
+                          // marcas; a folga da margem é o que sobra para cortar.
+                          curto ? "px-1 py-0.5" : "px-1.5 py-1",
                           off ? "border border-dashed opacity-70" : "text-white",
                           arrastando && "opacity-30"
                         )}
                       >
-                        {/* pointer-events-none nos filhos: o alvo do toque precisa ser o
-                            próprio bloco, senão o touch-action dele não vale e o
-                            navegador trata o gesto como rolagem. */}
-                        <p
-                          className={clsx(
-                            "pointer-events-none truncate text-[11px] font-bold leading-tight",
-                            off && "text-brand-500 line-through"
-                          )}
-                        >
-                          {session.patientName}
-                        </p>
-                        {/* Numa coluna de celular cabem umas dez letras por linha,
-                            então horário e marcas não dividem a mesma. Quando o
-                            bloco é curto demais para as duas, o horário sai: a
-                            posição na grade já diz a hora, e as marcas não. */}
-                        {height > 52 && (
-                          <p
-                            className={clsx(
-                              "pointer-events-none truncate text-[10px] leading-tight",
-                              off ? "text-brand-400" : "opacity-90"
-                            )}
-                          >
-                            {session.startTime} - {session.endTime}
-                          </p>
-                        )}
-                        {/* Cada marca é um botão: um toque nela responde a
-                            pergunta ali mesmo, sem abrir nada. O stopPropagation
-                            no pointerdown impede que o toque arme o arraste do
-                            bloco — sem isso, segurar o dedo no cifrão começaria a
-                            mover o atendimento. */}
-                        {height > 34 && (
-                          <div className="flex items-center gap-0.5 text-[10px] leading-tight">
-                            {marcasDaSessao(session).map((m) => (
-                              <button
-                                key={m.chave}
-                                type="button"
-                                title={`${m.titulo} — toque para mudar`}
-                                aria-label={`${session.patientName}: ${m.titulo}. Toque para mudar.`}
-                                onPointerDown={(e) => e.stopPropagation()}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  alternarMarca(session, m.chave);
-                                }}
-                                className="-mx-0.5 flex h-5 w-5 items-center justify-center rounded-full active:bg-black/20"
-                              >
-                                {/* O cifrão sai num círculo branco porque a cor é o
-                                    recado: verde sobre bloco verde não diria nada. */}
-                                {m.cor ? (
-                                  <span
-                                    style={{ color: CORES_DA_MARCA[m.cor] }}
-                                    className={clsx(
-                                      "flex h-3.5 w-3.5 items-center justify-center rounded-full bg-white text-[10px] font-extrabold leading-none",
-                                      // Cinza é estado neutro — presença ainda sem
-                                      // resposta, atendimento isento. Discreto de
-                                      // propósito: senão a semana que vem inteira
-                                      // grita por uma resposta que ainda não existe.
-                                      m.cor === "cinza" && "opacity-60"
-                                    )}
-                                  >
-                                    {m.icone}
-                                  </span>
-                                ) : (
-                                  m.icone
-                                )}
-                              </button>
-                            ))}
+                        {/* Três alturas, três arranjos. O bloco de 50 minutos cabe
+                            nome, horário e marcas em linhas separadas; o de meia
+                            hora perde o horário; e o mais curto de todos põe as
+                            marcas ao lado do nome, encolhidas. Sumir era a única
+                            saída que não servia — atendimento curto também precisa
+                            ser marcado como presente. */}
+                        {curto ? (
+                          <div className="flex items-center gap-1">
+                            <p
+                              className={clsx(
+                                "pointer-events-none min-w-0 flex-1 truncate text-[10px] font-bold leading-tight",
+                                off && "text-brand-500 line-through"
+                              )}
+                            >
+                              {session.patientName}
+                            </p>
+                            <Marcas session={session} compacto onAlternar={alternarMarca} />
                           </div>
+                        ) : (
+                          <>
+                            {/* pointer-events-none nos filhos: o alvo do toque precisa ser o
+                                próprio bloco, senão o touch-action dele não vale e o
+                                navegador trata o gesto como rolagem. */}
+                            <p
+                              className={clsx(
+                                "pointer-events-none truncate text-[11px] font-bold leading-tight",
+                                off && "text-brand-500 line-through"
+                              )}
+                            >
+                              {session.patientName}
+                            </p>
+                            {height > 56 && (
+                              <p
+                                className={clsx(
+                                  "pointer-events-none truncate text-[10px] leading-tight",
+                                  off ? "text-brand-400" : "opacity-90"
+                                )}
+                              >
+                                {session.startTime} - {session.endTime}
+                              </p>
+                            )}
+                            <Marcas session={session} onAlternar={alternarMarca} />
+                          </>
                         )}
                       </div>
                     );
@@ -729,6 +710,69 @@ export function AgendaPage() {
           }}
         />
       )}
+    </div>
+  );
+}
+
+/**
+ * As três marcas do bloco, cada uma um botão que responde a pergunta num toque.
+ *
+ * O stopPropagation no pointerdown impede que o toque arme o arraste do bloco —
+ * sem isso, segurar o dedo no cifrão começaria a mover o atendimento em vez de
+ * marcá-lo como pago.
+ *
+ * A versão compacta existe para o atendimento curto, onde as marcas dividem a
+ * linha com o nome. Ela encolhe o alvo de toque, e isso é uma perda real; some
+ * seria pior, porque atendimento de meia hora também precisa ser marcado.
+ */
+function Marcas({
+  session,
+  compacto,
+  onAlternar,
+}: {
+  session: SessionDoc;
+  compacto?: boolean;
+  onAlternar: (session: SessionDoc, chave: MarcaDaSessao["chave"]) => void;
+}) {
+  return (
+    <div className={clsx("flex shrink-0 items-center leading-none", compacto ? "gap-0" : "gap-0.5")}>
+      {marcasDaSessao(session).map((m) => (
+        <button
+          key={m.chave}
+          type="button"
+          title={`${m.titulo} — toque para mudar`}
+          aria-label={`${session.patientName}: ${m.titulo}. Toque para mudar.`}
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            onAlternar(session, m.chave);
+          }}
+          className={clsx(
+            "-mx-0.5 flex items-center justify-center rounded-full active:bg-black/20",
+            compacto ? "h-4 w-4 text-[9px]" : "h-5 w-5 text-[10px]"
+          )}
+        >
+          {/* O cifrão sai num círculo branco porque a cor é o recado: verde sobre
+              bloco verde não diria nada. */}
+          {m.cor ? (
+            <span
+              style={{ color: CORES_DA_MARCA[m.cor] }}
+              className={clsx(
+                "flex items-center justify-center rounded-full bg-white font-extrabold leading-none",
+                compacto ? "h-3 w-3 text-[8px]" : "h-3.5 w-3.5 text-[10px]",
+                // Cinza é estado neutro — presença ainda sem resposta, atendimento
+                // isento. Discreto de propósito: senão a semana que vem inteira
+                // grita por uma resposta que ainda não existe.
+                m.cor === "cinza" && "opacity-60"
+              )}
+            >
+              {m.icone}
+            </span>
+          ) : (
+            m.icone
+          )}
+        </button>
+      ))}
     </div>
   );
 }
